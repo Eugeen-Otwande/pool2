@@ -292,10 +292,9 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
                 <Button 
                   onClick={() => handleCheckIn()}
                   className="w-full"
-                  disabled={profile.status !== "active"}
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  {profile.status !== "active" ? "Access Pending" : "Check In"}
+                  Check In
                 </Button>
               </div>
             )}
@@ -422,7 +421,6 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
                         <Button 
                           onClick={() => handleCheckIn(schedule.id)}
                           size="sm"
-                          disabled={profile.status !== "active"}
                         >
                           Check In
                         </Button>
