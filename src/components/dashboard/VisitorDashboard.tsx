@@ -35,6 +35,8 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
   const [currentCheckIn, setCurrentCheckIn] = useState<any>(null);
   const [todaysSchedules, setTodaysSchedules] = useState<any[]>([]);
   const [currentPoolLog, setCurrentPoolLog] = useState<any>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [allUsers, setAllUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -65,7 +67,9 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
     await Promise.all([
       fetchCurrentCheckIn(),
       fetchTodaysSchedules(),
-      fetchCurrentPoolLog()
+      fetchCurrentPoolLog(),
+      fetchMessages(),
+      fetchAllUsers()
     ]);
     setLoading(false);
   };
@@ -125,6 +129,39 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       setCurrentPoolLog(data);
     } catch (error) {
       console.error("Error fetching pool log:", error);
+    }
+  };
+
+  const fetchMessages = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select(`
+          *,
+          sender_profile:profiles!messages_sender_id_fkey(first_name, last_name, role)
+        `)
+        .or(`recipient_id.eq.${user.id},recipient_role.eq.visitor`)
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("first_name", { ascending: true });
+
+      if (error) throw error;
+      setAllUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
     }
   };
 
@@ -441,6 +478,92 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Messages from Staff/Admin */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Info className="w-5 h-5" />
+            Messages & Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {messages.length > 0 ? (
+              messages.map((message) => (
+                <div key={message.id} className="p-3 rounded-lg border bg-muted/50">
+                  <div className="flex justify-between items-start mb-2">
+                    <h4 className="font-medium text-sm">{message.title}</h4>
+                    <Badge variant="outline">
+                      {message.message_type}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-2">
+                    {message.content}
+                  </p>
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <span>
+                      From: {message.sender_profile?.first_name} {message.sender_profile?.last_name} ({message.sender_profile?.role})
+                    </span>
+                    <span>{new Date(message.created_at).toLocaleDateString()}</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground text-center py-4">
+                No messages available
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* All Users Overview */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Pool Community ({allUsers.length} members)
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {allUsers.slice(0, 12).map((user) => (
+              <div key={user.id} className="p-3 rounded-lg border bg-muted/50">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                    <span className="text-sm font-medium">
+                      {(user.first_name?.charAt(0) || "")}
+                      {(user.last_name?.charAt(0) || "")}
+                    </span>
+                  </div>
+                  <div className="flex-1">
+                    <p className="text-sm font-medium">
+                      {user.first_name} {user.last_name}
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {user.role}
+                      </Badge>
+                      <Badge 
+                        variant={user.status === 'active' ? 'default' : 'secondary'}
+                        className="text-xs"
+                      >
+                        {user.status}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {allUsers.length > 12 && (
+            <p className="text-center text-sm text-muted-foreground mt-4">
+              And {allUsers.length - 12} more members...
+            </p>
+          )}
         </CardContent>
       </Card>
 
