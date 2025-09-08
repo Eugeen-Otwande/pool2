@@ -2,15 +2,16 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Waves, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 
 const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
     { label: "Features", href: "#features" },
-    { label: "User Roles", href: "#roles" },
-    { label: "Analytics", href: "#analytics" },
-    { label: "Pricing", href: "#pricing" },
+    { label: "Schedule", href: "#schedule" },
+    { label: "Membership", href: "#membership" },
+    { label: "Contact", href: "#contact" },
   ];
 
   return (
@@ -23,9 +24,9 @@ const Navigation = () => {
               <Waves className="w-6 h-6 text-white" />
             </div>
             <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-foreground">PoolManager</span>
+              <span className="text-xl font-bold text-foreground">RCMRD Pool</span>
               <Badge variant="secondary" className="text-xs">
-                v2.0
+                Management
               </Badge>
             </div>
           </div>
@@ -45,12 +46,16 @@ const Navigation = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost">
-              Sign In
-            </Button>
-            <Button variant="hero">
-              Get Started
-            </Button>
+            <Link to="/auth">
+              <Button variant="ghost">
+                Sign In
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button variant="hero">
+                Request Access
+              </Button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -77,12 +82,16 @@ const Navigation = () => {
                 </a>
               ))}
               <div className="pt-4 border-t border-border/50 space-y-3">
-                <Button variant="ghost" className="w-full">
-                  Sign In
-                </Button>
-                <Button variant="hero" className="w-full">
-                  Get Started
-                </Button>
+                <Link to="/auth" className="block">
+                  <Button variant="ghost" className="w-full">
+                    Sign In
+                  </Button>
+                </Link>
+                <Link to="/auth" className="block">
+                  <Button variant="hero" className="w-full">
+                    Request Access
+                  </Button>
+                </Link>
               </div>
             </div>
           </div>

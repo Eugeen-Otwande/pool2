@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Play, Shield, Users, BarChart3 } from "lucide-react";
+import { ArrowRight, CheckCircle, Users, Calendar, Package, TrendingUp } from "lucide-react";
+import { Link } from "react-router-dom";
 import heroImage from "@/assets/pool-hero.jpg";
 
 const Hero = () => {
@@ -9,10 +10,10 @@ const Hero = () => {
       <div className="absolute inset-0 z-0">
         <img 
           src={heroImage} 
-          alt="Modern swimming pool facility" 
+          alt="Modern RCMRD swimming pool facility" 
           className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-gradient-hero opacity-80"></div>
+        <div className="absolute inset-0 bg-gradient-hero opacity-85"></div>
       </div>
       
       {/* Floating Elements */}
@@ -27,66 +28,69 @@ const Hero = () => {
         <div className="max-w-4xl mx-auto">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-glass border border-white/20 rounded-full px-4 py-2 mb-8 shadow-glass">
-            <Shield className="w-4 h-4" />
+            <Users className="w-4 h-4" />
             <span className="text-sm font-medium">RCMRD Aquatic Excellence</span>
           </div>
 
           {/* Main Headline */}
-          <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-            Revolutionary
+          <h1 className="text-4xl md:text-6xl font-bold mb-6 leading-tight">
+            Streamline Your
             <span className="block bg-gradient-to-r from-blue-300 to-cyan-300 bg-clip-text text-transparent">
-              Pool Management
+              Swimming Pool Access
             </span>
-            System
           </h1>
 
           {/* Subtitle */}
           <p className="text-xl md:text-2xl mb-8 text-blue-100 max-w-3xl mx-auto leading-relaxed">
-            Transform your aquatic facility with our comprehensive digital platform. 
-            Real-time monitoring, seamless access control, and data-driven insights.
+            A modern management system for residents, students, staff, and members. 
+            Easy check-ins, scheduling, and equipment tracking.
           </p>
 
-          {/* Stats */}
-          <div className="flex flex-wrap justify-center gap-8 mb-12">
-            <div className="bg-white/10 backdrop-blur-glass border border-white/20 rounded-lg px-6 py-4 shadow-glass">
-              <div className="text-3xl font-bold">75%</div>
-              <div className="text-sm text-blue-200">Reduced Admin Work</div>
+          {/* Feature List */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-12 max-w-2xl mx-auto">
+            <div className="flex items-center gap-3 text-left">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+              <span className="text-blue-100">Digital Check-In & Access Control</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-glass border border-white/20 rounded-lg px-6 py-4 shadow-glass">
-              <div className="text-3xl font-bold">500+</div>
-              <div className="text-sm text-blue-200">Concurrent Users</div>
+            <div className="flex items-center gap-3 text-left">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+              <span className="text-blue-100">View Real-Time Pool Schedule</span>
             </div>
-            <div className="bg-white/10 backdrop-blur-glass border border-white/20 rounded-lg px-6 py-4 shadow-glass">
-              <div className="text-3xl font-bold">99.9%</div>
-              <div className="text-sm text-blue-200">Uptime SLA</div>
+            <div className="flex items-center gap-3 text-left">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+              <span className="text-blue-100">Manage Equipment Rentals</span>
+            </div>
+            <div className="flex items-center gap-3 text-left">
+              <CheckCircle className="w-5 h-5 text-green-400 flex-shrink-0" />
+              <span className="text-blue-100">Track Your Progress & Visits</span>
             </div>
           </div>
 
           {/* CTA Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <Button variant="hero" size="lg" className="group">
-              Get Started Today
-              <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </Button>
-            <Button variant="glass" size="lg" className="group">
-              <Play className="w-5 h-5 mr-2" />
-              Watch Demo
-            </Button>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
+            <Link to="/auth">
+              <Button variant="hero" size="lg" className="group">
+                Request Access
+                <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </Link>
+            <Link to="/auth">
+              <Button variant="glass" size="lg">
+                Already have an account? Sign In
+              </Button>
+            </Link>
           </div>
 
-          {/* Trust Indicators */}
-          <div className="mt-16 flex flex-wrap justify-center items-center gap-8 text-blue-200">
-            <div className="flex items-center gap-2">
-              <Users className="w-5 h-5" />
-              <span className="text-sm">Multi-Role Access</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Shield className="w-5 h-5" />
-              <span className="text-sm">Enterprise Security</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5" />
-              <span className="text-sm">Real-Time Analytics</span>
+          {/* Stats */}
+          <div className="bg-white/10 backdrop-blur-glass border border-white/20 rounded-2xl p-6 shadow-glass max-w-md mx-auto">
+            <img 
+              src={heroImage} 
+              alt="Modern swimming pool facility" 
+              className="w-full h-32 object-cover rounded-lg mb-4"
+            />
+            <div className="text-center">
+              <div className="text-3xl font-bold text-white mb-2">500+</div>
+              <div className="text-sm text-blue-200">Active Members</div>
             </div>
           </div>
         </div>

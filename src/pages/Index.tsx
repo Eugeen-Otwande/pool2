@@ -1,7 +1,10 @@
 import Navigation from "@/components/Navigation";
 import Hero from "@/components/Hero";
 import Features from "@/components/Features";
-import UserRoles from "@/components/UserRoles";
+import MembershipPlans from "@/components/MembershipPlans";
+import PoolSchedule from "@/components/PoolSchedule";
+import Testimonials from "@/components/Testimonials";
+import Contact from "@/components/Contact";
 import Stats from "@/components/Stats";
 import Footer from "@/components/Footer";
 
@@ -11,8 +14,11 @@ const Index = () => {
       <Navigation />
       <Hero />
       <Features />
-      <UserRoles />
+      <MembershipPlans />
+      <PoolSchedule />
+      <Testimonials />
       <Stats />
+      <Contact />
       <Footer />
     </div>
   );

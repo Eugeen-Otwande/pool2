@@ -17,24 +17,22 @@ import {
 
 const Footer = () => {
   const quickLinks = [
+    { label: "Home", href: "#" },
     { label: "Features", href: "#features" },
-    { label: "User Roles", href: "#roles" },
-    { label: "Pricing", href: "#pricing" },
-    { label: "Demo", href: "#demo" }
-  ];
-
-  const support = [
-    { label: "Documentation", href: "/docs" },
-    { label: "API Reference", href: "/api" },
-    { label: "Support Center", href: "/support" },
-    { label: "System Status", href: "/status" }
+    { label: "Schedule", href: "#schedule" },
+    { label: "Login", href: "/auth" },
+    { label: "Register", href: "/auth" }
   ];
 
   const legal = [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
-    { label: "Security", href: "/security" },
-    { label: "Compliance", href: "/compliance" }
+    { label: "Contact Us", href: "#contact" }
+  ];
+
+  const connectWith = [
+    { label: "(555) 123-POOL", href: "tel:+15551237665" },
+    { label: "info@rcmrd.org", href: "mailto:info@rcmrd.org" }
   ];
 
   return (
@@ -56,14 +54,14 @@ const Footer = () => {
                   <Waves className="w-7 h-7 text-white" />
                 </div>
                 <div>
-                  <h3 className="text-xl font-bold text-foreground">Pool Management</h3>
-                  <p className="text-sm text-muted-foreground">RCMRD Aquatic System</p>
+                  <h3 className="text-xl font-bold text-foreground">RCMRD Pool Management</h3>
+                  <p className="text-sm text-muted-foreground">Simplifying pool management and access for modern facilities.</p>
                 </div>
               </div>
               
               <p className="text-muted-foreground mb-6 leading-relaxed">
-                Revolutionizing aquatic facility management with comprehensive digital solutions. 
-                From access control to analytics, we provide everything you need for modern pool operations.
+                Streamline your swimming pool access with our modern management system designed 
+                for residents, students, staff, and members.
               </p>
 
               {/* Contact Info */}
@@ -100,11 +98,11 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Support */}
+            {/* Legal */}
             <div className="lg:col-span-2">
-              <h4 className="text-lg font-semibold text-foreground mb-6">Support</h4>
+              <h4 className="text-lg font-semibold text-foreground mb-6">Legal</h4>
               <ul className="space-y-3">
-                {support.map((link, index) => (
+                {legal.map((link, index) => (
                   <li key={index}>
                     <a 
                       href={link.href}
@@ -117,11 +115,11 @@ const Footer = () => {
               </ul>
             </div>
 
-            {/* Legal */}
+            {/* Connect With Us */}
             <div className="lg:col-span-2">
-              <h4 className="text-lg font-semibold text-foreground mb-6">Legal</h4>
+              <h4 className="text-lg font-semibold text-foreground mb-6">Connect With Us</h4>
               <ul className="space-y-3">
-                {legal.map((link, index) => (
+                {connectWith.map((link, index) => (
                   <li key={index}>
                     <a 
                       href={link.href}
@@ -164,7 +162,7 @@ const Footer = () => {
             {/* Copyright */}
             <div className="flex items-center gap-4">
               <p className="text-sm text-muted-foreground">
-                © 2024 RCMRD Pool Management System. All rights reserved.
+                © 2025 RCMRD Pool Management. All rights reserved. | Powered by RCMRD Pool Management System
               </p>
               <div className="flex items-center gap-4">
                 <Badge variant="secondary" className="text-xs">

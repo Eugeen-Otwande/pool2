@@ -18,46 +18,25 @@ import {
 const Features = () => {
   const features = [
     {
-      icon: QrCode,
-      title: "Smart Access Control",
-      description: "QR code-based check-in/check-out system with real-time capacity monitoring and automated access management.",
+      icon: Shield,
+      title: "🛠️ Full Control & Oversight",
+      description: "Manage user roles, view activity logs, edit schedules, and generate reports from one dashboard.",
       gradient: "bg-gradient-admin",
       color: "text-blue-300"
     },
     {
-      icon: Calendar,
-      title: "Dynamic Scheduling",
-      description: "Visual timetable with role-based allocations, conflict detection, and automated waitlist management.",
+      icon: Users,
+      title: "👤 Seamless Access",
+      description: "Check in with one click, view your visit history, and track your swimming progress.",
       gradient: "bg-gradient-student",
       color: "text-cyan-300"
     },
     {
-      icon: Package,
-      title: "Equipment Tracking",
-      description: "RFID/barcode equipment management with reservation system and automated maintenance scheduling.",
+      icon: Calendar,
+      title: "📅 Live Schedule & Alerts",
+      description: "Always know when the pool is open. Get notified of schedule changes or closures instantly.",
       gradient: "bg-gradient-staff",
       color: "text-indigo-300"
-    },
-    {
-      icon: TrendingUp,
-      title: "Progress Analytics",
-      description: "Comprehensive tracking of user progress, skill development, and performance metrics with badges.",
-      gradient: "bg-gradient-residence",
-      color: "text-purple-300"
-    },
-    {
-      icon: MessageCircle,
-      title: "Communication Hub",
-      description: "Targeted messaging, broadcast announcements, emergency alerts with multi-channel delivery.",
-      gradient: "bg-gradient-member",
-      color: "text-emerald-300"
-    },
-    {
-      icon: CreditCard,
-      title: "Payment Integration",
-      description: "Seamless payment processing with M-Pesa, automated renewals, and financial reporting.",
-      gradient: "bg-gradient-admin",
-      color: "text-orange-300"
     }
   ];
 
@@ -79,12 +58,12 @@ const Features = () => {
         {/* Section Header */}
         <div className="text-center mb-16">
           <Badge variant="secondary" className="mb-4">
-            Comprehensive Features
+            How RCMRD Works For You
           </Badge>
           <h2 className="text-4xl md:text-5xl font-bold mb-6 text-foreground">
-            Everything You Need to
+            Experience seamless pool management
             <span className="block bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-              Manage Your Pool
+              with features designed for everyone
             </span>
           </h2>
           <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -94,7 +73,7 @@ const Features = () => {
         </div>
 
         {/* Feature Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-16">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
           {features.map((feature, index) => (
             <Card key={index} className="relative group hover:shadow-glass transition-smooth overflow-hidden border-border/50 bg-card/50 backdrop-blur-sm">
               {/* Gradient Background */}
