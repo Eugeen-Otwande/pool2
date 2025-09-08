@@ -182,21 +182,27 @@ const TimetableManagement = ({ onRefreshStats }: TimetableManagementProps) => {
   };
 
   const toggleDayOfWeek = (day: number) => {
-    setFormData(prev => ({
-      ...prev,
-      days_of_week: prev.days_of_week.includes(day)
-        ? prev.days_of_week.filter(d => d !== day)
-        : [...prev.days_of_week, day].sort()
-    }));
+    setFormData(prev => {
+      const currentDays = prev.days_of_week || [];
+      return {
+        ...prev,
+        days_of_week: currentDays.includes(day)
+          ? currentDays.filter(d => d !== day)
+          : [...currentDays, day].sort()
+      };
+    });
   };
 
   const toggleRole = (role: string) => {
-    setFormData(prev => ({
-      ...prev,
-      allowed_roles: prev.allowed_roles.includes(role)
-        ? prev.allowed_roles.filter(r => r !== role)
-        : [...prev.allowed_roles, role]
-    }));
+    setFormData(prev => {
+      const currentRoles = prev.allowed_roles || [];
+      return {
+        ...prev,
+        allowed_roles: currentRoles.includes(role)
+          ? currentRoles.filter(r => r !== role)
+          : [...currentRoles, role]
+      };
+    });
   };
 
   if (loading) {
@@ -294,7 +300,7 @@ const TimetableManagement = ({ onRefreshStats }: TimetableManagementProps) => {
                       <Button
                         key={index}
                         type="button"
-                        variant={formData.days_of_week.includes(index) ? "default" : "outline"}
+                        variant={(formData.days_of_week || []).includes(index) ? "default" : "outline"}
                         size="sm"
                         onClick={() => toggleDayOfWeek(index)}
                       >
@@ -363,7 +369,7 @@ const TimetableManagement = ({ onRefreshStats }: TimetableManagementProps) => {
                       <Button
                         key={role}
                         type="button"
-                        variant={formData.allowed_roles.includes(role) ? "default" : "outline"}
+                        variant={(formData.allowed_roles || []).includes(role) ? "default" : "outline"}
                         size="sm"
                         onClick={() => toggleRole(role)}
                       >
@@ -433,31 +439,31 @@ const TimetableManagement = ({ onRefreshStats }: TimetableManagementProps) => {
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {schedule.days_of_week.map((day) => (
+                      {(schedule.days_of_week || []).map((day) => (
                         <Badge key={day} variant="secondary" className="text-xs">
-                          {dayNames[day].slice(0, 3)}
+                          {dayNames[day]?.slice(0, 3) || 'N/A'}
                         </Badge>
                       ))}
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm">
-                      <div className="font-medium">{schedule.capacity_limit} total</div>
+                      <div className="font-medium">{schedule.capacity_limit || 0} total</div>
                       <div className="text-muted-foreground">
-                        S:{schedule.max_students} St:{schedule.max_staff} R:{schedule.max_residents} M:{schedule.max_members}
+                        S:{schedule.max_students || 0} St:{schedule.max_staff || 0} R:{schedule.max_residents || 0} M:{schedule.max_members || 0}
                       </div>
                     </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">
-                      {schedule.allowed_roles.slice(0, 2).map((role) => (
+                      {(schedule.allowed_roles || []).slice(0, 2).map((role) => (
                         <Badge key={role} variant="outline" className="text-xs">
                           {role}
                         </Badge>
                       ))}
-                      {schedule.allowed_roles.length > 2 && (
+                      {(schedule.allowed_roles || []).length > 2 && (
                         <Badge variant="outline" className="text-xs">
-                          +{schedule.allowed_roles.length - 2}
+                          +{(schedule.allowed_roles || []).length - 2}
                         </Badge>
                       )}
                     </div>
