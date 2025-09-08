@@ -14,7 +14,223 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      check_ins: {
+        Row: {
+          check_in_time: string
+          check_out_time: string | null
+          created_at: string
+          id: string
+          notes: string | null
+          schedule_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          check_in_time?: string
+          check_out_time?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          schedule_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          check_in_time?: string
+          check_out_time?: string | null
+          created_at?: string
+          id?: string
+          notes?: string | null
+          schedule_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pool_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      equipment: {
+        Row: {
+          barcode: string | null
+          category: string
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          replacement_cost: number | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          barcode?: string | null
+          category: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          replacement_cost?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          barcode?: string | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          replacement_cost?: number | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      equipment_loans: {
+        Row: {
+          created_at: string
+          due_back_at: string
+          equipment_id: string
+          id: string
+          loaned_at: string
+          notes: string | null
+          returned_at: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          due_back_at: string
+          equipment_id: string
+          id?: string
+          loaned_at?: string
+          notes?: string | null
+          returned_at?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          due_back_at?: string
+          equipment_id?: string
+          id?: string
+          loaned_at?: string
+          notes?: string | null
+          returned_at?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "equipment_loans_equipment_id_fkey"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pool_schedules: {
+        Row: {
+          allowed_roles: string[]
+          capacity_limit: number
+          created_at: string
+          created_by: string | null
+          days_of_week: number[]
+          description: string | null
+          end_time: string
+          id: string
+          is_active: boolean
+          start_time: string
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          allowed_roles: string[]
+          capacity_limit?: number
+          created_at?: string
+          created_by?: string | null
+          days_of_week: number[]
+          description?: string | null
+          end_time: string
+          id?: string
+          is_active?: boolean
+          start_time: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          allowed_roles?: string[]
+          capacity_limit?: number
+          created_at?: string
+          created_by?: string | null
+          days_of_week?: number[]
+          description?: string | null
+          end_time?: string
+          id?: string
+          is_active?: boolean
+          start_time?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string
+          emergency_contact: string | null
+          emergency_phone: string | null
+          first_name: string | null
+          id: string
+          last_name: string | null
+          phone: string | null
+          role: string
+          status: string
+          subscription_expires_at: string | null
+          subscription_type: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          role: string
+          status?: string
+          subscription_expires_at?: string | null
+          subscription_type?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          emergency_contact?: string | null
+          emergency_phone?: string | null
+          first_name?: string | null
+          id?: string
+          last_name?: string | null
+          phone?: string | null
+          role?: string
+          status?: string
+          subscription_expires_at?: string | null
+          subscription_type?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
