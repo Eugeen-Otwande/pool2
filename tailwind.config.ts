@@ -58,6 +58,26 @@ export default {
           ring: "hsl(var(--sidebar-ring))",
         },
       },
+      backgroundImage: {
+        'gradient-admin': 'var(--gradient-admin)',
+        'gradient-student': 'var(--gradient-student)',
+        'gradient-staff': 'var(--gradient-staff)',
+        'gradient-residence': 'var(--gradient-residence)',
+        'gradient-member': 'var(--gradient-member)',
+        'gradient-hero': 'var(--gradient-hero)',
+        'gradient-card': 'var(--gradient-card)',
+      },
+      backdropBlur: {
+        'glass': '16px',
+      },
+      boxShadow: {
+        'glass': 'var(--glass-shadow)',
+        'glass-inset': 'inset 0 1px 0 0 rgba(255, 255, 255, 0.1)',
+      },
+      transitionTimingFunction: {
+        'smooth': 'cubic-bezier(0.4, 0, 0.2, 1)',
+        'spring': 'cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+      },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",

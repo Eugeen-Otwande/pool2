@@ -2,39 +2,62 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
+/* Swimming Pool Management System Design System 
+All colors MUST be HSL format for consistency across light/dark modes.
+Glassmorphism theme with aquatic-inspired gradients.
 */
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Base semantic colors */
+    --background: 210 30% 8%;
+    --foreground: 210 40% 98%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 210 30% 12%;
+    --card-foreground: 210 40% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 210 30% 12%;
+    --popover-foreground: 210 40% 98%;
 
-    --primary: 222.2 47.4% 11.2%;
+    /* Primary aquatic blue theme */
+    --primary: 207 90% 54%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 215 25% 27%;
+    --secondary-foreground: 210 40% 98%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 215 25% 20%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 197 71% 52%;
+    --accent-foreground: 210 40% 98%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 215 25% 20%;
+    --input: 215 25% 18%;
+    --ring: 207 90% 54%;
+
+    /* Custom aquatic gradients from PRD */
+    --gradient-admin: linear-gradient(135deg, hsl(232 100% 16%) 0%, hsl(207 100% 29%) 100%);
+    --gradient-student: linear-gradient(135deg, hsl(210 29% 24%) 0%, hsl(192 61% 53%) 100%);
+    --gradient-staff: linear-gradient(135deg, hsl(195 100% 50%) 0%, hsl(249 21% 64%) 100%);
+    --gradient-residence: linear-gradient(135deg, hsl(211 35% 46%) 0%, hsl(215 29% 25%) 100%);
+    --gradient-member: linear-gradient(135deg, hsl(207 74% 44%) 0%, hsl(210 29% 24%) 100%);
+    
+    /* Hero and main gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(207 90% 54%) 0%, hsl(232 100% 16%) 100%);
+    --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    
+    /* Glassmorphism effects */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --glass-border: rgba(255, 255, 255, 0.2);
+    --glass-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+    
+    /* Animation and transitions */
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-spring: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 
     --radius: 0.5rem;
 
