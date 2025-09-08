@@ -21,6 +21,10 @@ interface UserProfile {
   phone: string | null;
   subscription_type: string | null;
   subscription_expires_at: string | null;
+  emergency_contact?: string | null;
+  emergency_phone?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 const Dashboard = () => {
@@ -123,6 +127,7 @@ const Dashboard = () => {
 
   const renderDashboard = () => {
     switch (profile.role) {
+      case "admin":
       case "system_admin":
       case "pool_admin":
         return <AdminDashboard user={user} profile={profile} />;

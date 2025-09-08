@@ -2,6 +2,12 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -12,7 +18,13 @@ import {
   Clock,
   CheckCircle,
   AlertTriangle,
-  Settings
+  Settings,
+  Edit,
+  Trash2,
+  Plus,
+  Eye,
+  UserCheck,
+  UserX
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 
@@ -24,6 +36,54 @@ interface UserProfile {
   last_name: string | null;
   role: string;
   status: string;
+  phone?: string | null;
+  emergency_contact?: string | null;
+  emergency_phone?: string | null;
+  subscription_type?: string | null;
+  subscription_expires_at?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  status: string;
+  barcode?: string;
+  replacement_cost?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Schedule {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  days_of_week: number[];
+  capacity_limit: number;
+  allowed_roles: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface CheckIn {
+  id: string;
+  user_id: string;
+  check_in_time: string;
+  check_out_time?: string;
+  status: string;
+  notes?: string;
+  profiles: {
+    first_name: string;
+    last_name: string;
+    role: string;
+    email: string;
+  };
 }
 
 interface AdminDashboardProps {
@@ -38,8 +98,13 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
     equipmentItems: 0,
     pendingApprovals: 0,
   });
-  const [recentActivity, setRecentActivity] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<CheckIn[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -70,15 +135,31 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
         .select("*", { count: "exact", head: true })
         .eq("status", "pending");
 
-      // Fetch recent check-ins for activity
+      // For now, let's skip the join query and fetch recent check-ins separately
       const { data: recentCheckIns } = await supabase
         .from("check_ins")
-        .select(`
-          *,
-          profiles!inner(first_name, last_name, role)
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(5);
+
+      // Fetch user details for recent check-ins
+      const recentActivity = [];
+      if (recentCheckIns && recentCheckIns.length > 0) {
+        for (const checkIn of recentCheckIns) {
+          const { data: userProfile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, role, email")
+            .eq("user_id", checkIn.user_id)
+            .single();
+
+          if (userProfile) {
+            recentActivity.push({
+              ...checkIn,
+              profiles: userProfile
+            });
+          }
+        }
+      }
 
       setStats({
         totalUsers: userCount || 0,
@@ -87,7 +168,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
         pendingApprovals: pendingCount || 0,
       });
 
-      setRecentActivity(recentCheckIns || []);
+      setRecentActivity(recentActivity);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
       toast({
@@ -97,6 +178,155 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchEquipment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("equipment")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setEquipment(data || []);
+    } catch (error) {
+      console.error("Error fetching equipment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load equipment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchSchedules = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pool_schedules")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSchedules(data || []);
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load schedules",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchCheckIns = async () => {
+    try {
+      const { data: checkInsData, error } = await supabase
+        .from("check_ins")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      // Fetch user details for each check-in
+      const checkInsWithProfiles = [];
+      if (checkInsData && checkInsData.length > 0) {
+        for (const checkIn of checkInsData) {
+          const { data: userProfile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, role, email")
+            .eq("user_id", checkIn.user_id)
+            .single();
+
+          if (userProfile) {
+            checkInsWithProfiles.push({
+              ...checkIn,
+              profiles: userProfile
+            });
+          }
+        }
+      }
+
+      setCheckIns(checkInsWithProfiles);
+    } catch (error) {
+      console.error("Error fetching check-ins:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load check-ins",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserStatus = async (userId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User status updated to ${status}`,
+      });
+
+      fetchUsers();
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserRole = async (userId: string, role: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User role updated to ${role}`,
+      });
+
+      fetchUsers();
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
     }
   };
 
@@ -122,133 +352,437 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
-            Welcome back, {profile.first_name || "Admin"}!
+            Admin Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Here's what's happening at the pool today
+            Manage all aspects of the pool facility
           </p>
         </div>
-        <Button>
-          <Settings className="w-4 h-4 mr-2" />
-          System Settings
-        </Button>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Users</p>
-                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</p>
-              </div>
-              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-5">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="schedules">Schedules</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="checkins">Check-ins</TabsTrigger>
+        </TabsList>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Active Check-ins</p>
-                <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{stats.activeCheckIns}</p>
-              </div>
-              <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Equipment Items</p>
-                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.equipmentItems}</p>
-              </div>
-              <Package className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Pending Approvals</p>
-                <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.pendingApprovals}</p>
-              </div>
-              <AlertTriangle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {recentActivity.length > 0 ? (
-                recentActivity.map((activity, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {activity.profiles.first_name} {activity.profiles.last_name} checked in
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(activity.check_in_time).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant="secondary">
-                      {activity.profiles.role}
-                    </Badge>
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Users</p>
+                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</p>
                   </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground text-center py-4">No recent activity</p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
+                  <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5" />
-              Quick Actions
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Button className="w-full justify-start" variant="outline">
-              <Users className="w-4 h-4 mr-2" />
-              Manage Users
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <Calendar className="w-4 h-4 mr-2" />
-              Pool Schedule
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <Package className="w-4 h-4 mr-2" />
-              Equipment Management
-            </Button>
-            <Button className="w-full justify-start" variant="outline">
-              <TrendingUp className="w-4 h-4 mr-2" />
-              View Reports
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
+            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Active Check-ins</p>
+                    <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{stats.activeCheckIns}</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Equipment Items</p>
+                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.equipmentItems}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Pending Approvals</p>
+                    <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.pendingApprovals}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((activity, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {activity.profiles.first_name} {activity.profiles.last_name} checked in
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(activity.check_in_time).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary">
+                          {activity.profiles.role}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No recent activity</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("users");
+                    fetchUsers();
+                  }}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Users
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("schedules");
+                    fetchSchedules();
+                  }}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Pool Schedule
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("equipment");
+                    fetchEquipment();
+                  }}
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Equipment Management
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("checkins");
+                    fetchCheckIns();
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  View Check-ins
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  User Management
+                </span>
+                <Button onClick={fetchUsers}>
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={user.status === 'active' ? 'default' : 
+                                 user.status === 'pending' ? 'secondary' : 'destructive'}
+                        >
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Select onValueChange={(value) => updateUserRole(user.id, value)}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Change Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="staff">Staff</SelectItem>
+                              <SelectItem value="student">Student</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="resident">Resident</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {user.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => updateUserStatus(user.id, 'active')}
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {user.status === 'active' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => updateUserStatus(user.id, 'suspended')}
+                            >
+                              <UserX className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Schedules Tab */}
+        <TabsContent value="schedules" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Calendar className="w-5 h-5" />
+                  Pool Schedules
+                </span>
+                <Button onClick={fetchSchedules}>
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Title</TableHead>
+                    <TableHead>Time</TableHead>
+                    <TableHead>Days</TableHead>
+                    <TableHead>Capacity</TableHead>
+                    <TableHead>Allowed Roles</TableHead>
+                    <TableHead>Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedules.map((schedule) => (
+                    <TableRow key={schedule.id}>
+                      <TableCell className="font-medium">{schedule.title}</TableCell>
+                      <TableCell>
+                        {schedule.start_time} - {schedule.end_time}
+                      </TableCell>
+                      <TableCell>
+                        {schedule.days_of_week.map(day => {
+                          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+                          return days[day];
+                        }).join(', ')}
+                      </TableCell>
+                      <TableCell>{schedule.capacity_limit}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {schedule.allowed_roles.map((role, index) => (
+                            <Badge key={index} variant="secondary" className="text-xs">
+                              {role}
+                            </Badge>
+                          ))}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
+                          {schedule.is_active ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Equipment Tab */}
+        <TabsContent value="equipment" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Equipment Management
+                </span>
+                <Button onClick={fetchEquipment}>
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Barcode</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {equipment.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={item.status === 'available' ? 'default' : 
+                                 item.status === 'maintenance' ? 'secondary' : 'destructive'}
+                        >
+                          {item.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{item.barcode || 'N/A'}</TableCell>
+                      <TableCell>
+                        {item.replacement_cost ? `$${item.replacement_cost}` : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Check-ins Tab */}
+        <TabsContent value="checkins" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Check-in History
+                </span>
+                <Button onClick={fetchCheckIns}>
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Check-in Time</TableHead>
+                    <TableHead>Check-out Time</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Notes</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {checkIns.map((checkIn) => (
+                    <TableRow key={checkIn.id}>
+                      <TableCell>
+                        {checkIn.profiles.first_name} {checkIn.profiles.last_name}
+                      </TableCell>
+                      <TableCell>{checkIn.profiles.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{checkIn.profiles.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(checkIn.check_in_time).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        {checkIn.check_out_time 
+                          ? new Date(checkIn.check_out_time).toLocaleString()
+                          : 'Still checked in'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={checkIn.status === 'checked_in' ? 'default' : 'secondary'}
+                        >
+                          {checkIn.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{checkIn.notes || 'N/A'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
