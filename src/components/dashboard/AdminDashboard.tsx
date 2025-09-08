@@ -24,8 +24,16 @@ import {
   Plus,
   Eye,
   UserCheck,
-  UserX
+  UserX,
+  Mail,
+  FileText,
+  ClipboardList,
+  Dumbbell,
+  Info
 } from "lucide-react";
+import UserApprovalTab from "./UserApprovalTab";
+import TimetableManagement from "./TimetableManagement";
+import MessagingTab from "./MessagingTab";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -362,10 +370,13 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="schedules">Schedules</TabsTrigger>
+          <TabsTrigger value="messaging">Messages</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="checkins">Check-ins</TabsTrigger>
         </TabsList>
@@ -517,6 +528,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
           </div>
         </TabsContent>
 
+        {/* User Approvals Tab */}
+        <TabsContent value="approvals" className="space-y-6">
+          <UserApprovalTab onRefreshStats={fetchDashboardData} />
+        </TabsContent>
+
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
@@ -607,62 +623,60 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
         {/* Schedules Tab */}
         <TabsContent value="schedules" className="space-y-6">
+          <TimetableManagement onRefreshStats={fetchDashboardData} />
+        </TabsContent>
+
+        {/* Messaging Tab */}
+        <TabsContent value="messaging" className="space-y-6">
+          <MessagingTab onRefreshStats={fetchDashboardData} />
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Calendar className="w-5 h-5" />
-                  Pool Schedules
-                </span>
-                <Button onClick={fetchSchedules}>
-                  Refresh
-                </Button>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="w-5 h-5" />
+                Reports & Analytics
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Title</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Days</TableHead>
-                    <TableHead>Capacity</TableHead>
-                    <TableHead>Allowed Roles</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {schedules.map((schedule) => (
-                    <TableRow key={schedule.id}>
-                      <TableCell className="font-medium">{schedule.title}</TableCell>
-                      <TableCell>
-                        {schedule.start_time} - {schedule.end_time}
-                      </TableCell>
-                      <TableCell>
-                        {schedule.days_of_week.map(day => {
-                          const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-                          return days[day];
-                        }).join(', ')}
-                      </TableCell>
-                      <TableCell>{schedule.capacity_limit}</TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          {schedule.allowed_roles.map((role, index) => (
-                            <Badge key={index} variant="secondary" className="text-xs">
-                              {role}
-                            </Badge>
-                          ))}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={schedule.is_active ? 'default' : 'secondary'}>
-                          {schedule.is_active ? 'Active' : 'Inactive'}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Button variant="outline" className="h-20 flex-col">
+                  <Users className="w-6 h-6 mb-2" />
+                  Daily Attendance Report
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <TrendingUp className="w-6 h-6 mb-2" />
+                  Weekly Usage Report
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <Package className="w-6 h-6 mb-2" />
+                  Equipment Usage Report
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <CheckCircle className="w-6 h-6 mb-2" />
+                  Check-in/Check-out Log
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <Clock className="w-6 h-6 mb-2" />
+                  Peak Hours Analysis
+                </Button>
+                <Button variant="outline" className="h-20 flex-col">
+                  <AlertTriangle className="w-6 h-6 mb-2" />
+                  Incident Reports
+                </Button>
+              </div>
+              <div className="mt-6 p-4 bg-muted rounded-lg">
+                <h4 className="font-medium mb-2">Custom Report Builder</h4>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Generate custom reports with specific date ranges and filters
+                </p>
+                <Button>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Custom Report
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

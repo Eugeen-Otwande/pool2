@@ -87,17 +87,43 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const fetchMessages = async () => {
     try {
-      const { data, error } = await supabase
+      // Fetch messages first
+      const { data: messagesData, error } = await supabase
         .from("messages")
-        .select(`
-          *,
-          sender_profile:profiles!messages_sender_id_fkey(first_name, last_name, role),
-          recipient_profile:profiles!messages_recipient_id_fkey(first_name, last_name, email)
-        `)
+        .select("*")
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      setMessages(data || []);
+
+      // Fetch profiles for each message
+      const messagesWithProfiles = [];
+      for (const message of messagesData || []) {
+        // Get sender profile
+        const { data: senderProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, role")
+          .eq("user_id", message.sender_id)
+          .single();
+
+        // Get recipient profile if it's an individual message
+        let recipientProfile = null;
+        if (message.recipient_id) {
+          const { data: recipProfile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, email")
+            .eq("user_id", message.recipient_id)
+            .single();
+          recipientProfile = recipProfile;
+        }
+
+        messagesWithProfiles.push({
+          ...message,
+          sender_profile: senderProfile,
+          recipient_profile: recipientProfile,
+        });
+      }
+
+      setMessages(messagesWithProfiles);
     } catch (error) {
       console.error("Error fetching messages:", error);
       toast({
@@ -127,17 +153,31 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const fetchMessageReplies = async (messageId: string) => {
     try {
-      const { data, error } = await supabase
+      // Fetch replies first
+      const { data: repliesData, error } = await supabase
         .from("message_replies")
-        .select(`
-          *,
-          sender_profile:profiles!message_replies_sender_id_fkey(first_name, last_name, role)
-        `)
+        .select("*")
         .eq("message_id", messageId)
         .order("created_at", { ascending: true });
 
       if (error) throw error;
-      return data || [];
+
+      // Fetch sender profiles for each reply
+      const repliesWithProfiles = [];
+      for (const reply of repliesData || []) {
+        const { data: senderProfile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, role")
+          .eq("user_id", reply.sender_id)
+          .single();
+
+        repliesWithProfiles.push({
+          ...reply,
+          sender_profile: senderProfile,
+        });
+      }
+
+      return repliesWithProfiles;
     } catch (error) {
       console.error("Error fetching replies:", error);
       return [];
