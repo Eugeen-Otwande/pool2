@@ -53,6 +53,13 @@ export type Database = {
             referencedRelation: "pool_schedules"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_check_ins_schedule"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pool_schedules"
+            referencedColumns: ["id"]
+          },
         ]
       }
       equipment: {
@@ -148,6 +155,13 @@ export type Database = {
             referencedRelation: "equipment"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fk_equipment_loans_equipment"
+            columns: ["equipment_id"]
+            isOneToOne: false
+            referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
         ]
       }
       message_replies: {
@@ -176,6 +190,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "fk_message_replies_message"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fk_message_replies_message_id"
             columns: ["message_id"]
