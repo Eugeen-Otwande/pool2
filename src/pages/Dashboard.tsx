@@ -9,6 +9,7 @@ import StudentDashboard from "@/components/dashboard/StudentDashboard";
 import StaffDashboard from "@/components/dashboard/StaffDashboard";
 import MemberDashboard from "@/components/dashboard/MemberDashboard";
 import ResidentDashboard from "@/components/dashboard/ResidentDashboard";
+import VisitorDashboard from "@/components/dashboard/VisitorDashboard";
 
 interface UserProfile {
   id: string;
@@ -139,6 +140,8 @@ const Dashboard = () => {
         return <MemberDashboard user={user} profile={profile} />;
       case "resident":
         return <ResidentDashboard user={user} profile={profile} />;
+      case "visitor":
+        return <VisitorDashboard user={user} profile={profile} />;
       default:
         return (
           <div className="p-6 text-center">
