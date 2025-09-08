@@ -197,8 +197,11 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const handleSendMessage = async () => {
     try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user?.id) throw new Error("No authenticated user");
+
       const messageData = {
-        sender_id: (await supabase.auth.getUser()).data.user?.id,
+        sender_id: currentUser.user.id,
         title: formData.title,
         content: formData.content,
         message_type: formData.message_type,
@@ -234,11 +237,14 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const handleReply = async (messageId: string) => {
     try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user?.id) throw new Error("No authenticated user");
+
       const { error } = await supabase
         .from("message_replies")
         .insert([{
           message_id: messageId,
-          sender_id: (await supabase.auth.getUser()).data.user?.id,
+          sender_id: currentUser.user.id,
           content: replyContent,
         }]);
 

@@ -61,22 +61,25 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
 
   const approveUser = async (userId: string, notes: string = "") => {
     try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user?.id) throw new Error("No authenticated user");
+
       // Update user status to active
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ status: "active" })
-        .eq("id", userId);
+        .update({ status: "active", updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
 
       if (profileError) throw profileError;
 
-      // Create approval record
+      // Create approval record using user_id from profiles
       const { error: approvalError } = await supabase
         .from("user_approvals")
         .insert({
           user_id: userId,
           status: "approved",
           approved_at: new Date().toISOString(),
-          approved_by: (await supabase.auth.getUser()).data.user?.id,
+          approved_by: currentUser.user.id,
           approval_notes: notes,
         });
 
@@ -103,21 +106,24 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
 
   const rejectUser = async (userId: string, notes: string = "") => {
     try {
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user?.id) throw new Error("No authenticated user");
+
       // Update user status to rejected
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ status: "rejected" })
-        .eq("id", userId);
+        .update({ status: "rejected", updated_at: new Date().toISOString() })
+        .eq("user_id", userId);
 
       if (profileError) throw profileError;
 
-      // Create approval record
+      // Create approval record using user_id from profiles
       const { error: approvalError } = await supabase
         .from("user_approvals")
         .insert({
           user_id: userId,
           status: "rejected",
-          approved_by: (await supabase.auth.getUser()).data.user?.id,
+          approved_by: currentUser.user.id,
           approval_notes: notes,
         });
 
