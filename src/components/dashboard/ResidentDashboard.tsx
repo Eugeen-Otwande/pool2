@@ -60,7 +60,10 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
           table: 'check_ins',
           filter: `user_id=eq.${user.id}`
         },
-        () => fetchCurrentCheckIn()
+        () => {
+          fetchCurrentCheckIn();
+          fetchRecentVisits();
+        }
       )
       .subscribe();
 

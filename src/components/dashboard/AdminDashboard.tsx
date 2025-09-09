@@ -117,6 +117,38 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
   useEffect(() => {
     fetchDashboardData();
+    
+    // Set up real-time subscription for check-ins
+    const channel = supabase
+      .channel('admin-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'check_ins'
+        },
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          fetchUsers();
+          fetchDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchDashboardData = async () => {
@@ -253,13 +285,18 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
   const fetchCheckIns = async () => {
     try {
+      console.log("AdminDashboard: Fetching check-ins...");
       const { data: checkInsData, error } = await supabase
         .from("check_ins")
         .select("*")
         .order("created_at", { ascending: false })
         .limit(50);
 
-      if (error) throw error;
+      if (error) {
+        console.error("AdminDashboard: Error fetching check-ins:", error);
+        throw error;
+      }
+      console.log("AdminDashboard: Fetched check-ins:", checkInsData?.length || 0);
 
       // Fetch user details for each check-in
       const checkInsWithProfiles = [];
@@ -374,7 +411,24 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       </div>
 
       {/* Tabs Navigation */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+      <Tabs value={activeTab} onValueChange={(tab) => {
+        setActiveTab(tab);
+        // Load data when switching tabs
+        switch(tab) {
+          case "users":
+            fetchUsers();
+            break;
+          case "equipment":
+            fetchEquipment();
+            break;
+          case "schedules":
+            fetchSchedules();
+            break;
+          case "checkins":
+            fetchCheckIns();
+            break;
+        }
+      }} className="w-full">
         <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
@@ -747,9 +801,16 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
               <CardTitle className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
-                  Check-in History
+                  Real-time Check-in History
                 </span>
-                <Button onClick={fetchCheckIns}>
+                <Button 
+                  onClick={fetchCheckIns}
+                  onFocus={() => {
+                    if (activeTab === "checkins" && checkIns.length === 0) {
+                      fetchCheckIns();
+                    }
+                  }}
+                >
                   Refresh
                 </Button>
               </CardTitle>
