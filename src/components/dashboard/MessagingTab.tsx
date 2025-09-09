@@ -138,13 +138,18 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const fetchUsers = async () => {
     try {
+      console.log("MessagingTab: Fetching users...");
       const { data, error } = await supabase
         .from("profiles")
         .select("id, user_id, email, first_name, last_name, role")
         .eq("status", "active")
         .order("first_name", { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("MessagingTab: Error fetching users:", error);
+        throw error;
+      }
+      console.log("MessagingTab: Fetched users:", data?.length || 0);
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);

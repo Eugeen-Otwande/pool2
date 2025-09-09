@@ -39,13 +39,18 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
 
   const fetchPendingUsers = async () => {
     try {
+      console.log("UserApprovalTab: Fetching pending users...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("UserApprovalTab: Error fetching pending users:", error);
+        throw error;
+      }
+      console.log("UserApprovalTab: Fetched pending users:", data?.length || 0);
       setPendingUsers(data || []);
     } catch (error) {
       console.error("Error fetching pending users:", error);

@@ -191,12 +191,17 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
   const fetchUsers = async () => {
     try {
+      console.log("AdminDashboard: Fetching users...");
       const { data, error } = await supabase
         .from("profiles")
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching users:", error);
+        throw error;
+      }
+      console.log("AdminDashboard: Fetched users:", data?.length || 0);
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
