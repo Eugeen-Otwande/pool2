@@ -701,52 +701,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="w-5 h-5" />
-                Reports & Analytics
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <Button variant="outline" className="h-20 flex-col">
-                  <Users className="w-6 h-6 mb-2" />
-                  Daily Attendance Report
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <TrendingUp className="w-6 h-6 mb-2" />
-                  Weekly Usage Report
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <Package className="w-6 h-6 mb-2" />
-                  Equipment Usage Report
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <CheckCircle className="w-6 h-6 mb-2" />
-                  Check-in/Check-out Log
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <Clock className="w-6 h-6 mb-2" />
-                  Peak Hours Analysis
-                </Button>
-                <Button variant="outline" className="h-20 flex-col">
-                  <AlertTriangle className="w-6 h-6 mb-2" />
-                  Incident Reports
-                </Button>
-              </div>
-              <div className="mt-6 p-4 bg-muted rounded-lg">
-                <h4 className="font-medium mb-2">Custom Report Builder</h4>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Generate custom reports with specific date ranges and filters
-                </p>
-                <Button>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Custom Report
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <ReportsTab onRefreshStats={fetchDashboardData} />
         </TabsContent>
 
         {/* Equipment Tab */}
