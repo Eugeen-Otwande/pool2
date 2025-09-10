@@ -37,6 +37,7 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
   const [currentPoolLog, setCurrentPoolLog] = useState<any>(null);
   const [messages, setMessages] = useState<any[]>([]);
   const [allUsers, setAllUsers] = useState<any[]>([]);
+  const [recentVisits, setRecentVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -54,7 +55,10 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
           table: 'check_ins',
           filter: `user_id=eq.${user.id}`
         },
-        () => fetchCurrentCheckIn()
+        () => {
+          fetchCurrentCheckIn();
+          fetchRecentVisits();
+        }
       )
       .subscribe();
 
@@ -69,7 +73,8 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       fetchTodaysSchedules(),
       fetchCurrentPoolLog(),
       fetchMessages(),
-      fetchAllUsers()
+      fetchAllUsers(),
+      fetchRecentVisits()
     ]);
     setLoading(false);
   };
@@ -183,6 +188,7 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       });
 
       fetchCurrentCheckIn();
+      fetchRecentVisits();
     } catch (error: any) {
       toast({
         title: "Check-in Failed",
@@ -212,6 +218,7 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       });
 
       setCurrentCheckIn(null);
+      fetchRecentVisits();
     } catch (error: any) {
       toast({
         title: "Check-out Failed",
@@ -221,10 +228,29 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
     }
   };
 
-  const formatDuration = (checkInTime: string) => {
+  const fetchRecentVisits = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("check_ins")
+        .select(`
+          *,
+          pool_schedules(title)
+        `)
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(8);
+
+      if (error) throw error;
+      setRecentVisits(data || []);
+    } catch (error) {
+      console.error("Error fetching recent visits:", error);
+    }
+  };
+
+  const formatDuration = (checkInTime: string, checkOutTime?: string) => {
     const start = new Date(checkInTime);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - start.getTime()) / 60000); // minutes
+    const end = checkOutTime ? new Date(checkOutTime) : new Date();
+    const diff = Math.floor((end.getTime() - start.getTime()) / 60000); // minutes
     
     if (diff < 60) return `${diff}m`;
     return `${Math.floor(diff / 60)}h ${diff % 60}m`;
@@ -514,6 +540,65 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
             ) : (
               <p className="text-muted-foreground text-center py-4">
                 No messages available
+              </p>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Recent Visits */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Clock className="w-5 h-5" />
+            Recent Visits
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3 max-h-64 overflow-y-auto">
+            {recentVisits.length > 0 ? (
+              recentVisits.map((visit) => (
+                <div key={visit.id} className="p-3 rounded-lg bg-muted/50 border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center space-x-3">
+                      <div className={`w-2 h-2 rounded-full ${
+                        visit.status === 'checked_out' ? 'bg-green-500' : 'bg-blue-500'
+                      }`}></div>
+                      <div>
+                        <p className="text-sm font-medium">
+                          {visit.pool_schedules?.title || "Pool Session"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(visit.check_in_time).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                    <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
+                      {visit.status}
+                    </Badge>
+                  </div>
+                  
+                  <div className="text-xs text-muted-foreground space-y-1">
+                    <div className="flex justify-between">
+                      <span>Check-in:</span>
+                      <span>{new Date(visit.check_in_time).toLocaleTimeString()}</span>
+                    </div>
+                    {visit.check_out_time && (
+                      <div className="flex justify-between">
+                        <span>Check-out:</span>
+                        <span>{new Date(visit.check_out_time).toLocaleTimeString()}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-medium">
+                      <span>Duration:</span>
+                      <span>{formatDuration(visit.check_in_time, visit.check_out_time)}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="text-muted-foreground text-center py-4">
+                No recent visits found
               </p>
             )}
           </div>

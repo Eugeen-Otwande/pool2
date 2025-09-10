@@ -328,6 +328,15 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
     }
   };
 
+  const formatDuration = (checkInTime: string, checkOutTime?: string) => {
+    const start = new Date(checkInTime);
+    const end = checkOutTime ? new Date(checkOutTime) : new Date();
+    const diff = Math.floor((end.getTime() - start.getTime()) / 60000); // minutes
+    
+    if (diff < 60) return `${diff}m`;
+    return `${Math.floor(diff / 60)}h ${diff % 60}m`;
+  };
+
   const updateUserStatus = async (userId: string, status: string) => {
     try {
       const { error } = await supabase
@@ -824,6 +833,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
                     <TableHead>Role</TableHead>
                     <TableHead>Check-in Time</TableHead>
                     <TableHead>Check-out Time</TableHead>
+                    <TableHead>Duration</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Notes</TableHead>
                   </TableRow>
@@ -846,6 +856,9 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
                           ? new Date(checkIn.check_out_time).toLocaleString()
                           : 'Still checked in'
                         }
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatDuration(checkIn.check_in_time, checkIn.check_out_time)}
                       </TableCell>
                       <TableCell>
                         <Badge 

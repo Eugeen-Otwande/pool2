@@ -211,10 +211,10 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
     setGuestForm({ name: "", email: "", phone: "" });
   };
 
-  const formatDuration = (checkInTime: string) => {
+  const formatDuration = (checkInTime: string, checkOutTime?: string) => {
     const start = new Date(checkInTime);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - start.getTime()) / 60000); // minutes
+    const end = checkOutTime ? new Date(checkOutTime) : new Date();
+    const diff = Math.floor((end.getTime() - start.getTime()) / 60000); // minutes
     
     if (diff < 60) return `${diff}m`;
     return `${Math.floor(diff / 60)}h ${diff % 60}m`;
@@ -426,25 +426,42 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
             <div className="space-y-3 max-h-64 overflow-y-auto">
               {recentVisits.length > 0 ? (
                 recentVisits.map((visit) => (
-                  <div key={visit.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {visit.pool_schedules?.title || "Pool Session"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(visit.check_in_time).toLocaleDateString()} • 
-                          {new Date(visit.check_in_time).toLocaleTimeString()}
-                          {visit.check_out_time && (
-                            <> - {new Date(visit.check_out_time).toLocaleTimeString()}</>
-                          )}
-                        </p>
+                  <div key={visit.id} className="p-3 rounded-lg bg-muted/50 border">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-2 h-2 rounded-full ${
+                          visit.status === 'checked_out' ? 'bg-green-500' : 'bg-orange-500'
+                        }`}></div>
+                        <div>
+                          <p className="text-sm font-medium">
+                            {visit.pool_schedules?.title || "Pool Session"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(visit.check_in_time).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
+                        {visit.status}
+                      </Badge>
+                    </div>
+                    
+                    <div className="text-xs text-muted-foreground space-y-1">
+                      <div className="flex justify-between">
+                        <span>Check-in:</span>
+                        <span>{new Date(visit.check_in_time).toLocaleTimeString()}</span>
+                      </div>
+                      {visit.check_out_time && (
+                        <div className="flex justify-between">
+                          <span>Check-out:</span>
+                          <span>{new Date(visit.check_out_time).toLocaleTimeString()}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between font-medium">
+                        <span>Duration:</span>
+                        <span>{formatDuration(visit.check_in_time, visit.check_out_time)}</span>
                       </div>
                     </div>
-                    <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
-                      {visit.status}
-                    </Badge>
                   </div>
                 ))
               ) : (
