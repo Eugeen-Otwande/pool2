@@ -117,7 +117,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
         .from("check_ins")
         .select(`
           *,
-          pool_schedules(title)
+          pool_schedules!check_ins_schedule_id_fkey(title)
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
@@ -337,10 +337,10 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
           <div className="space-y-3">
             {recentVisits.length > 0 ? (
               recentVisits.map((visit) => (
-                <div key={visit.id} className="p-3 rounded-lg bg-muted/50 border">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={visit.id} className="p-4 rounded-lg bg-muted/50 border hover:bg-muted/70 transition-colors">
+                  <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${
+                      <div className={`w-3 h-3 rounded-full ${
                         visit.status === 'checked_out' ? 'bg-green-500' : 'bg-blue-500'
                       }`}></div>
                       <div>
@@ -348,31 +348,54 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                           {visit.pool_schedules?.title || "Pool Session"}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(visit.check_in_time).toLocaleDateString()}
+                          {new Date(visit.check_in_time).toLocaleDateString('en-US', { 
+                            weekday: 'short', 
+                            month: 'short', 
+                            day: 'numeric' 
+                          })}
                         </p>
                       </div>
                     </div>
                     <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
-                      {visit.status}
+                      {visit.status.replace('_', ' ')}
                     </Badge>
                   </div>
                   
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <div className="flex justify-between">
-                      <span>Check-in:</span>
-                      <span>{new Date(visit.check_in_time).toLocaleTimeString()}</span>
+                  <div className="grid grid-cols-2 gap-2 text-xs text-muted-foreground mb-2">
+                    <div>
+                      <span className="font-medium">Check-in:</span>
+                      <div>{new Date(visit.check_in_time).toLocaleTimeString('en-US', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}</div>
                     </div>
-                    {visit.check_out_time && (
-                      <div className="flex justify-between">
-                        <span>Check-out:</span>
-                        <span>{new Date(visit.check_out_time).toLocaleTimeString()}</span>
+                    <div>
+                      <span className="font-medium">Check-out:</span>
+                      <div>
+                        {visit.check_out_time 
+                          ? new Date(visit.check_out_time).toLocaleTimeString('en-US', { 
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })
+                          : 'Still checked in'
+                        }
                       </div>
-                    )}
-                    <div className="flex justify-between font-medium">
-                      <span>Duration:</span>
-                      <span>{formatDuration(visit.check_in_time, visit.check_out_time)}</span>
                     </div>
                   </div>
+                  
+                  <div className="flex justify-between items-center pt-2 border-t border-muted">
+                    <span className="text-xs font-medium text-muted-foreground">Session Duration:</span>
+                    <Badge variant="outline" className="text-xs">
+                      {formatDuration(visit.check_in_time, visit.check_out_time)}
+                    </Badge>
+                  </div>
+                  
+                  {visit.notes && (
+                    <div className="mt-2 p-2 bg-muted/30 rounded text-xs">
+                      <span className="font-medium">Notes: </span>
+                      {visit.notes}
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
