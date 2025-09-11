@@ -129,22 +129,27 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
         case 'daily-attendance':
           const { data: checkIns } = await supabase
             .from('check_ins')
-            .select(`
-              *,
-              profiles(first_name, last_name, role)
-            `)
+            .select('*')
             .gte('check_in_time', dateRange.start)
             .lte('check_in_time', dateRange.end)
             .order('check_in_time', { ascending: false });
 
           if (format === 'csv') {
             reportContent = 'Date,Name,Role,Check-in Time,Check-out Time,Duration,Status\n';
-            checkIns?.forEach(record => {
+            
+            for (const record of checkIns || []) {
+              // Get user profile separately
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, role')
+                .eq('user_id', record.user_id)
+                .single();
+              
               const duration = record.check_out_time 
                 ? Math.round((new Date(record.check_out_time).getTime() - new Date(record.check_in_time).getTime()) / (1000 * 60))
                 : 'Ongoing';
-              reportContent += `${new Date(record.check_in_time).toLocaleDateString()},${record.profiles?.first_name} ${record.profiles?.last_name},${record.profiles?.role},${new Date(record.check_in_time).toLocaleTimeString()},${record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString() : 'N/A'},"${duration} min",${record.status}\n`;
-            });
+              reportContent += `${new Date(record.check_in_time).toLocaleDateString()},${profile?.first_name || ''} ${profile?.last_name || ''},${profile?.role || ''},${new Date(record.check_in_time).toLocaleTimeString()},${record.check_out_time ? new Date(record.check_out_time).toLocaleTimeString() : 'N/A'},"${duration} min",${record.status}\n`;
+            }
             filename = `daily-attendance-${dateRange.start}-to-${dateRange.end}.csv`;
           }
           break;
@@ -152,20 +157,30 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
         case 'equipment-usage':
           const { data: loans } = await supabase
             .from('equipment_loans')
-            .select(`
-              *,
-              profiles(first_name, last_name, role),
-              equipment(name, category)
-            `)
+            .select('*')
             .gte('loaned_at', dateRange.start)
             .lte('loaned_at', dateRange.end)
             .order('loaned_at', { ascending: false });
 
           if (format === 'csv') {
             reportContent = 'Date,User,Role,Equipment,Category,Loaned At,Due Back,Returned,Status\n';
-            loans?.forEach(loan => {
-              reportContent += `${new Date(loan.loaned_at).toLocaleDateString()},${loan.profiles?.first_name} ${loan.profiles?.last_name},${loan.profiles?.role},${loan.equipment?.name},${loan.equipment?.category},${new Date(loan.loaned_at).toLocaleTimeString()},${new Date(loan.due_back_at).toLocaleTimeString()},${loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString() : 'No'},${loan.status}\n`;
-            });
+            
+            for (const loan of loans || []) {
+              // Get user profile and equipment separately
+              const { data: profile } = await supabase
+                .from('profiles')
+                .select('first_name, last_name, role')
+                .eq('user_id', loan.user_id)
+                .single();
+                
+              const { data: equipment } = await supabase
+                .from('equipment')
+                .select('name, category')
+                .eq('id', loan.equipment_id)
+                .single();
+                
+              reportContent += `${new Date(loan.loaned_at).toLocaleDateString()},${profile?.first_name || ''} ${profile?.last_name || ''},${profile?.role || ''},${equipment?.name || ''},${equipment?.category || ''},${new Date(loan.loaned_at).toLocaleTimeString()},${new Date(loan.due_back_at).toLocaleTimeString()},${loan.returned_at ? new Date(loan.returned_at).toLocaleTimeString() : 'No'},${loan.status}\n`;
+            }
             filename = `equipment-usage-${dateRange.start}-to-${dateRange.end}.csv`;
           }
           break;
@@ -197,20 +212,23 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
         case 'pool-logs':
           const { data: poolLogs } = await supabase
             .from('pool_logs')
-            .select(`
-              *,
-              checked_by_profile:profiles!pool_logs_checked_by_fkey(first_name, last_name),
-              confirmed_by_profile:profiles!pool_logs_confirmed_by_fkey(first_name, last_name)
-            `)
+            .select('*')
             .gte('date', dateRange.start)
             .lte('date', dateRange.end)
             .order('date', { ascending: false });
 
           if (format === 'csv') {
             reportContent = 'Date,Session,pH Level,Chlorine PPM,Water Clarity,Total Swimmers,Students,Staff,Members,Residents,Checked By,Confirmed By\n';
-            poolLogs?.forEach(log => {
-              reportContent += `${log.date},${log.session},${log.ph_level || 'N/A'},${log.chlorine_ppm || 'N/A'},${log.water_clarity || 'N/A'},${log.total_swimmers},${log.students_count},${log.staff_count},${log.members_count},${log.residents_count},"${log.checked_by_profile?.first_name} ${log.checked_by_profile?.last_name}","${log.confirmed_by_profile?.first_name} ${log.confirmed_by_profile?.last_name}"\n`;
-            });
+            
+            for (const log of poolLogs || []) {
+              // Get profiles separately
+              const [checkedByProfile, confirmedByProfile] = await Promise.all([
+                log.checked_by ? supabase.from('profiles').select('first_name, last_name').eq('user_id', log.checked_by).single() : Promise.resolve({ data: null }),
+                log.confirmed_by ? supabase.from('profiles').select('first_name, last_name').eq('user_id', log.confirmed_by).single() : Promise.resolve({ data: null })
+              ]);
+              
+              reportContent += `${log.date},${log.session},${log.ph_level || 'N/A'},${log.chlorine_ppm || 'N/A'},${log.water_clarity || 'N/A'},${log.total_swimmers},${log.students_count},${log.staff_count},${log.members_count},${log.residents_count},"${checkedByProfile.data?.first_name || ''} ${checkedByProfile.data?.last_name || ''}","${confirmedByProfile.data?.first_name || ''} ${confirmedByProfile.data?.last_name || ''}"\n`;
+            }
             filename = `pool-logs-${dateRange.start}-to-${dateRange.end}.csv`;
           }
           break;
