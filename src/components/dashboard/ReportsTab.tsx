@@ -16,7 +16,7 @@ import {
   AlertTriangle,
   Filter,
   FileSpreadsheet,
-  FilePdf
+  File
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -113,6 +113,7 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
           report_name: `${reportType}-${new Date().toISOString().split('T')[0]}`,
           date_range_start: dateRange.start,
           date_range_end: dateRange.end,
+          generated_by: (await supabase.auth.getUser()).data.user?.id || '',
           filters: { format }
         })
         .select()
@@ -130,7 +131,7 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
             .from('check_ins')
             .select(`
               *,
-              profiles!check_ins_user_id_fkey(first_name, last_name, role)
+              profiles(first_name, last_name, role)
             `)
             .gte('check_in_time', dateRange.start)
             .lte('check_in_time', dateRange.end)
@@ -153,8 +154,8 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
             .from('equipment_loans')
             .select(`
               *,
-              profiles!equipment_loans_user_id_fkey(first_name, last_name, role),
-              equipment!equipment_loans_equipment_id_fkey(name, category)
+              profiles(first_name, last_name, role),
+              equipment(name, category)
             `)
             .gte('loaned_at', dateRange.start)
             .lte('loaned_at', dateRange.end)
@@ -325,7 +326,7 @@ export default function ReportsTab({ onRefreshStats }: ReportsTabProps) {
                           disabled={true}
                           className="flex-1"
                         >
-                          <FilePdf className="w-4 h-4 mr-1" />
+                          <File className="w-4 h-4 mr-1" />
                           PDF
                         </Button>
                       </div>
