@@ -1,25 +1,27 @@
+import PreHeader from "@/components/PreHeader";
 import Navigation from "@/components/Navigation";
-import Hero from "@/components/Hero";
-import Features from "@/components/Features";
-import MembershipPlans from "@/components/MembershipPlans";
-import PoolSchedule from "@/components/PoolSchedule";
-import Testimonials from "@/components/Testimonials";
-import Contact from "@/components/Contact";
-import Stats from "@/components/Stats";
-import Footer from "@/components/Footer";
+import RcmrdHero from "@/components/RcmrdHero";
+import RcmrdAbout from "@/components/RcmrdAbout";
+import RcmrdServices from "@/components/RcmrdServices";
+import RcmrdLocation from "@/components/RcmrdLocation";
+import RcmrdGallery from "@/components/RcmrdGallery";
+import RcmrdTestimonials from "@/components/RcmrdTestimonials";
+import RcmrdContact from "@/components/RcmrdContact";
+import RcmrdFooter from "@/components/RcmrdFooter";
 
 const Index = () => {
   return (
     <div className="min-h-screen bg-background">
+      <PreHeader />
       <Navigation />
-      <Hero />
-      <Features />
-      <MembershipPlans />
-      <PoolSchedule />
-      <Testimonials />
-      <Stats />
-      <Contact />
-      <Footer />
+      <RcmrdHero />
+      <RcmrdAbout />
+      <RcmrdServices />
+      <RcmrdLocation />
+      <RcmrdGallery />
+      <RcmrdTestimonials />
+      <RcmrdContact />
+      <RcmrdFooter />
     </div>
   );
 };
