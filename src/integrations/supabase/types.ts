@@ -515,6 +515,48 @@ export type Database = {
         }
         Relationships: []
       }
+      residence_members: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          email: string
+          full_name: string
+          hostel_admission: string
+          id: string
+          phone_number: string
+          school: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          email: string
+          full_name: string
+          hostel_admission: string
+          id?: string
+          phone_number: string
+          school: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          email?: string
+          full_name?: string
+          hostel_admission?: string
+          id?: string
+          phone_number?: string
+          school?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       sports_inventory: {
         Row: {
           barcode: string | null
@@ -614,6 +656,10 @@ export type Database = {
       is_staff: {
         Args: { _uid: string }
         Returns: boolean
+      }
+      residence_member_checkin: {
+        Args: { member_id: string; schedule_id?: string }
+        Returns: string
       }
     }
     Enums: {
