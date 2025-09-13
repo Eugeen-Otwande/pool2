@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User, Session } from "@supabase/supabase-js";
-import DashboardNav from "@/components/dashboard/DashboardNav";
+import ModernDashboardLayout from "@/components/dashboard/ModernDashboardLayout";
 import AdminDashboard from "@/components/dashboard/AdminDashboard";
 import StudentDashboard from "@/components/dashboard/StudentDashboard";
 import StaffDashboard from "@/components/dashboard/StaffDashboard";
@@ -33,6 +33,7 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -131,9 +132,9 @@ const Dashboard = () => {
       case "admin":
       case "system_admin":
       case "pool_admin":
-        return <AdminDashboard user={user} profile={profile} />;
+        return <AdminDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
       case "staff":
-        return <StaffDashboard user={user} profile={profile} />;
+        return <StaffDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
       case "student":
         return <StudentDashboard user={user} profile={profile} />;
       case "member":
@@ -153,14 +154,25 @@ const Dashboard = () => {
     }
   };
 
+  // Use modern layout for admin and staff roles
+  if (profile.role === "admin" || profile.role === "system_admin" || profile.role === "pool_admin" || profile.role === "staff") {
+    return (
+      <ModernDashboardLayout
+        user={user}
+        profile={profile}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSignOut={handleSignOut}
+      >
+        {renderDashboard()}
+      </ModernDashboardLayout>
+    );
+  }
+
+  // Legacy layout for other roles
   return (
     <div className="min-h-screen bg-background">
-      <DashboardNav 
-        user={user} 
-        profile={profile} 
-        onSignOut={handleSignOut}
-      />
-      <main className="pt-16">
+      <main>
         {renderDashboard()}
       </main>
     </div>
