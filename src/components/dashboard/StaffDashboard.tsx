@@ -14,8 +14,11 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  Eye
+  Eye,
+  Home
 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ResidenceTab from "./ResidenceTab";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -40,6 +43,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResult, setSearchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   const { toast } = useToast();
 
   useEffect(() => {
@@ -218,193 +222,209 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
         </p>
       </div>
 
-      {/* Quick Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Current Capacity</p>
-                <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{currentCapacity}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">people in pool</p>
-              </div>
-              <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
-            </div>
-          </CardContent>
-        </Card>
+      {/* Tabs Navigation */}
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="residence">Residence</TabsTrigger>
+        </TabsList>
 
-        <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Available Equipment</p>
-                <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{availableEquipment.length}</p>
-                <p className="text-xs text-emerald-600 dark:text-emerald-400">items ready</p>
-              </div>
-              <Package className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Avg. Session</p>
-                <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">1.2h</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">duration today</p>
-              </div>
-              <Clock className="w-8 h-8 text-purple-600 dark:text-purple-400" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* User Search & Management */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Search className="w-5 h-5" />
-              User Search
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder="Enter user email..."
-                value={searchEmail}
-                onChange={(e) => setSearchEmail(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && handleUserSearch()}
-              />
-              <Button onClick={handleUserSearch}>
-                <Search className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {searchResult && (
-              <div className="p-4 rounded-lg border bg-muted/50">
-                <div className="flex justify-between items-start mb-2">
+        {/* Overview Tab */}
+        <TabsContent value="overview" className="space-y-6">
+          {/* Quick Stats */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium">
-                      {searchResult.first_name} {searchResult.last_name}
-                    </p>
-                    <p className="text-sm text-muted-foreground">{searchResult.email}</p>
-                    <Badge variant="secondary">{searchResult.role}</Badge>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Current Capacity</p>
+                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{currentCapacity}</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">people in pool</p>
                   </div>
-                  <Badge 
-                    variant={searchResult.check_ins?.length > 0 ? "default" : "secondary"}
-                  >
-                    {searchResult.check_ins?.length > 0 ? "Checked In" : "Not In Pool"}
-                  </Badge>
+                  <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
                 </div>
-                
-                {searchResult.check_ins?.length > 0 && (
-                  <Button 
-                    size="sm" 
-                    variant="outline"
-                    onClick={() => handleManualCheckOut(
-                      searchResult.check_ins[0].id,
-                      `${searchResult.first_name} ${searchResult.last_name}`
-                    )}
-                  >
-                    <XCircle className="w-4 h-4 mr-2" />
-                    Check Out User
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Available Equipment</p>
+                    <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{availableEquipment.length}</p>
+                    <p className="text-xs text-emerald-600 dark:text-emerald-400">items ready</p>
+                  </div>
+                  <Package className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Avg. Session</p>
+                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">1.2h</p>
+                    <p className="text-xs text-purple-600 dark:text-purple-400">duration today</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* User Search & Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="w-5 h-5" />
+                  User Search
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter user email..."
+                    value={searchEmail}
+                    onChange={(e) => setSearchEmail(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && handleUserSearch()}
+                  />
+                  <Button onClick={handleUserSearch}>
+                    <Search className="w-4 h-4" />
                   </Button>
+                </div>
+
+                {searchResult && (
+                  <div className="p-4 rounded-lg border bg-muted/50">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <p className="font-medium">
+                          {searchResult.first_name} {searchResult.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{searchResult.email}</p>
+                        <Badge variant="secondary">{searchResult.role}</Badge>
+                      </div>
+                      <Badge 
+                        variant={searchResult.check_ins?.length > 0 ? "default" : "secondary"}
+                      >
+                        {searchResult.check_ins?.length > 0 ? "Checked In" : "Not In Pool"}
+                      </Badge>
+                    </div>
+                    
+                    {searchResult.check_ins?.length > 0 && (
+                      <Button 
+                        size="sm" 
+                        variant="outline"
+                        onClick={() => handleManualCheckOut(
+                          searchResult.check_ins[0].id,
+                          `${searchResult.first_name} ${searchResult.last_name}`
+                        )}
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Check Out User
+                      </Button>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Equipment Overview */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Equipment Status
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {availableEquipment.length > 0 ? (
+                    availableEquipment.map((item) => (
+                      <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div>
+                          <p className="text-sm font-medium">{item.name}</p>
+                          <p className="text-xs text-muted-foreground">{item.category}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="text-emerald-600 border-emerald-600">
+                            Available
+                          </Badge>
+                          <Button size="sm" variant="ghost">
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">
+                      No equipment available
+                    </p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Active Check-ins */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Users className="w-5 h-5" />
+                Currently in Pool ({currentCapacity})
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {activeCheckIns.length > 0 ? (
+                  activeCheckIns.map((checkIn) => (
+                    <div key={checkIn.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
+                        <div>
+                          <p className="font-medium">
+                            {checkIn.profiles.first_name} {checkIn.profiles.last_name}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            Duration: {formatDuration(checkIn.check_in_time)} • 
+                            Checked in: {new Date(checkIn.check_in_time).toLocaleTimeString()}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Badge variant="secondary">
+                          {checkIn.profiles.role}
+                        </Badge>
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={() => handleManualCheckOut(
+                            checkIn.id,
+                            `${checkIn.profiles.first_name} ${checkIn.profiles.last_name}`
+                          )}
+                        >
+                          <XCircle className="w-4 h-4 mr-2" />
+                          Check Out
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-muted-foreground text-center py-8">
+                    No one is currently checked into the pool
+                  </p>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
-        {/* Equipment Overview */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Package className="w-5 h-5" />
-              Equipment Status
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {availableEquipment.length > 0 ? (
-                availableEquipment.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div>
-                      <p className="text-sm font-medium">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.category}</p>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Badge variant="outline" className="text-emerald-600 border-emerald-600">
-                        Available
-                      </Badge>
-                      <Button size="sm" variant="ghost">
-                        <Eye className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              ) : (
-                <p className="text-muted-foreground text-center py-4">
-                  No equipment available
-                </p>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Active Check-ins */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="w-5 h-5" />
-            Currently in Pool ({currentCapacity})
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {activeCheckIns.length > 0 ? (
-              activeCheckIns.map((checkIn) => (
-                <div key={checkIn.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-3 h-3 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <div>
-                      <p className="font-medium">
-                        {checkIn.profiles.first_name} {checkIn.profiles.last_name}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        Duration: {formatDuration(checkIn.check_in_time)} • 
-                        Checked in: {new Date(checkIn.check_in_time).toLocaleTimeString()}
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary">
-                      {checkIn.profiles.role}
-                    </Badge>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleManualCheckOut(
-                        checkIn.id,
-                        `${checkIn.profiles.first_name} ${checkIn.profiles.last_name}`
-                      )}
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Check Out
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-center py-8">
-                No one is currently checked into the pool
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        {/* Residence Tab */}
+        <TabsContent value="residence" className="space-y-6">
+          <ResidenceTab onRefreshStats={() => fetchDashboardData()} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

@@ -1,27 +1,40 @@
 import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Building, UserPlus, Edit, Trash2, CheckCircle } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { toast } from "sonner";
+import { Plus, Edit, Trash2, CheckCircle, Download } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ResidenceMember {
   id: string;
   full_name: string;
+  email: string;
+  phone_number: string;
   school: string;
   hostel_admission: string;
-  phone_number: string;
-  email: string;
-  user_id: string | null;
   status: string;
+  user_id?: string;
   created_at: string;
   updated_at: string;
-  created_by: string | null;
+}
+
+interface CheckIn {
+  id: string;
+  user_id: string;
+  check_in_time: string;
+  status: string;
+  notes?: string;
+  residence_member?: {
+    full_name: string;
+    school: string;
+  };
 }
 
 interface ResidenceTabProps {
@@ -30,19 +43,20 @@ interface ResidenceTabProps {
 
 export default function ResidenceTab({ onRefreshStats }: ResidenceTabProps) {
   const [members, setMembers] = useState<ResidenceMember[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
-  const [editingMember, setEditingMember] = useState<ResidenceMember | null>(null);
   const [showCreateDialog, setShowCreateDialog] = useState(false);
+  const [editingMember, setEditingMember] = useState<ResidenceMember | null>(null);
   const [formData, setFormData] = useState({
     full_name: "",
+    email: "",
+    phone_number: "",
     school: "",
     hostel_admission: "",
-    phone_number: "",
-    email: "",
+    status: "active"
   });
-  
-  const { toast } = useToast();
 
+  // Fetch residence members
   const fetchMembers = async () => {
     try {
       const { data, error } = await supabase
@@ -50,119 +64,166 @@ export default function ResidenceTab({ onRefreshStats }: ResidenceTabProps) {
         .select("*")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        throw error;
-      }
-
+      if (error) throw error;
       setMembers(data || []);
-    } catch (error: any) {
-      console.error("Error fetching residence members:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load residence members",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error("Error fetching members:", error);
+      toast.error("Failed to fetch residence members");
+    }
+  };
+
+  // Fetch recent check-ins with member details
+  const fetchCheckIns = async () => {
+    try {
+      const { data: checkInsData, error } = await supabase
+        .from("check_ins")
+        .select(`
+          id,
+          user_id,
+          check_in_time,
+          status,
+          notes
+        `)
+        .order("check_in_time", { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      // Get member details for each check-in
+      const checkInsWithMembers = await Promise.all(
+        (checkInsData || []).map(async (checkIn) => {
+          const { data: memberData } = await supabase
+            .from("residence_members")
+            .select("full_name, school")
+            .eq("user_id", checkIn.user_id)
+            .maybeSingle();
+
+          return {
+            ...checkIn,
+            residence_member: memberData
+          };
+        })
+      );
+
+      setCheckIns(checkInsWithMembers.filter(ci => ci.residence_member));
+    } catch (error) {
+      console.error("Error fetching check-ins:", error);
+      toast.error("Failed to fetch check-in history");
     }
   };
 
   useEffect(() => {
-    fetchMembers();
-  }, []);
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchMembers(), fetchCheckIns()]);
+      setLoading(false);
+    };
+
+    loadData();
+
+    // Set up real-time subscriptions
+    const membersChannel = supabase
+      .channel('residence_members_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'residence_members'
+        },
+        () => {
+          fetchMembers();
+          onRefreshStats?.();
+        }
+      )
+      .subscribe();
+
+    const checkInsChannel = supabase
+      .channel('check_ins_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'check_ins'
+        },
+        () => {
+          fetchCheckIns();
+          onRefreshStats?.();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(membersChannel);
+      supabase.removeChannel(checkInsChannel);
+    };
+  }, [onRefreshStats]);
 
   const resetForm = () => {
     setFormData({
       full_name: "",
+      email: "",
+      phone_number: "",
       school: "",
       hostel_admission: "",
-      phone_number: "",
-      email: "",
+      status: "active"
     });
     setEditingMember(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
       if (editingMember) {
         // Update existing member
         const { error } = await supabase
           .from("residence_members")
-          .update({
-            full_name: formData.full_name,
-            school: formData.school,
-            hostel_admission: formData.hostel_admission,
-            phone_number: formData.phone_number,
-            email: formData.email,
-          })
+          .update(formData)
           .eq("id", editingMember.id);
 
-        if (error) {
-          throw error;
-        }
-
-        toast({
-          title: "Success",
-          description: "Residence member updated successfully",
-        });
+        if (error) throw error;
+        toast.success("Residence member updated successfully");
       } else {
         // Create new member
+        const { data: userData } = await supabase.auth.getUser();
         const { error } = await supabase
           .from("residence_members")
           .insert({
-            full_name: formData.full_name,
-            school: formData.school,
-            hostel_admission: formData.hostel_admission,
-            phone_number: formData.phone_number,
-            email: formData.email,
-            created_by: user?.id,
+            ...formData,
+            created_by: userData.user?.id
           });
 
-        if (error) {
-          throw error;
-        }
-
-        toast({
-          title: "Success",
-          description: "Residence member created successfully",
-        });
+        if (error) throw error;
+        toast.success("Residence member created successfully");
       }
 
-      resetForm();
       setShowCreateDialog(false);
+      resetForm();
       fetchMembers();
       onRefreshStats?.();
     } catch (error: any) {
-      console.error("Error saving residence member:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to save residence member",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+      console.error("Error saving member:", error);
+      toast.error(error.message || "Failed to save residence member");
     }
   };
 
   const handleEdit = (member: ResidenceMember) => {
+    setEditingMember(member);
     setFormData({
       full_name: member.full_name,
+      email: member.email,
+      phone_number: member.phone_number,
       school: member.school,
       hostel_admission: member.hostel_admission,
-      phone_number: member.phone_number,
-      email: member.email,
+      status: member.status
     });
-    setEditingMember(member);
     setShowCreateDialog(true);
   };
 
-  const handleDelete = async (memberId: string) => {
-    if (!confirm("Are you sure you want to delete this residence member?")) {
+  const handleDelete = async (member: ResidenceMember) => {
+    if (!confirm(`Are you sure you want to delete ${member.full_name}?`)) {
       return;
     }
 
@@ -170,66 +231,79 @@ export default function ResidenceTab({ onRefreshStats }: ResidenceTabProps) {
       const { error } = await supabase
         .from("residence_members")
         .delete()
-        .eq("id", memberId);
+        .eq("id", member.id);
 
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Residence member deleted successfully",
-      });
-
+      if (error) throw error;
+      
+      toast.success("Residence member deleted successfully");
       fetchMembers();
       onRefreshStats?.();
     } catch (error: any) {
-      console.error("Error deleting residence member:", error);
-      toast({
-        title: "Error",
-        description: "Failed to delete residence member",
-        variant: "destructive",
-      });
+      console.error("Error deleting member:", error);
+      toast.error(error.message || "Failed to delete residence member");
     }
   };
 
-  const handleSelfCheckIn = async (memberId: string) => {
+  const handleSelfCheckIn = async (member: ResidenceMember) => {
     try {
       const { data, error } = await supabase.rpc('residence_member_checkin', {
-        member_id: memberId
+        member_id: member.id
       });
 
-      if (error) {
-        throw error;
-      }
-
-      toast({
-        title: "Success",
-        description: "Residence member checked in successfully",
-      });
-
+      if (error) throw error;
+      
+      toast.success(`${member.full_name} checked in successfully`);
+      fetchCheckIns();
       onRefreshStats?.();
     } catch (error: any) {
-      console.error("Error checking in residence member:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to check in residence member",
-        variant: "destructive",
-      });
+      console.error("Error checking in member:", error);
+      toast.error(error.message || "Failed to check in member");
     }
   };
 
-  if (loading && members.length === 0) {
+  const downloadReport = async () => {
+    try {
+      const csvData = [
+        ['Name', 'Email', 'Phone', 'School', 'Hostel Admission', 'Status', 'Created Date'],
+        ...members.map(member => [
+          member.full_name,
+          member.email,
+          member.phone_number,
+          member.school,
+          member.hostel_admission,
+          member.status,
+          new Date(member.created_at).toLocaleDateString()
+        ])
+      ];
+
+      const csvContent = csvData.map(row => row.join(',')).join('\n');
+      const blob = new Blob([csvContent], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `residence_members_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success("Report downloaded successfully");
+    } catch (error) {
+      console.error("Error downloading report:", error);
+      toast.error("Failed to download report");
+    }
+  };
+
+  if (loading) {
     return (
       <div className="space-y-6">
-        <div className="animate-pulse space-y-4">
-          {[...Array(3)].map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="h-4 bg-muted rounded w-3/4 mb-2"></div>
-                <div className="h-4 bg-muted rounded w-1/2"></div>
-              </CardContent>
-            </Card>
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-8 w-48" />
+          <Skeleton className="h-10 w-32" />
+        </div>
+        <div className="grid gap-4">
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-20 w-full" />
           ))}
         </div>
       </div>
@@ -238,168 +312,214 @@ export default function ResidenceTab({ onRefreshStats }: ResidenceTabProps) {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Residence Management</h2>
-          <p className="text-muted-foreground">
-            Manage residence members and their pool access
-          </p>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-bold">Residence Management</h2>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={downloadReport}>
+            <Download className="mr-2 h-4 w-4" />
+            Download Report
+          </Button>
+          <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+            <DialogTrigger asChild>
+              <Button onClick={resetForm}>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Member
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingMember ? "Edit Residence Member" : "Add New Residence Member"}
+                </DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <Label htmlFor="full_name">Full Name</Label>
+                  <Input
+                    id="full_name"
+                    value={formData.full_name}
+                    onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="phone_number">Phone Number</Label>
+                  <Input
+                    id="phone_number"
+                    value={formData.phone_number}
+                    onChange={(e) => setFormData({ ...formData, phone_number: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="school">School</Label>
+                  <Input
+                    id="school"
+                    value={formData.school}
+                    onChange={(e) => setFormData({ ...formData, school: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="hostel_admission">Hostel Admission</Label>
+                  <Input
+                    id="hostel_admission"
+                    value={formData.hostel_admission}
+                    onChange={(e) => setFormData({ ...formData, hostel_admission: e.target.value })}
+                    required
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Select
+                    value={formData.status}
+                    onValueChange={(value) => setFormData({ ...formData, status: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="graduated">Graduated</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2 pt-4">
+                  <Button type="submit" className="flex-1">
+                    {editingMember ? "Update" : "Create"} Member
+                  </Button>
+                  <Button 
+                    type="button" 
+                    variant="outline" 
+                    onClick={() => setShowCreateDialog(false)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
-        <Dialog open={showCreateDialog} onOpenChange={(open) => {
-          setShowCreateDialog(open);
-          if (!open) resetForm();
-        }}>
-          <DialogTrigger asChild>
-            <Button className="gap-2">
-              <UserPlus className="h-4 w-4" />
-              Add Residence Member
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>
-                {editingMember ? "Edit Residence Member" : "Add New Residence Member"}
-              </DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="full_name">Full Name</Label>
-                <Input
-                  id="full_name"
-                  value={formData.full_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, full_name: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="school">School</Label>
-                <Input
-                  id="school"
-                  value={formData.school}
-                  onChange={(e) => setFormData(prev => ({ ...prev, school: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="hostel_admission">Hostel Admission</Label>
-                <Input
-                  id="hostel_admission"
-                  value={formData.hostel_admission}
-                  onChange={(e) => setFormData(prev => ({ ...prev, hostel_admission: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="phone_number">Phone Number</Label>
-                <Input
-                  id="phone_number"
-                  value={formData.phone_number}
-                  onChange={(e) => setFormData(prev => ({ ...prev, phone_number: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData(prev => ({ ...prev, email: e.target.value }))}
-                  required
-                />
-              </div>
-              
-              <div className="flex gap-2 pt-4">
-                <Button type="button" variant="outline" onClick={() => setShowCreateDialog(false)} className="flex-1">
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={loading} className="flex-1">
-                  {loading ? "Saving..." : editingMember ? "Update" : "Create"}
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
       </div>
 
+      {/* Residence Members Table */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Building className="h-5 w-5" />
-            Residence Members ({members.length})
-          </CardTitle>
-          <CardDescription>
-            Manage residence members who have pool access
-          </CardDescription>
+          <CardTitle>Residence Members ({members.length})</CardTitle>
         </CardHeader>
         <CardContent>
           {members.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No residence members found. Add your first member to get started.
-            </div>
+            <p className="text-muted-foreground text-center py-8">
+              No residence members found. Add the first member to get started.
+            </p>
           ) : (
-            <div className="rounded-md border">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>School</TableHead>
-                    <TableHead>Hostel Admission</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>School</TableHead>
+                  <TableHead>Hostel Admission</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {members.map((member) => (
+                  <TableRow key={member.id}>
+                    <TableCell className="font-medium">{member.full_name}</TableCell>
+                    <TableCell>{member.email}</TableCell>
+                    <TableCell>{member.school}</TableCell>
+                    <TableCell>{member.hostel_admission}</TableCell>
+                    <TableCell>
+                      <Badge variant={member.status === 'active' ? 'default' : 'secondary'}>
+                        {member.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSelfCheckIn(member)}
+                          disabled={member.status !== 'active'}
+                        >
+                          <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(member)}
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(member)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {members.map((member) => (
-                    <TableRow key={member.id}>
-                      <TableCell className="font-medium">{member.full_name}</TableCell>
-                      <TableCell>{member.school}</TableCell>
-                      <TableCell>{member.hostel_admission}</TableCell>
-                      <TableCell>{member.phone_number}</TableCell>
-                      <TableCell>{member.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={member.status === "active" ? "default" : "secondary"}>
-                          {member.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleSelfCheckIn(member.id)}
-                            className="gap-1"
-                          >
-                            <CheckCircle className="h-3 w-3" />
-                            Check In
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleEdit(member)}
-                          >
-                            <Edit className="h-3 w-3" />
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleDelete(member.id)}
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Real-time Check-in History */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Recent Check-ins ({checkIns.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {checkIns.length === 0 ? (
+            <p className="text-muted-foreground text-center py-8">
+              No recent check-ins found.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Member</TableHead>
+                  <TableHead>School</TableHead>
+                  <TableHead>Check-in Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Notes</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {checkIns.map((checkIn) => (
+                  <TableRow key={checkIn.id}>
+                    <TableCell className="font-medium">
+                      {checkIn.residence_member?.full_name || 'Unknown'}
+                    </TableCell>
+                    <TableCell>{checkIn.residence_member?.school || 'N/A'}</TableCell>
+                    <TableCell>
+                      {new Date(checkIn.check_in_time).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="default">{checkIn.status}</Badge>
+                    </TableCell>
+                    <TableCell>{checkIn.notes || '-'}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>

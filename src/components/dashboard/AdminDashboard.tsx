@@ -35,6 +35,7 @@ import {
 import UserApprovalTab from "./UserApprovalTab";
 import TimetableManagement from "./TimetableManagement";
 import MessagingTab from "./MessagingTab";
+import ResidenceTab from "./ResidenceTab";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -439,10 +440,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
             break;
         }
       }} className="w-full">
-        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-8">
+        <TabsList className="grid w-full grid-cols-4 lg:grid-cols-9">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="residence">Residence</TabsTrigger>
           <TabsTrigger value="schedules">Schedules</TabsTrigger>
           <TabsTrigger value="messaging">Messages</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -757,6 +759,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Residence Tab */}
+        <TabsContent value="residence" className="space-y-6">
+          <ResidenceTab onRefreshStats={fetchDashboardData} />
         </TabsContent>
 
         {/* Check-ins Tab */}
