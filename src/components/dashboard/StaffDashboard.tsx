@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ResidenceTab from "./ResidenceTab";
+import MessagingTab from "./MessagingTab";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -423,6 +424,10 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
         {/* Residence Tab */}
         <TabsContent value="residence" className="space-y-6">
           <ResidenceTab onRefreshStats={() => fetchDashboardData()} />
+        </TabsContent>
+
+        <TabsContent value="messaging" className="space-y-6">
+          <MessagingTab onRefreshStats={() => {}} />
         </TabsContent>
       </Tabs>
     </div>

@@ -9,7 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "sonner";
-import { Plus, Edit, Trash2, CheckCircle, Download } from "lucide-react";
+import { Plus, Edit, Trash2, CheckCircle, Download, XCircle } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface ResidenceMember {
@@ -261,6 +261,44 @@ export default function ResidenceTab({ onRefreshStats }: ResidenceTabProps) {
     }
   };
 
+  const handleSelfCheckOut = async (member: ResidenceMember) => {
+    try {
+      // Find the current check-in for this member
+      const { data: currentCheckIn, error: findError } = await supabase
+        .from("check_ins")
+        .select("id")
+        .eq("user_id", member.user_id)
+        .eq("status", "checked_in")
+        .order("check_in_time", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (findError) throw findError;
+      
+      if (!currentCheckIn) {
+        toast.error(`${member.full_name} is not currently checked in`);
+        return;
+      }
+
+      const { error } = await supabase
+        .from("check_ins")
+        .update({
+          check_out_time: new Date().toISOString(),
+          status: "checked_out"
+        })
+        .eq("id", currentCheckIn.id);
+
+      if (error) throw error;
+      
+      toast.success(`${member.full_name} checked out successfully`);
+      fetchCheckIns();
+      onRefreshStats?.();
+    } catch (error: any) {
+      console.error("Error checking out member:", error);
+      toast.error(error.message || "Failed to check out member");
+    }
+  };
+
   const downloadReport = async () => {
     try {
       const csvData = [
@@ -454,8 +492,18 @@ export default function ResidenceTab({ onRefreshStats }: ResidenceTabProps) {
                           variant="outline"
                           onClick={() => handleSelfCheckIn(member)}
                           disabled={member.status !== 'active'}
+                          title="Check in member"
                         >
                           <CheckCircle className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleSelfCheckOut(member)}
+                          disabled={member.status !== 'active'}
+                          title="Check out member"
+                        >
+                          <XCircle className="h-4 w-4" />
                         </Button>
                         <Button
                           size="sm"

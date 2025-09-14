@@ -15,9 +15,11 @@ import {
   Users,
   CheckCircle,
   XCircle,
-  Home
+  Home,
+  MessageSquare
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import MessagingTab from "./MessagingTab";
 
 interface UserProfile {
   id: string;
@@ -406,7 +408,7 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
                     No dedicated resident hours today
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    As a resident, you can access the pool during general hours
+                    As a resident, you can access the pool during general hours - show from the schedule module from admin.
                   </p>
                 </div>
               )}
@@ -466,7 +468,7 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
                 ))
               ) : (
                 <p className="text-muted-foreground text-center py-4">
-                  No recent visits found
+                  No recent visits found - show visiting history from database
                 </p>
               )}
             </div>
@@ -508,6 +510,19 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
               <p className="text-sm text-orange-600 dark:text-orange-400">Priority during peak hours</p>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Messages Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Messages & Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MessagingTab onRefreshStats={() => {}} />
         </CardContent>
       </Card>
     </div>

@@ -36,6 +36,7 @@ import UserApprovalTab from "./UserApprovalTab";
 import TimetableManagement from "./TimetableManagement";
 import MessagingTab from "./MessagingTab";
 import ResidenceTab from "./ResidenceTab";
+import CreateUserDialog from "./CreateUserDialog";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -115,6 +116,8 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -389,6 +392,45 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setShowCreateUserDialog(true);
+  };
+
+  const handleDeleteUser = async (user: any) => {
+    if (!confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", user.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "User Deleted",
+        description: "User has been deleted successfully",
+      });
+      
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onUserCreated = () => {
+    fetchUsers();
+    setEditingUser(null);
   };
 
   if (loading) {
@@ -839,6 +881,13 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <CreateUserDialog
+        open={showCreateUserDialog}
+        onOpenChange={setShowCreateUserDialog}
+        onUserCreated={onUserCreated}
+        editingUser={editingUser}
+      />
     </div>
   );
 };

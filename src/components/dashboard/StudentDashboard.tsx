@@ -12,9 +12,11 @@ import {
   Timer,
   Users,
   CheckCircle,
-  XCircle
+  XCircle,
+  MessageSquare
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import MessagingTab from "./MessagingTab";
 
 interface UserProfile {
   id: string;
@@ -404,6 +406,19 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
               </p>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Messages Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <MessageSquare className="w-5 h-5" />
+            Messages & Notifications
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MessagingTab onRefreshStats={() => {}} />
         </CardContent>
       </Card>
     </div>
