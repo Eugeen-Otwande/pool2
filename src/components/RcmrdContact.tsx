@@ -52,8 +52,8 @@ const RcmrdContact = () => {
                   </div>
                   <h3 className="text-lg font-semibold text-foreground">Phone</h3>
                   <p className="text-muted-foreground text-sm">
-                    07XXXXXXXX<br />
-                    <span className="text-xs">Available Mon-Sun: 8AM-7PM</span>
+                    0742335679<br />
+                    <span className="text-xs">Available Mon-Sun: 8AM-5PM</span>
                   </p>
                 </CardContent>
               </Card>
@@ -65,7 +65,7 @@ const RcmrdContact = () => {
                   </div>
                   <h3 className="text-lg font-semibold text-foreground">Email</h3>
                   <p className="text-muted-foreground text-sm">
-                    pool@rcmrd.org<br />
+                    Swimmingpool@rcmrd.org<br />
                     <span className="text-xs">We'll respond within 24 hours</span>
                   </p>
                 </CardContent>

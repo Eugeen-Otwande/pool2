@@ -653,6 +653,10 @@ export type Database = {
         Args: { _uid: string }
         Returns: boolean
       }
+      is_rcmrd_official: {
+        Args: { _uid: string }
+        Returns: boolean
+      }
       is_staff: {
         Args: { _uid: string }
         Returns: boolean

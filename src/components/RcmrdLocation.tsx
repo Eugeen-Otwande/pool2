@@ -30,20 +30,20 @@ const RcmrdLocation = () => {
               <Card className="overflow-hidden h-full border-0 shadow-xl">
                 <div className="h-96 lg:h-full relative">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.658379147926!2d36.89285!3d-1.3500000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwMjEnMDAuMCJTIDM2wrA1Mzc5My4wIkU!5e0!3m2!1sen!2ske!4v1234567890"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.658379147926!2d36.89285!3d-1.3500000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f13e1b4e88c13:0x5a8b8b8b8b8b8b8b!2sRegional%20Centre%20for%20Mapping%20of%20Resources%20for%20Development%20-%20RCMRD!5e0!3m2!1sen!2ske!4v1234567890"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
                     allowFullScreen
                     loading="lazy"
                     referrerPolicy="no-referrer-when-downgrade"
-                    title="RCMRD Swimming Pool Location"
+                    title="RCMRD, Kenya Location"
                     className="w-full h-full"
                   ></iframe>
                   <div className="absolute top-4 left-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg">
                     <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                       <MapPin className="w-4 h-4 text-primary" />
-                      RCMRD Swimming Pool
+                      RCMRD, KENYA
                     </div>
                   </div>
                 </div>
@@ -78,7 +78,7 @@ const RcmrdLocation = () => {
                         <h3 className="font-semibold text-foreground mb-1">Opening Hours</h3>
                         <p className="text-muted-foreground text-sm">
                           Monday - Sunday<br />
-                          8:00 AM - 7:00 PM
+                          8:00 AM - 5:00 PM
                         </p>
                       </div>
                     </div>
@@ -90,8 +90,8 @@ const RcmrdLocation = () => {
                       <div>
                         <h3 className="font-semibold text-foreground mb-1">Contact</h3>
                         <p className="text-muted-foreground text-sm">
-                          Phone: 07XXXXXXXX<br />
-                          Email: pool@rcmrd.org
+                          Phone: 0742335679<br />
+                          Email: Swimmingpool@rcmrd.org
                         </p>
                       </div>
                     </div>

@@ -20,6 +20,10 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ResidenceTab from "./ResidenceTab";
 import MessagingTab from "./MessagingTab";
+import ReportsTab from "./ReportsTab";
+import TimetableManagement from "./TimetableManagement";
+import UserApprovalTab from "./UserApprovalTab";
+import SystemInfoTab from "./SystemInfoTab";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -30,6 +34,13 @@ interface UserProfile {
   last_name: string | null;
   role: string;
   status: string;
+  phone: string | null;
+  subscription_type: string | null;
+  subscription_expires_at: string | null;
+  emergency_contact?: string | null;
+  emergency_phone?: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface StaffDashboardProps {
@@ -225,9 +236,15 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-8">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="approvals">Approvals</TabsTrigger>
+          <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="residence">Residence</TabsTrigger>
+          <TabsTrigger value="schedules">Schedules</TabsTrigger>
+          <TabsTrigger value="messages">Messages</TabsTrigger>
+          <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -421,13 +438,47 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           </Card>
         </TabsContent>
 
+        {/* Approvals Tab */}
+        <TabsContent value="approvals" className="space-y-6">
+          <UserApprovalTab onRefreshStats={() => fetchDashboardData()} />
+        </TabsContent>
+
+        {/* Users Tab */}
+        <TabsContent value="users" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>User Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground mb-4">Manage user accounts and permissions</p>
+              <Button>Add New User</Button>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {/* Residence Tab */}
         <TabsContent value="residence" className="space-y-6">
           <ResidenceTab onRefreshStats={() => fetchDashboardData()} />
         </TabsContent>
 
-        <TabsContent value="messaging" className="space-y-6">
+        {/* Schedules Tab */}
+        <TabsContent value="schedules" className="space-y-6">
+          <TimetableManagement onRefreshStats={() => fetchDashboardData()} />
+        </TabsContent>
+
+        {/* Messages Tab */}
+        <TabsContent value="messages" className="space-y-6">
           <MessagingTab onRefreshStats={() => {}} />
+        </TabsContent>
+
+        {/* Reports Tab */}
+        <TabsContent value="reports" className="space-y-6">
+          <ReportsTab />
+        </TabsContent>
+
+        {/* System Tab */}
+        <TabsContent value="system" className="space-y-6">
+          <SystemInfoTab user={user} profile={profile} />
         </TabsContent>
       </Tabs>
     </div>

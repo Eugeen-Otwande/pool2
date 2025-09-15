@@ -12,16 +12,16 @@ const PreHeader = () => {
             </div>
             <div className="flex items-center space-x-1">
               <Mail className="w-3 h-3" />
-              <span>pool@rcmrd.org</span>
+              <span>Swimmingpool@rcmrd.org</span>
             </div>
             <div className="flex items-center space-x-1">
               <Phone className="w-3 h-3" />
-              <span>07XXXXXXXX</span>
+              <span>0742335679</span>
             </div>
           </div>
           <div className="flex items-center space-x-1">
             <Clock className="w-3 h-3" />
-            <span>Open Mon–Sun: 8:00AM – 7:00PM</span>
+            <span>Open Mon–Sun: 8:00AM – 5:00PM</span>
           </div>
         </div>
       </div>
