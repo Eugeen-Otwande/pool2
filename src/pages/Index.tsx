@@ -6,7 +6,7 @@ import RcmrdServices from "@/components/RcmrdServices";
 import RcmrdLocation from "@/components/RcmrdLocation";
 import RcmrdGallery from "@/components/RcmrdGallery";
 import RcmrdTestimonials from "@/components/RcmrdTestimonials";
-import RcmrdContact from "@/components/RcmrdContact";
+import ContactForm from "@/components/ContactForm";
 import RcmrdFooter from "@/components/RcmrdFooter";
 
 const Index = () => {
@@ -20,7 +20,7 @@ const Index = () => {
       <RcmrdLocation />
       <RcmrdGallery />
       <RcmrdTestimonials />
-      <RcmrdContact />
+      <ContactForm />
       <RcmrdFooter />
     </div>
   );
