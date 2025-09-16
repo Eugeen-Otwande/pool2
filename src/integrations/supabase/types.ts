@@ -164,6 +164,54 @@ export type Database = {
           },
         ]
       }
+      inquiries: {
+        Row: {
+          created_at: string
+          email: string
+          first_name: string
+          id: string
+          last_name: string
+          message: string
+          phone: string | null
+          responded_at: string | null
+          responded_by: string | null
+          response: string | null
+          status: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          first_name: string
+          id?: string
+          last_name: string
+          message: string
+          phone?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          message?: string
+          phone?: string | null
+          responded_at?: string | null
+          responded_by?: string | null
+          response?: string | null
+          status?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       message_replies: {
         Row: {
           content: string
@@ -644,6 +692,69 @@ export type Database = {
         }
         Relationships: []
       }
+      visitors: {
+        Row: {
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string
+          email: string
+          id: string
+          mpesa_checkout_request_id: string | null
+          mpesa_transaction_id: string | null
+          name: string
+          notes: string | null
+          number_of_guests: number
+          payment_amount: number | null
+          payment_status: string
+          phone: string
+          receipt_url: string | null
+          status: string
+          updated_at: string
+          visit_date: string
+          visit_time: string
+        }
+        Insert: {
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          mpesa_checkout_request_id?: string | null
+          mpesa_transaction_id?: string | null
+          name: string
+          notes?: string | null
+          number_of_guests?: number
+          payment_amount?: number | null
+          payment_status?: string
+          phone: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          visit_date: string
+          visit_time: string
+        }
+        Update: {
+          check_in_time?: string | null
+          check_out_time?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          mpesa_checkout_request_id?: string | null
+          mpesa_transaction_id?: string | null
+          name?: string
+          notes?: string | null
+          number_of_guests?: number
+          payment_amount?: number | null
+          payment_status?: string
+          phone?: string
+          receipt_url?: string | null
+          status?: string
+          updated_at?: string
+          visit_date?: string
+          visit_time?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -654,6 +765,10 @@ export type Database = {
         Returns: boolean
       }
       is_rcmrd_official: {
+        Args: { _uid: string }
+        Returns: boolean
+      }
+      is_rcmrd_team: {
         Args: { _uid: string }
         Returns: boolean
       }
