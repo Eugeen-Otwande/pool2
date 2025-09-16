@@ -20,10 +20,10 @@ interface UserProfile {
   role: string;
   status: string;
   phone: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
   subscription_type: string | null;
   subscription_expires_at: string | null;
-  emergency_contact?: string | null;
-  emergency_phone?: string | null;
   created_at: string;
   updated_at: string;
 }
