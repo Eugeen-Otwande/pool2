@@ -11,13 +11,15 @@ import { Search, Calendar, Users, CreditCard } from 'lucide-react';
 
 interface Visitor {
   id: string;
-  name: string;
+  first_name: string;
+  last_name: string;
   email: string;
   phone: string;
-  visit_date: string;
-  visit_time: string;
-  number_of_guests: number;
+  date_of_visit: string;
+  time_of_visit: string;
+  num_guests: number;
   payment_status: string;
+  check_in_status: string;
   check_in_time: string | null;
   check_out_time: string | null;
   created_at: string;
@@ -52,14 +54,11 @@ const VisitorManagementTab = () => {
 
   const updateCheckInStatus = async (id: string, action: 'check_in' | 'check_out') => {
     try {
-      const updates = action === 'check_in' 
-        ? { check_in_time: new Date().toISOString() }
-        : { check_out_time: new Date().toISOString() };
-
       const { error } = await supabase
-        .from('visitors')
-        .update(updates)
-        .eq('id', id);
+        .rpc('visitor_checkin_checkout', {
+          visitor_id: id,
+          action: action
+        });
 
       if (error) throw error;
       
@@ -72,13 +71,12 @@ const VisitorManagementTab = () => {
   };
 
   const getVisitorStatus = (visitor: Visitor) => {
-    if (visitor.check_out_time) return 'checked_out';
-    if (visitor.check_in_time) return 'checked_in';
-    return 'pending';
+    return visitor.check_in_status.toLowerCase().replace(' ', '_');
   };
 
   const filteredVisitors = visitors.filter(visitor => {
-    const matchesSearch = visitor.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const fullName = `${visitor.first_name} ${visitor.last_name}`.toLowerCase();
+    const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
                          visitor.email.toLowerCase().includes(searchTerm.toLowerCase());
     const status = getVisitorStatus(visitor);
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
@@ -136,7 +134,7 @@ const VisitorManagementTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Today's Bookings</p>
                 <p className="text-2xl font-bold">
-                  {visitors.filter(v => v.visit_date === new Date().toISOString().split('T')[0]).length}
+                  {visitors.filter(v => v.date_of_visit === new Date().toISOString().split('T')[0]).length}
                 </p>
               </div>
             </div>
@@ -149,7 +147,7 @@ const VisitorManagementTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Checked In</p>
                 <p className="text-2xl font-bold">
-                  {visitors.filter(v => getVisitorStatus(v) === 'checked_in').length}
+                  {visitors.filter(v => v.check_in_status === 'Checked In').length}
                 </p>
               </div>
             </div>
@@ -162,7 +160,7 @@ const VisitorManagementTab = () => {
               <div>
                 <p className="text-sm text-gray-600">Paid</p>
                 <p className="text-2xl font-bold">
-                  {visitors.filter(v => v.payment_status === 'paid').length}
+                  {visitors.filter(v => v.payment_status === 'Paid').length}
                 </p>
               </div>
             </div>
@@ -187,7 +185,7 @@ const VisitorManagementTab = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="not_checked_in">Not Checked In</SelectItem>
             <SelectItem value="checked_in">Checked In</SelectItem>
             <SelectItem value="checked_out">Checked Out</SelectItem>
           </SelectContent>
@@ -219,21 +217,21 @@ const VisitorManagementTab = () => {
             <TableBody>
               {filteredVisitors.map((visitor) => (
                 <TableRow key={visitor.id}>
-                  <TableCell className="font-medium">{visitor.name}</TableCell>
+                  <TableCell className="font-medium">{visitor.first_name} {visitor.last_name}</TableCell>
                   <TableCell>
                     <div className="text-sm">
                       <div>{visitor.email}</div>
                       <div className="text-gray-500">{visitor.phone}</div>
                     </div>
                   </TableCell>
-                  <TableCell>{visitor.visit_date}</TableCell>
-                  <TableCell>{visitor.visit_time}</TableCell>
-                  <TableCell>{visitor.number_of_guests}</TableCell>
+                  <TableCell>{visitor.date_of_visit}</TableCell>
+                  <TableCell>{visitor.time_of_visit}</TableCell>
+                  <TableCell>{visitor.num_guests}</TableCell>
                   <TableCell>{getPaymentBadge(visitor.payment_status)}</TableCell>
                   <TableCell>{getStatusBadge(getVisitorStatus(visitor))}</TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      {!visitor.check_in_time && (
+                      {visitor.check_in_status === 'Not Checked In' && (
                         <Button
                           size="sm"
                           onClick={() => updateCheckInStatus(visitor.id, 'check_in')}
@@ -241,7 +239,7 @@ const VisitorManagementTab = () => {
                           Check In
                         </Button>
                       )}
-                      {visitor.check_in_time && !visitor.check_out_time && (
+                      {visitor.check_in_status === 'Checked In' && (
                         <Button
                           size="sm"
                           variant="outline"

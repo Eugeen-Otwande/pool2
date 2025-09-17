@@ -15,12 +15,13 @@ import { toast } from 'sonner';
 
 const VisitorBooking = () => {
   const [formData, setFormData] = useState({
-    name: '',
+    first_name: '',
+    last_name: '',
     email: '',
     phone: '',
     date: undefined as Date | undefined,
     time: '',
-    number_of_guests: 1,
+    num_guests: 1,
     special_requests: ''
   });
   const [date, setDate] = useState<Date>();
@@ -42,26 +43,27 @@ const VisitorBooking = () => {
       const { error } = await supabase
         .from('visitors')
         .insert([{
-          name: formData.name,
+          first_name: formData.first_name,
+          last_name: formData.last_name,
           email: formData.email,
           phone: formData.phone,
-          visit_date: date.toISOString().split('T')[0],
-          visit_time: formData.time,
-          number_of_guests: formData.number_of_guests,
-          special_requests: formData.special_requests,
-          payment_status: 'pending'
+          date_of_visit: date.toISOString().split('T')[0],
+          time_of_visit: formData.time,
+          num_guests: formData.num_guests,
+          payment_status: 'Pending'
         }]);
 
       if (error) throw error;
 
       toast.success('Booking request submitted successfully!');
       setFormData({
-        name: '',
+        first_name: '',
+        last_name: '',
         email: '',
         phone: '',
         date: undefined,
         time: '',
-        number_of_guests: 1,
+        num_guests: 1,
         special_requests: ''
       });
       setDate(undefined);
@@ -87,14 +89,26 @@ const VisitorBooking = () => {
             <form onSubmit={handleSubmit} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">Full Name *</Label>
+                  <Label htmlFor="first_name">First Name *</Label>
                   <Input
-                    id="name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    id="first_name"
+                    value={formData.first_name}
+                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="last_name">Last Name *</Label>
+                  <Input
+                    id="last_name"
+                    value={formData.last_name}
+                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="email">Email *</Label>
                   <Input
@@ -105,18 +119,18 @@ const VisitorBooking = () => {
                     required
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label htmlFor="phone">Phone Number *</Label>
+                  <Input
+                    id="phone"
+                    type="tel"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    required
+                  />
+                </div>
               </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number *</Label>
-                <Input
-                  id="phone"
-                  type="tel"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  required
-                />
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
@@ -164,8 +178,8 @@ const VisitorBooking = () => {
               <div className="space-y-2">
                 <Label htmlFor="guests">Number of Guests</Label>
                 <Select 
-                  value={formData.number_of_guests.toString()} 
-                  onValueChange={(value) => setFormData({ ...formData, number_of_guests: parseInt(value) })}
+                  value={formData.num_guests.toString()} 
+                  onValueChange={(value) => setFormData({ ...formData, num_guests: parseInt(value) })}
                 >
                   <SelectTrigger>
                     <SelectValue />
