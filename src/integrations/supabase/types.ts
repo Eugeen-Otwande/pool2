@@ -293,6 +293,38 @@ export type Database = {
         }
         Relationships: []
       }
+      payments: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          payment_status: string
+          visitor_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          payment_status?: string
+          visitor_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          payment_status?: string
+          visitor_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_visitor_id_fkey"
+            columns: ["visitor_id"]
+            isOneToOne: false
+            referencedRelation: "visitors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pool_logs: {
         Row: {
           checked_by: string | null
@@ -445,6 +477,41 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      pool_visits: {
+        Row: {
+          activity: string
+          created_at: string
+          date: string
+          id: string
+          resident_id: string
+          time: string
+        }
+        Insert: {
+          activity: string
+          created_at?: string
+          date: string
+          id?: string
+          resident_id: string
+          time: string
+        }
+        Update: {
+          activity?: string
+          created_at?: string
+          date?: string
+          id?: string
+          resident_id?: string
+          time?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pool_visits_resident_id_fkey"
+            columns: ["resident_id"]
+            isOneToOne: false
+            referencedRelation: "residents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       pre_existing_accounts: {
         Row: {
@@ -605,6 +672,36 @@ export type Database = {
         }
         Relationships: []
       }
+      residents: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          password_hash: string
+          phone: string
+          role: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          password_hash: string
+          phone: string
+          role?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          password_hash?: string
+          phone?: string
+          role?: string
+        }
+        Relationships: []
+      }
       sports_inventory: {
         Row: {
           barcode: string | null
@@ -694,64 +791,52 @@ export type Database = {
       }
       visitors: {
         Row: {
+          check_in_status: string
           check_in_time: string | null
           check_out_time: string | null
           created_at: string
+          date_of_visit: string
           email: string
+          first_name: string
           id: string
-          mpesa_checkout_request_id: string | null
-          mpesa_transaction_id: string | null
-          name: string
-          notes: string | null
-          number_of_guests: number
-          payment_amount: number | null
+          last_name: string
+          num_guests: number
           payment_status: string
           phone: string
           receipt_url: string | null
-          status: string
-          updated_at: string
-          visit_date: string
-          visit_time: string
+          time_of_visit: string
         }
         Insert: {
+          check_in_status?: string
           check_in_time?: string | null
           check_out_time?: string | null
           created_at?: string
+          date_of_visit: string
           email: string
+          first_name: string
           id?: string
-          mpesa_checkout_request_id?: string | null
-          mpesa_transaction_id?: string | null
-          name: string
-          notes?: string | null
-          number_of_guests?: number
-          payment_amount?: number | null
+          last_name: string
+          num_guests?: number
           payment_status?: string
           phone: string
           receipt_url?: string | null
-          status?: string
-          updated_at?: string
-          visit_date: string
-          visit_time: string
+          time_of_visit: string
         }
         Update: {
+          check_in_status?: string
           check_in_time?: string | null
           check_out_time?: string | null
           created_at?: string
+          date_of_visit?: string
           email?: string
+          first_name?: string
           id?: string
-          mpesa_checkout_request_id?: string | null
-          mpesa_transaction_id?: string | null
-          name?: string
-          notes?: string | null
-          number_of_guests?: number
-          payment_amount?: number | null
+          last_name?: string
+          num_guests?: number
           payment_status?: string
           phone?: string
           receipt_url?: string | null
-          status?: string
-          updated_at?: string
-          visit_date?: string
-          visit_time?: string
+          time_of_visit?: string
         }
         Relationships: []
       }
@@ -779,6 +864,10 @@ export type Database = {
       residence_member_checkin: {
         Args: { member_id: string; schedule_id?: string }
         Returns: string
+      }
+      visitor_checkin_checkout: {
+        Args: { action: string; visitor_id: string }
+        Returns: undefined
       }
     }
     Enums: {
