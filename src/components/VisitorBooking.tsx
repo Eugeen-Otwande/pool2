@@ -7,7 +7,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Home } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import heroImage from '@/assets/pool-hero.jpg';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
@@ -76,9 +78,32 @@ const VisitorBooking = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-50 py-12 px-4">
-      <div className="max-w-2xl mx-auto">
-        <Card>
+    <div className="min-h-screen relative">
+      {/* Background Image */}
+      <div className="absolute inset-0 z-0">
+        <img 
+          src={heroImage} 
+          alt="Swimming pool background" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 to-cyan-800/80"></div>
+      </div>
+
+      {/* Navigation */}
+      <div className="relative z-10 p-4">
+        <Link 
+          to="/" 
+          className="inline-flex items-center gap-2 text-white hover:text-cyan-300 transition-colors"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          <Home className="w-4 h-4" />
+          Back to Homepage
+        </Link>
+      </div>
+
+      {/* Content */}
+      <div className="relative z-10 container mx-auto max-w-2xl px-4 pb-8">
+        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-2xl text-center">Book a Swim</CardTitle>
             <CardDescription className="text-center">

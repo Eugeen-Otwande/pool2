@@ -1,15 +1,56 @@
 import { Button } from "@/components/ui/button";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 const RcmrdHero = () => {
   const [scrollY, setScrollY] = useState(0);
+  const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  useEffect(() => {
+    const initMap = () => {
+      if (mapRef.current && (window as any).google) {
+        const map = new (window as any).google.maps.Map(mapRef.current, {
+          center: { lat: -1.2209732976165677, lng: 36.893965203848495 },
+          zoom: 15,
+          styles: [
+            {
+              featureType: "all",
+              elementType: "geometry.fill",
+              stylers: [{ color: "#1e40af" }]
+            },
+            {
+              featureType: "water",
+              elementType: "geometry",
+              stylers: [{ color: "#0ea5e9" }]
+            }
+          ]
+        });
+
+        new (window as any).google.maps.Marker({
+          position: { lat: -1.2209732976165677, lng: 36.893965203848495 },
+          map: map,
+          title: "RCMRD Swimming Pool"
+        });
+      }
+    };
+
+    if (!(window as any).google) {
+      const script = document.createElement("script");
+      script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dO5A2&libraries=places`;
+      script.async = true;
+      script.defer = true;
+      script.onload = initMap;
+      document.head.appendChild(script);
+    } else {
+      initMap();
+    }
   }, []);
 
   return (
@@ -86,8 +127,22 @@ const RcmrdHero = () => {
             </Link>
           </div>
 
+          {/* Location Map Section */}
+          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 max-w-2xl mx-auto">
+            <div className="flex items-center gap-2 mb-4">
+              <MapPin className="w-5 h-5 text-cyan-300" />
+              <h3 className="text-lg font-semibold">Find Us</h3>
+            </div>
+            <div ref={mapRef} className="w-full h-64 rounded-lg bg-gray-200 mb-4"></div>
+            <p className="text-blue-100 text-sm">
+              RCMRD Swimming Pool Facility<br />
+              Latitude: -1.2209732976165677<br />
+              Longitude: 36.893965203848495
+            </p>
+          </div>
+
           {/* Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto pt-16">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto pt-8">
             <div className="text-center space-y-2">
               <div className="text-4xl font-light text-white">500+</div>
               <div className="text-sm text-blue-200 uppercase tracking-wider">Active Members</div>

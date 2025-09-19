@@ -24,6 +24,12 @@ import ReportsTab from "./ReportsTab";
 import TimetableManagement from "./TimetableManagement";
 import UserApprovalTab from "./UserApprovalTab";
 import SystemInfoTab from "./SystemInfoTab";
+import ProfileTab from "./ProfileTab";
+import InquiriesTab from "./InquiriesTab";
+import VisitorsTab from "./VisitorsTab";
+import PaymentsTab from "./PaymentsTab";
+import ResidentsTab from "./ResidentsTab";
+import VisitorManagementTab from "./VisitorManagementTab";
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
