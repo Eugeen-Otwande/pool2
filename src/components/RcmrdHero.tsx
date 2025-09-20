@@ -2,45 +2,47 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-
 const RcmrdHero = () => {
   const [scrollY, setScrollY] = useState(0);
   const mapRef = useRef<HTMLDivElement>(null);
-
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
   useEffect(() => {
     const initMap = () => {
       if (mapRef.current && (window as any).google) {
         const map = new (window as any).google.maps.Map(mapRef.current, {
-          center: { lat: -1.2209732976165677, lng: 36.893965203848495 },
+          center: {
+            lat: -1.2209732976165677,
+            lng: 36.893965203848495
+          },
           zoom: 15,
-          styles: [
-            {
-              featureType: "all",
-              elementType: "geometry.fill",
-              stylers: [{ color: "#1e40af" }]
-            },
-            {
-              featureType: "water",
-              elementType: "geometry",
-              stylers: [{ color: "#0ea5e9" }]
-            }
-          ]
+          styles: [{
+            featureType: "all",
+            elementType: "geometry.fill",
+            stylers: [{
+              color: "#1e40af"
+            }]
+          }, {
+            featureType: "water",
+            elementType: "geometry",
+            stylers: [{
+              color: "#0ea5e9"
+            }]
+          }]
         });
-
         new (window as any).google.maps.Marker({
-          position: { lat: -1.2209732976165677, lng: 36.893965203848495 },
+          position: {
+            lat: -1.2209732976165677,
+            lng: 36.893965203848495
+          },
           map: map,
           title: "RCMRD Swimming Pool"
         });
       }
     };
-
     if (!(window as any).google) {
       const script = document.createElement("script");
       script.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dO5A2&libraries=places`;
@@ -52,21 +54,12 @@ const RcmrdHero = () => {
       initMap();
     }
   }, []);
-
-  return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
+  return <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Parallax Background */}
-      <div 
-        className="absolute inset-0 z-0"
-        style={{
-          transform: `translateY(${scrollY * 0.5}px)`,
-        }}
-      >
-        <img 
-          src="/lovable-uploads/d9034961-cff4-4a20-ab32-9f62bbcefca4.png"
-          alt="RCMRD Swimming Pool Aerial View" 
-          className="w-full h-[120%] object-cover"
-        />
+      <div className="absolute inset-0 z-0" style={{
+      transform: `translateY(${scrollY * 0.5}px)`
+    }}>
+        <img src="/lovable-uploads/d9034961-cff4-4a20-ab32-9f62bbcefca4.png" alt="RCMRD Swimming Pool Aerial View" className="w-full h-[120%] object-cover" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/20 via-black/40 to-black/60"></div>
       </div>
       
@@ -108,38 +101,20 @@ const RcmrdHero = () => {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-4">
             <Link to="/book-swim">
-              <Button 
-                size="lg" 
-                className="bg-white text-primary hover:bg-white/90 font-medium px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-              >
+              <Button size="lg" className="bg-white text-primary hover:bg-white/90 font-medium px-8 py-4 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
                 Book a Swim
                 <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
             </Link>
             <Link to="/auth">
-              <Button 
-                variant="outline" 
-                size="lg"
-                className="border-white/30 text-white hover:bg-white/10 font-medium px-8 py-4 rounded-full backdrop-blur-sm"
-              >
+              <Button variant="outline" size="lg" className="border-white/30 text-white hover:bg-white/10 font-medium px-8 py-4 rounded-full backdrop-blur-sm">
                 Request Access
               </Button>
             </Link>
           </div>
 
           {/* Location Map Section */}
-          <div className="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-6 max-w-2xl mx-auto">
-            <div className="flex items-center gap-2 mb-4">
-              <MapPin className="w-5 h-5 text-cyan-300" />
-              <h3 className="text-lg font-semibold">Find Us</h3>
-            </div>
-            <div ref={mapRef} className="w-full h-64 rounded-lg bg-gray-200 mb-4"></div>
-            <p className="text-blue-100 text-sm">
-              RCMRD Swimming Pool Facility<br />
-              Latitude: -1.2209732976165677<br />
-              Longitude: 36.893965203848495
-            </p>
-          </div>
+          
 
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto pt-8">
@@ -165,8 +140,6 @@ const RcmrdHero = () => {
           <div className="w-1 h-3 bg-white/50 rounded-full mt-2 animate-pulse"></div>
         </div>
       </div>
-    </section>
-  );
+    </section>;
 };
-
 export default RcmrdHero;
