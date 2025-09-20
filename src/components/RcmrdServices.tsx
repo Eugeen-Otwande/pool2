@@ -40,7 +40,7 @@ const RcmrdServices = () => {
   ];
 
   return (
-    <section className="py-24 bg-muted/30">
+    <section id="services" className="py-24 bg-muted/30">
       <div className="container mx-auto px-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}

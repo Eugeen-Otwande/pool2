@@ -92,7 +92,7 @@ const RcmrdFooter = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5 text-primary flex-shrink-0" />
-                    <span className="text-muted-foreground text-sm">07XXXXXXXX</span>
+                    <span className="text-muted-foreground text-sm">+254 20 386 0000</span>
                   </div>
                 </div>
               </div>

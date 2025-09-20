@@ -78,36 +78,32 @@ const VisitorBooking = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen bg-background">
       {/* Background Image */}
-      <div className="absolute inset-0 z-0">
-        <img 
-          src={heroImage} 
-          alt="Swimming pool background" 
-          className="w-full h-full object-cover"
-        />
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-900/80 to-cyan-800/80"></div>
-      </div>
+      <div 
+        className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
+        style={{
+          backgroundImage: `url('/lovable-uploads/c3a59b6e-bd2c-4fea-a0a9-48bbf2bc4263.png')`
+        }}
+      />
 
       {/* Navigation */}
-      <div className="relative z-10 p-4">
-        <Link 
-          to="/" 
-          className="inline-flex items-center gap-2 text-white hover:text-cyan-300 transition-colors"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <Home className="w-4 h-4" />
-          Back to Homepage
+      <div className="relative z-10 pt-8 px-6">
+        <Link to="/">
+          <Button variant="outline" className="bg-card/80 hover:bg-card border-border">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Homepage
+          </Button>
         </Link>
       </div>
 
       {/* Content */}
-      <div className="relative z-10 container mx-auto max-w-2xl px-4 pb-8">
-        <Card className="shadow-2xl border-0 bg-white/95 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl text-center">Book a Swim</CardTitle>
-            <CardDescription className="text-center">
-              Reserve your pool time at RCMRD aquatic facility
+      <div className="relative z-10 container mx-auto max-w-2xl px-6 py-8">
+        <Card className="bg-card/90 backdrop-blur-sm shadow-xl border-border">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold text-foreground">Book Your Swim Session</CardTitle>
+            <CardDescription className="text-muted-foreground">
+              Fill out the form below to reserve your spot at RCMRD Pool
             </CardDescription>
           </CardHeader>
           <CardContent>

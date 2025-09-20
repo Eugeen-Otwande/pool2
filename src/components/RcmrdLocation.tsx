@@ -4,7 +4,7 @@ import { MapPin, Navigation, Clock, Phone } from "lucide-react";
 
 const RcmrdLocation = () => {
   return (
-    <section className="py-24 bg-background">
+    <section id="location" className="py-24 bg-background">
       <div className="container mx-auto px-6">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
@@ -30,7 +30,7 @@ const RcmrdLocation = () => {
               <Card className="overflow-hidden h-full border-0 shadow-xl">
                 <div className="h-96 lg:h-full relative">
                   <iframe
-                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.658379147926!2d36.89285!3d-1.3500000!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x182f13e1b4e88c13:0x5a8b8b8b8b8b8b8b!2sRegional%20Centre%20for%20Mapping%20of%20Resources%20for%20Development%20-%20RCMRD!5e0!3m2!1sen!2ske!4v1234567890"
+                    src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3988.7744447827754!2d36.891565314593506!3d-1.2209732991224738!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMcKwMTMnMTUuNSJTIDM2wrA1Myc0OC4zIkU!5e0!3m2!1sen!2ske!4v1234567890"
                     width="100%"
                     height="100%"
                     style={{ border: 0 }}
@@ -97,9 +97,15 @@ const RcmrdLocation = () => {
                     </div>
                   </div>
 
-                  <Button className="w-full bg-primary hover:bg-primary/90" size="lg">
-                    <Navigation className="w-4 h-4 mr-2" />
-                    Get Directions
+                  <Button className="w-full bg-primary hover:bg-primary/90" size="lg" asChild>
+                    <a 
+                      href={`https://www.google.com/maps/dir/?api=1&destination=-1.2209732976165677,36.893965203848495`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Navigation className="w-4 h-4 mr-2" />
+                      Get Directions
+                    </a>
                   </Button>
                 </CardContent>
               </Card>
