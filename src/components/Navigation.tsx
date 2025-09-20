@@ -8,10 +8,11 @@ const Navigation = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const navItems = [
-    { label: "Features", href: "#features" },
-    { label: "Schedule", href: "#schedule" },
-    { label: "Membership", href: "#membership" },
-    { label: "Contact", href: "#contact" },
+    { label: "About RCMRD Pool", href: "#about" },
+    { label: "Our Services", href: "#services" },
+    { label: "Location & Directions", href: "#location" },
+    { label: "Photo Gallery", href: "#gallery" },
+    { label: "Contact Us", href: "#contact" },
   ];
 
   return (
