@@ -31,7 +31,7 @@ import {
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
-// import ProfileTab from "./ProfileTab";
+import ProfileTab from "./ProfileTab";
 
 interface UserProfile {
   id: string;
@@ -46,6 +46,8 @@ interface UserProfile {
   emergency_phone: string | null;
   subscription_type: string | null;
   subscription_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface MemberDashboardProps {
@@ -667,8 +669,7 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
 
           {/* Profile Tab */}
           <TabsContent value="profile" className="space-y-6">
-            {/* <ProfileTab user={user} profile={profile} /> */}
-            <div>Profile tab temporarily disabled</div>
+            <ProfileTab user={user} profile={profile} />
           </TabsContent>
         </Tabs>
       </div>
