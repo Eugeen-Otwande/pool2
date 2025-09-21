@@ -88,11 +88,11 @@ const RcmrdFooter = () => {
                   </div>
                   <div className="flex items-center gap-3">
                     <Mail className="w-5 h-5 text-primary flex-shrink-0" />
-                    <span className="text-muted-foreground text-sm">pool@rcmrd.org</span>
+                    <span className="text-muted-foreground text-sm">Swimmingpool@rcmrd.org</span>
                   </div>
                   <div className="flex items-center gap-3">
                     <Phone className="w-5 h-5 text-primary flex-shrink-0" />
-                    <span className="text-muted-foreground text-sm">+254 20 386 0000</span>
+                    <span className="text-muted-foreground text-sm">0742335679</span>
                   </div>
                 </div>
               </div>
