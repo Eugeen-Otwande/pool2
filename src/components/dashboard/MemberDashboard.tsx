@@ -32,6 +32,7 @@ import {
 import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
+import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
 interface UserProfile {
   id: string;
@@ -473,43 +474,12 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
               </CardContent>
             </Card>
 
-            {/* Recent Activity Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Activity className="w-5 h-5" />
-                  Recent Visits
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {recentVisits.length > 0 ? (
-                    recentVisits.slice(0, 3).map((visit) => (
-                      <div key={visit.id} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                        <div className="flex items-center space-x-3">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                          <div>
-                            <p className="text-sm font-medium">
-                              {visit.pool_schedules?.title || "Pool Session"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(visit.check_in_time).toLocaleDateString()}
-                            </p>
-                          </div>
-                        </div>
-                        <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
-                          {visit.status}
-                        </Badge>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8">
-                      <p className="text-muted-foreground">No recent activity found</p>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Recent Activity Preview with Export */}
+            <RecentActivitiesWidget 
+              activities={recentVisits} 
+              title="Recent Visits"
+              limit={3}
+            />
           </TabsContent>
 
           {/* Sessions Tab */}

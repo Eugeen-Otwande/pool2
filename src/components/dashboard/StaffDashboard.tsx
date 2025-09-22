@@ -31,6 +31,7 @@ import PaymentsTab from "./PaymentsTab";
 import ResidentsTab from "./ResidentsTab";
 import VisitorManagementTab from "./VisitorManagementTab";
 import { User } from "@supabase/supabase-js";
+import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
 interface UserProfile {
   id: string;
@@ -58,6 +59,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
   const [currentCapacity, setCurrentCapacity] = useState(0);
   const [activeCheckIns, setActiveCheckIns] = useState<any[]>([]);
   const [availableEquipment, setAvailableEquipment] = useState<any[]>([]);
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResult, setSearchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -89,7 +91,8 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
   const fetchDashboardData = async () => {
     await Promise.all([
       fetchActiveCheckIns(),
-      fetchAvailableEquipment()
+      fetchAvailableEquipment(),
+      fetchRecentActivities()
     ]);
     setLoading(false);
   };
@@ -126,6 +129,25 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
       setAvailableEquipment(data || []);
     } catch (error) {
       console.error("Error fetching equipment:", error);
+    }
+  };
+
+  const fetchRecentActivities = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("check_ins")
+        .select(`
+          *,
+          profiles!inner(first_name, last_name, role),
+          pool_schedules(title)
+        `)
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      setRecentActivities(data || []);
+    } catch (error) {
+      console.error("Error fetching recent activities:", error);
     }
   };
 
@@ -442,6 +464,14 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
               </div>
             </CardContent>
           </Card>
+          
+          {/* Recent Activities Section */}
+          <RecentActivitiesWidget 
+            activities={recentActivities} 
+            title="Recent Pool Activities"
+            showUserInfo={true}
+            limit={10}
+          />
         </TabsContent>
 
         {/* Approvals Tab */}

@@ -23,6 +23,7 @@ import { User } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
+import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
 interface UserProfile {
   id: string;
@@ -438,51 +439,12 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
               </CardContent>
             </Card>
 
-            {/* Recent Activity Preview */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <History className="w-5 h-5" />
-                  Recent Pool Visits
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3 max-h-64 overflow-y-auto">
-                  {recentVisits.slice(0, 4).length > 0 ? (
-                    recentVisits.slice(0, 4).map((visit) => (
-                      <div key={visit.id} className="p-3 rounded-lg bg-muted/50 border">
-                        <div className="flex items-center justify-between mb-2">
-                          <div className="flex items-center space-x-3">
-                            <div className={`w-2 h-2 rounded-full ${
-                              visit.status === 'checked_out' ? 'bg-green-500' : 'bg-orange-500'
-                            }`}></div>
-                            <div>
-                              <p className="text-sm font-medium">
-                                {visit.pool_schedules?.title || "Pool Session"}
-                              </p>
-                              <p className="text-xs text-muted-foreground">
-                                {new Date(visit.check_in_time).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
-                            {visit.status}
-                          </Badge>
-                        </div>
-                        
-                        <div className="text-xs text-muted-foreground">
-                          <span>Duration: {formatDuration(visit.check_in_time, visit.check_out_time)}</span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-center py-4">
-                      No recent visits found
-                    </p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            {/* Recent Activity Preview with Export */}
+            <RecentActivitiesWidget 
+              activities={recentVisits} 
+              title="Recent Pool Visits"
+              limit={4}
+            />
           </div>
 
           {/* Resident Benefits */}

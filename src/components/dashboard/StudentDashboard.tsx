@@ -22,6 +22,7 @@ import {
 import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
+import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
 interface UserProfile {
   id: string;
@@ -406,48 +407,12 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                 </CardContent>
               </Card>
 
-              {/* Recent Activity Timeline */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="w-5 h-5" />
-                    Recent Activity
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3 max-h-64 overflow-y-auto">
-                    {recentVisits.length > 0 ? (
-                      recentVisits.slice(0, 5).map((visit) => (
-                        <div key={visit.id} className="flex items-center space-x-3 p-2 rounded-lg hover:bg-muted/50 transition-colors">
-                          <div className={`w-2 h-2 rounded-full ${
-                            visit.status === 'checked_out' ? 'bg-green-500' : 'bg-blue-500'
-                          }`}></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium truncate">
-                              {visit.pool_schedules?.title || "Pool Session"}
-                            </p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(visit.check_in_time).toLocaleDateString('en-US', { 
-                                month: 'short', 
-                                day: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
-                          <Badge variant="outline">
-                            {formatDuration(visit.check_in_time, visit.check_out_time)}
-                          </Badge>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-8 text-sm">
-                        No recent activity found
-                      </p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              {/* Recent Activity Timeline with Export */}
+              <RecentActivitiesWidget 
+                activities={recentVisits} 
+                title="Recent Activity"
+                limit={5}
+              />
             </div>
           </TabsContent>
 

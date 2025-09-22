@@ -15,6 +15,8 @@ import {
   Waves
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
+import CheckInWidget from "./CheckInWidget";
+import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
 interface UserProfile {
   id: string;
@@ -319,50 +321,14 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       {/* Quick Access Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Check-in Status */}
-        <Card className={`${currentCheckIn ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800' : 'bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900'}`}>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              {currentCheckIn ? (
-                <CheckCircle className="w-5 h-5 text-emerald-600" />
-              ) : (
-                <XCircle className="w-5 h-5 text-slate-600" />
-              )}
-              Pool Access
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {currentCheckIn ? (
-              <div>
-                <Badge className="mb-3 bg-emerald-600">Currently In Pool</Badge>
-                <p className="text-sm text-muted-foreground">
-                  Visit Duration: {formatDuration(currentCheckIn.check_in_time)}
-                </p>
-                <Button 
-                  onClick={handleCheckOut}
-                  className="w-full mt-4"
-                  variant="outline"
-                >
-                  <XCircle className="w-4 h-4 mr-2" />
-                  Check Out
-                </Button>
-              </div>
-            ) : (
-              <div>
-                <Badge variant="secondary" className="mb-3">Ready to Enter</Badge>
-                <p className="text-xs text-muted-foreground mb-3">
-                  Check in when you arrive at the pool
-                </p>
-                <Button 
-                  onClick={() => handleCheckIn()}
-                  className="w-full"
-                >
-                  <CheckCircle className="w-4 h-4 mr-2" />
-                  Check In
-                </Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <CheckInWidget 
+          user={user} 
+          profile={{
+            role: profile.role,
+            first_name: profile.first_name,
+            status: profile.status
+          }} 
+        />
 
         {/* Pool Conditions */}
         <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
@@ -546,64 +512,12 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
         </CardContent>
       </Card>
 
-      {/* Recent Visits */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Clock className="w-5 h-5" />
-            Recent Visits
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3 max-h-64 overflow-y-auto">
-            {recentVisits.length > 0 ? (
-              recentVisits.map((visit) => (
-                <div key={visit.id} className="p-3 rounded-lg bg-muted/50 border">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center space-x-3">
-                      <div className={`w-2 h-2 rounded-full ${
-                        visit.status === 'checked_out' ? 'bg-green-500' : 'bg-blue-500'
-                      }`}></div>
-                      <div>
-                        <p className="text-sm font-medium">
-                          {visit.pool_schedules?.title || "Pool Session"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(visit.check_in_time).toLocaleDateString()}
-                        </p>
-                      </div>
-                    </div>
-                    <Badge variant={visit.status === "checked_out" ? "secondary" : "default"}>
-                      {visit.status}
-                    </Badge>
-                  </div>
-                  
-                  <div className="text-xs text-muted-foreground space-y-1">
-                    <div className="flex justify-between">
-                      <span>Check-in:</span>
-                      <span>{new Date(visit.check_in_time).toLocaleTimeString()}</span>
-                    </div>
-                    {visit.check_out_time && (
-                      <div className="flex justify-between">
-                        <span>Check-out:</span>
-                        <span>{new Date(visit.check_out_time).toLocaleTimeString()}</span>
-                      </div>
-                    )}
-                    <div className="flex justify-between font-medium">
-                      <span>Duration:</span>
-                      <span>{formatDuration(visit.check_in_time, visit.check_out_time)}</span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <p className="text-muted-foreground text-center py-4">
-                No recent visits found
-              </p>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Recent Visits with Export */}
+      <RecentActivitiesWidget 
+        activities={recentVisits} 
+        title="Recent Visits"
+        limit={5}
+      />
 
       {/* All Users Overview */}
       <Card>
