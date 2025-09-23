@@ -155,57 +155,30 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
     }
   };
 
-  const handleCheckIn = async (scheduleId?: string) => {
+  const handleToggleCheckIn = async (scheduleId?: string) => {
     try {
-      const { error } = await supabase
-        .from("check_ins")
-        .insert({
-          user_id: user.id,
-          schedule_id: scheduleId,
-          status: "checked_in"
-        });
+      const { data, error } = await supabase.rpc('toggle_checkin', {
+        p_user_id: user.id,
+        p_schedule_id: scheduleId || null
+      });
 
       if (error) throw error;
 
+      const result = data as { action: string; record: any; message: string };
+      
       toast({
-        title: "Check-in Successful",
-        description: "Welcome to your residential pool access",
+        title: result.action === 'checked_in' ? "Check-in Successful" : "Check-out Successful",
+        description: result.action === 'checked_in' ? "Welcome to your residential pool access" : "Thanks for using the residential pool",
       });
 
-      fetchCurrentCheckIn();
+      // Refresh data
+      await Promise.all([
+        fetchCurrentCheckIn(),
+        fetchRecentVisits()
+      ]);
     } catch (error: any) {
       toast({
-        title: "Check-in Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (!currentCheckIn) return;
-
-    try {
-      const { error } = await supabase
-        .from("check_ins")
-        .update({
-          check_out_time: new Date().toISOString(),
-          status: "checked_out"
-        })
-        .eq("id", currentCheckIn.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Check-out Successful",
-        description: "Thanks for using the residential pool",
-      });
-
-      setCurrentCheckIn(null);
-      fetchRecentVisits();
-    } catch (error: any) {
-      toast({
-        title: "Check-out Failed",
+        title: "Operation Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -306,14 +279,14 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
                     <p className="text-xs text-muted-foreground">
                       Started: {new Date(currentCheckIn.check_in_time).toLocaleTimeString()}
                     </p>
-                    <Button 
-                      onClick={handleCheckOut}
-                      className="w-full mt-4"
-                      variant="outline"
-                    >
-                      <XCircle className="w-4 h-4 mr-2" />
-                      Check Out
-                    </Button>
+                      <Button 
+                        onClick={() => handleToggleCheckIn()}
+                        className="w-full mt-4"
+                        variant="outline"
+                      >
+                        <XCircle className="w-4 h-4 mr-2" />
+                        Check Out
+                      </Button>
                   </div>
                 ) : (
                   <div>
@@ -322,7 +295,7 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
                       Your residential pool access is available 24/7
                     </p>
                     <Button 
-                      onClick={() => handleCheckIn()}
+                      onClick={() => handleToggleCheckIn()}
                       className="w-full"
                     >
                       <QrCode className="w-4 h-4 mr-2" />

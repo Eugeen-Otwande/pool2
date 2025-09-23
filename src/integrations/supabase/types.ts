@@ -865,6 +865,10 @@ export type Database = {
         Args: { member_id: string; schedule_id?: string }
         Returns: string
       }
+      toggle_checkin: {
+        Args: { p_schedule_id?: string; p_user_id: string }
+        Returns: Json
+      }
       visitor_checkin_checkout: {
         Args: { action: string; visitor_id: string }
         Returns: undefined

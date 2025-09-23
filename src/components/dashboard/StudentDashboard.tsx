@@ -146,58 +146,30 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
     }
   };
 
-  const handleCheckIn = async (scheduleId?: string) => {
+  const handleToggleCheckIn = async (scheduleId?: string) => {
     try {
-      const { error } = await supabase
-        .from("check_ins")
-        .insert({
-          user_id: user.id,
-          schedule_id: scheduleId,
-          status: "checked_in"
-        });
+      const { data, error } = await supabase.rpc('toggle_checkin', {
+        p_user_id: user.id,
+        p_schedule_id: scheduleId || null
+      });
 
       if (error) throw error;
 
+      const result = data as { action: string; record: any; message: string };
+      
       toast({
-        title: "Check-in Successful",
-        description: "Welcome to the pool! Enjoy your session",
+        title: result.action === 'checked_in' ? "Check-in Successful" : "Check-out Successful",
+        description: result.action === 'checked_in' ? "Welcome to the pool! Enjoy your session" : "Thanks for visiting! Have a great day",
       });
 
-      fetchCurrentCheckIn();
-      fetchRecentVisits();
+      // Refresh data
+      await Promise.all([
+        fetchCurrentCheckIn(),
+        fetchRecentVisits()
+      ]);
     } catch (error: any) {
       toast({
-        title: "Check-in Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleCheckOut = async () => {
-    if (!currentCheckIn) return;
-
-    try {
-      const { error } = await supabase
-        .from("check_ins")
-        .update({
-          check_out_time: new Date().toISOString(),
-          status: "checked_out"
-        })
-        .eq("id", currentCheckIn.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Check-out Successful",
-        description: "Thanks for visiting! Have a great day",
-      });
-
-      setCurrentCheckIn(null);
-      fetchRecentVisits();
-    } catch (error: any) {
-      toast({
-        title: "Check-out Failed",
+        title: "Operation Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -301,7 +273,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                         Checked in at: {new Date(currentCheckIn.check_in_time).toLocaleTimeString()}
                       </p>
                       <Button 
-                        onClick={handleCheckOut}
+                        onClick={() => handleToggleCheckIn()}
                         className="w-full mt-4"
                         variant="outline"
                       >
@@ -316,7 +288,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                         You are not currently checked into the pool.
                       </p>
                       <Button 
-                        onClick={() => handleCheckIn()}
+                        onClick={() => handleToggleCheckIn()}
                         className="w-full"
                       >
                         <QrCode className="w-4 h-4 mr-2" />
