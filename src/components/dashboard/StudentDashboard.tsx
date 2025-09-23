@@ -133,11 +133,11 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
         .from("check_ins")
         .select(`
           *,
-          pool_schedules!check_ins_schedule_id_fkey(title)
+          pool_schedules(title)
         `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .limit(5);
+        .limit(10);
 
       if (error) throw error;
       setRecentVisits(data || []);
@@ -160,10 +160,11 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
 
       toast({
         title: "Check-in Successful",
-        description: "You have been checked into the pool",
+        description: "Welcome to the pool! Enjoy your session",
       });
 
       fetchCurrentCheckIn();
+      fetchRecentVisits();
     } catch (error: any) {
       toast({
         title: "Check-in Failed",
@@ -189,7 +190,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
 
       toast({
         title: "Check-out Successful",
-        description: "You have been checked out of the pool",
+        description: "Thanks for visiting! Have a great day",
       });
 
       setCurrentCheckIn(null);
