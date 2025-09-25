@@ -37,6 +37,9 @@ interface UserProfile {
   status: string;
   subscription_type: string | null;
   subscription_expires_at: string | null;
+  check_in_status: string | null;
+  check_in_at: string | null;
+  check_out_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -148,7 +151,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
 
   const handleToggleCheckIn = async (scheduleId?: string) => {
     try {
-      const { data, error } = await supabase.rpc('toggle_checkin', {
+      const { data, error } = await supabase.rpc('student_toggle_checkin', {
         p_user_id: user.id,
         p_schedule_id: scheduleId || null
       });
@@ -224,33 +227,33 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-8 py-4">
-            <TabsList className="grid w-full max-w-md grid-cols-4">
-              <TabsTrigger value="overview" className="flex items-center gap-2">
+            <TabsList className="grid w-full max-w-md grid-cols-4 h-auto">
+              <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
                 <Home className="w-4 h-4" />
-                <span className="hidden sm:inline">Overview</span>
+                <span>Overview</span>
               </TabsTrigger>
-              <TabsTrigger value="activity" className="flex items-center gap-2">
+              <TabsTrigger value="activity" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
                 <BarChart3 className="w-4 h-4" />
-                <span className="hidden sm:inline">Activity</span>
+                <span>Activity</span>
               </TabsTrigger>
-              <TabsTrigger value="messages" className="flex items-center gap-2">
+              <TabsTrigger value="messages" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
                 <MessageSquare className="w-4 h-4" />
-                <span className="hidden sm:inline">Messages</span>
+                <span>Messages</span>
               </TabsTrigger>
-              <TabsTrigger value="profile" className="flex items-center gap-2">
+              <TabsTrigger value="profile" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
                 <UserIcon className="w-4 h-4" />
-                <span className="hidden sm:inline">Profile</span>
+                <span>Profile</span>
               </TabsTrigger>
             </TabsList>
           </div>
         </div>
 
         {/* Tab Content */}
-        <div className="p-8">
-          <TabsContent value="overview" className="space-y-6 mt-0">
+        <div className="p-4 sm:p-6 lg:p-8">
+          <TabsContent value="overview" className="space-y-4 sm:space-y-6 mt-0">
 
             {/* Pool Access Status */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               <Card className={`${currentCheckIn ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800' : 'bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900'}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -276,6 +279,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                         onClick={() => handleToggleCheckIn()}
                         className="w-full mt-4"
                         variant="outline"
+                        size="lg"
                       >
                         <XCircle className="w-4 h-4 mr-2" />
                         Check Out
@@ -290,6 +294,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                       <Button 
                         onClick={() => handleToggleCheckIn()}
                         className="w-full"
+                        size="lg"
                       >
                         <QrCode className="w-4 h-4 mr-2" />
                         Check In Now
@@ -346,10 +351,10 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
             </div>
           </TabsContent>
 
-          <TabsContent value="activity" className="space-y-6 mt-0">
+          <TabsContent value="activity" className="space-y-4 sm:space-y-6 mt-0">
 
             {/* Recent Visits & Statistics */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {/* Statistics */}
               <Card>
                 <CardHeader>

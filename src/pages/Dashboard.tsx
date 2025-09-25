@@ -24,6 +24,9 @@ interface UserProfile {
   emergency_phone: string | null;
   subscription_type: string | null;
   subscription_expires_at: string | null;
+  check_in_status: string | null;
+  check_in_at: string | null;
+  check_out_at: string | null;
   created_at: string;
   updated_at: string;
 }

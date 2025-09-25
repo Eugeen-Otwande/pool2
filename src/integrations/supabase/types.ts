@@ -545,6 +545,9 @@ export type Database = {
       }
       profiles: {
         Row: {
+          check_in_at: string | null
+          check_in_status: string | null
+          check_out_at: string | null
           created_at: string
           email: string
           emergency_contact: string | null
@@ -561,6 +564,9 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          check_in_at?: string | null
+          check_in_status?: string | null
+          check_out_at?: string | null
           created_at?: string
           email: string
           emergency_contact?: string | null
@@ -577,6 +583,9 @@ export type Database = {
           user_id: string
         }
         Update: {
+          check_in_at?: string | null
+          check_in_status?: string | null
+          check_out_at?: string | null
           created_at?: string
           email?: string
           emergency_contact?: string | null
@@ -864,6 +873,10 @@ export type Database = {
       residence_member_checkin: {
         Args: { member_id: string; schedule_id?: string }
         Returns: string
+      }
+      student_toggle_checkin: {
+        Args: { p_schedule_id?: string; p_user_id: string }
+        Returns: Json
       }
       toggle_checkin: {
         Args: { p_schedule_id?: string; p_user_id: string }
