@@ -2,7 +2,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -15,7 +19,20 @@ import {
   XCircle,
   AlertTriangle,
   Eye,
-  Home
+  Home,
+  Calendar,
+  TrendingUp,
+  Edit,
+  Trash2,
+  Plus,
+  UserCheck,
+  UserX,
+  Mail,
+  FileText,
+  ClipboardList,
+  Dumbbell,
+  Info,
+  Settings
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ResidenceTab from "./ResidenceTab";
@@ -24,12 +41,9 @@ import ReportsTab from "./ReportsTab";
 import TimetableManagement from "./TimetableManagement";
 import UserApprovalTab from "./UserApprovalTab";
 import SystemInfoTab from "./SystemInfoTab";
-import ProfileTab from "./ProfileTab";
 import InquiriesTab from "./InquiriesTab";
-import VisitorsTab from "./VisitorsTab";
-import PaymentsTab from "./PaymentsTab";
-import ResidentsTab from "./ResidentsTab";
 import VisitorManagementTab from "./VisitorManagementTab";
+import CreateUserDialog from "./CreateUserDialog";
 import { User } from "@supabase/supabase-js";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
@@ -46,8 +60,52 @@ interface UserProfile {
   emergency_phone: string | null;
   subscription_type: string | null;
   subscription_expires_at: string | null;
+  check_in_status: string | null;
+  check_in_at: string | null;
+  check_out_at: string | null;
   created_at: string;
   updated_at: string;
+}
+
+interface Equipment {
+  id: string;
+  name: string;
+  category: string;
+  description?: string;
+  status: string;
+  barcode?: string;
+  replacement_cost?: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Schedule {
+  id: string;
+  title: string;
+  description?: string;
+  start_time: string;
+  end_time: string;
+  days_of_week: number[];
+  capacity_limit: number;
+  allowed_roles: string[];
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface CheckIn {
+  id: string;
+  user_id: string;
+  check_in_time: string;
+  check_out_time?: string;
+  status: string;
+  notes?: string;
+  profiles: {
+    first_name: string;
+    last_name: string;
+    role: string;
+    email: string;
+  };
 }
 
 interface StaffDashboardProps {
@@ -56,14 +114,27 @@ interface StaffDashboardProps {
 }
 
 const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeCheckIns: 0,
+    equipmentItems: 0,
+    pendingApprovals: 0,
+  });
   const [currentCapacity, setCurrentCapacity] = useState(0);
   const [activeCheckIns, setActiveCheckIns] = useState<any[]>([]);
   const [availableEquipment, setAvailableEquipment] = useState<any[]>([]);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [recentActivity, setRecentActivity] = useState<CheckIn[]>([]);
+  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResult, setSearchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -71,7 +142,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
     
     // Set up real-time subscription for check-ins
     const channel = supabase
-      .channel('staff-dashboard')
+      .channel('staff-realtime')
       .on(
         'postgres_changes',
         {
@@ -79,7 +150,21 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           schema: 'public',
           table: 'check_ins'
         },
-        () => fetchActiveCheckIns()
+        () => {
+          fetchDashboardData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          fetchUsers();
+          fetchDashboardData();
+        }
       )
       .subscribe();
 
@@ -89,12 +174,80 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
   }, []);
 
   const fetchDashboardData = async () => {
-    await Promise.all([
-      fetchActiveCheckIns(),
-      fetchAvailableEquipment(),
-      fetchRecentActivities()
-    ]);
-    setLoading(false);
+    try {
+      // Fetch user count
+      const { count: userCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true });
+
+      // Fetch active check-ins
+      const { count: checkInCount } = await supabase
+        .from("check_ins")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "checked_in");
+
+      // Fetch equipment count
+      const { count: equipmentCount } = await supabase
+        .from("equipment")
+        .select("*", { count: "exact", head: true });
+
+      // Fetch pending approvals
+      const { count: pendingCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+
+      // Fetch recent check-ins
+      const { data: recentCheckIns } = await supabase
+        .from("check_ins")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(5);
+
+      // Fetch user details for recent check-ins
+      const recentActivity = [];
+      if (recentCheckIns && recentCheckIns.length > 0) {
+        for (const checkIn of recentCheckIns) {
+          const { data: userProfile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, role, email")
+            .eq("user_id", checkIn.user_id)
+            .single();
+
+          if (userProfile) {
+            recentActivity.push({
+              ...checkIn,
+              profiles: userProfile
+            });
+          }
+        }
+      }
+
+      setStats({
+        totalUsers: userCount || 0,
+        activeCheckIns: checkInCount || 0,
+        equipmentItems: equipmentCount || 0,
+        pendingApprovals: pendingCount || 0,
+      });
+
+      setRecentActivity(recentActivity);
+      
+      // Also call existing functions for compatibility
+      await Promise.all([
+        fetchActiveCheckIns(),
+        fetchAvailableEquipment(),
+        fetchRecentActivities()
+      ]);
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const fetchActiveCheckIns = async () => {
@@ -198,13 +351,121 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
     }
   };
 
+  const fetchUsers = async () => {
+    try {
+      console.log("StaffDashboard: Fetching users...");
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching users:", error);
+        throw error;
+      }
+      console.log("StaffDashboard: Fetched users:", data?.length || 0);
+      setUsers(data || []);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchEquipment = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("equipment")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setEquipment(data || []);
+    } catch (error) {
+      console.error("Error fetching equipment:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load equipment",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchSchedules = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("pool_schedules")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      setSchedules(data || []);
+    } catch (error) {
+      console.error("Error fetching schedules:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load schedules",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const fetchCheckIns = async () => {
+    try {
+      console.log("StaffDashboard: Fetching check-ins...");
+      const { data: checkInsData, error } = await supabase
+        .from("check_ins")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(50);
+
+      if (error) {
+        console.error("StaffDashboard: Error fetching check-ins:", error);
+        throw error;
+      }
+      console.log("StaffDashboard: Fetched check-ins:", checkInsData?.length || 0);
+
+      // Fetch user details for each check-in
+      const checkInsWithProfiles = [];
+      if (checkInsData && checkInsData.length > 0) {
+        for (const checkIn of checkInsData) {
+          const { data: userProfile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, role, email")
+            .eq("user_id", checkIn.user_id)
+            .single();
+
+          if (userProfile) {
+            checkInsWithProfiles.push({
+              ...checkIn,
+              profiles: userProfile
+            });
+          }
+        }
+      }
+
+      setCheckIns(checkInsWithProfiles);
+    } catch (error) {
+      console.error("Error fetching check-ins:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load check-ins",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleManualCheckOut = async (checkInId: string, userName: string) => {
     try {
       const { error } = await supabase
         .from("check_ins")
         .update({
           check_out_time: new Date().toISOString(),
-          status: "checked_out"
+          status: "checked_out",
+          notes: "Manual check-out by staff"
         })
         .eq("id", checkInId);
 
@@ -212,23 +473,146 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
 
       toast({
         title: "Check-out Successful",
-        description: `${userName} has been checked out`,
+        description: `${userName} has been checked out manually`,
       });
 
+      // Refresh data to show updated activities
       fetchActiveCheckIns();
+      fetchRecentActivities();
+      fetchDashboardData();
     } catch (error: any) {
       toast({
         title: "Check-out Failed",
-        description: error.message,
+        description: error.message || "Check-out failed",
         variant: "destructive",
       });
     }
   };
 
-  const formatDuration = (checkInTime: string) => {
+  const handleResidenceCheckIn = async (memberId: string, memberName: string, isActive: boolean = true) => {
+    try {
+      // Staff can perform check-in even if member is not found or inactive
+      const { data, error } = await supabase.rpc('residence_member_checkin', {
+        member_id: memberId,
+        schedule_id: null
+      });
+
+      if (error) throw error;
+
+      const logMessage = isActive 
+        ? `${memberName} checked in via residence management`
+        : `${memberName} checked in (inactive member) via staff override`;
+
+      toast({
+        title: "Check-in Successful",
+        description: logMessage,
+      });
+
+      // Refresh data to show updated activities
+      fetchActiveCheckIns();
+      fetchRecentActivities();
+      fetchDashboardData();
+    } catch (error: any) {
+      toast({
+        title: "Check-in Failed",
+        description: error.message || "Check-in failed",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserStatus = async (userId: string, status: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ status })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User status updated to ${status}`,
+      });
+      fetchUsers();
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error updating user status:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const updateUserRole = async (userId: string, role: string) => {
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .update({ role })
+        .eq("id", userId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `User role updated to ${role}`,
+      });
+      fetchUsers();
+      fetchDashboardData();
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setShowCreateUserDialog(true);
+  };
+
+  const handleDeleteUser = async (user: any) => {
+    if (!confirm(`Are you sure you want to delete ${user.first_name} ${user.last_name}?`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from("profiles")
+        .delete()
+        .eq("id", user.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "User has been deleted successfully",
+      });
+      fetchUsers();
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const onUserCreated = () => {
+    fetchUsers();
+    setEditingUser(null);
+  };
+
+  const formatDuration = (checkInTime: string, checkOutTime?: string) => {
     const start = new Date(checkInTime);
-    const now = new Date();
-    const diff = Math.floor((now.getTime() - start.getTime()) / 60000); // minutes
+    const end = checkOutTime ? new Date(checkOutTime) : new Date();
+    const diff = Math.floor((end.getTime() - start.getTime()) / 60000); // minutes
     
     if (diff < 60) return `${diff}m`;
     return `${Math.floor(diff / 60)}h ${diff % 60}m`;
@@ -263,21 +647,186 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
       </div>
 
       {/* Tabs Navigation */}
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-8">
+      <Tabs value={activeTab} onValueChange={(tab) => {
+        setActiveTab(tab);
+        // Load data when switching tabs
+        switch(tab) {
+          case "users":
+            fetchUsers();
+            break;
+          case "equipment":
+            fetchEquipment();
+            break;
+          case "schedules":
+            fetchSchedules();
+            break;
+          case "checkins":
+            fetchCheckIns();
+            break;
+        }
+      }} className="w-full">
+        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
+          <TabsTrigger value="visitors">Visitors</TabsTrigger>
+          <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
           <TabsTrigger value="residence">Residence</TabsTrigger>
           <TabsTrigger value="schedules">Schedules</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
+          <TabsTrigger value="messaging">Messages</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="equipment">Equipment</TabsTrigger>
+          <TabsTrigger value="checkins">Check-ins</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">
-          {/* Quick Stats */}
+          {/* Stats Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Users</p>
+                    <p className="text-3xl font-bold text-blue-900 dark:text-blue-100">{stats.totalUsers}</p>
+                  </div>
+                  <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Active Check-ins</p>
+                    <p className="text-3xl font-bold text-emerald-900 dark:text-emerald-100">{stats.activeCheckIns}</p>
+                  </div>
+                  <CheckCircle className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Equipment Items</p>
+                    <p className="text-3xl font-bold text-purple-900 dark:text-purple-100">{stats.equipmentItems}</p>
+                  </div>
+                  <Package className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-orange-600 dark:text-orange-400">Pending Approvals</p>
+                    <p className="text-3xl font-bold text-orange-900 dark:text-orange-100">{stats.pendingApprovals}</p>
+                  </div>
+                  <AlertTriangle className="w-8 h-8 text-orange-600 dark:text-orange-400" />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Recent Activity */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="w-5 h-5" />
+                  Recent Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {recentActivity.length > 0 ? (
+                    recentActivity.map((activity, index) => (
+                      <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                        <div className="flex items-center space-x-3">
+                          <div className="w-2 h-2 bg-emerald-500 rounded-full"></div>
+                          <div>
+                            <p className="text-sm font-medium">
+                              {activity.profiles.first_name} {activity.profiles.last_name} checked in
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(activity.check_in_time).toLocaleTimeString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Badge variant="secondary">
+                          {activity.profiles.role}
+                        </Badge>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-muted-foreground text-center py-4">No recent activity</p>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <TrendingUp className="w-5 h-5" />
+                  Quick Actions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("users");
+                    fetchUsers();
+                  }}
+                >
+                  <Users className="w-4 h-4 mr-2" />
+                  Manage Users
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("schedules");
+                    fetchSchedules();
+                  }}
+                >
+                  <Calendar className="w-4 h-4 mr-2" />
+                  Pool Schedule
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("equipment");
+                    fetchEquipment();
+                  }}
+                >
+                  <Package className="w-4 h-4 mr-2" />
+                  Equipment Management
+                </Button>
+                <Button 
+                  className="w-full justify-start" 
+                  variant="outline"
+                  onClick={() => {
+                    setActiveTab("checkins");
+                    fetchCheckIns();
+                  }}
+                >
+                  <CheckCircle className="w-4 h-4 mr-2" />
+                  View Check-ins
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Quick Stats (Additional) */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800">
               <CardContent className="p-6">
@@ -479,17 +1028,107 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           <UserApprovalTab onRefreshStats={() => fetchDashboardData()} />
         </TabsContent>
 
+        {/* User Approvals Tab */}
+        <TabsContent value="approvals" className="space-y-6">
+          <UserApprovalTab onRefreshStats={fetchDashboardData} />
+        </TabsContent>
+
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>User Management</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Users className="w-5 h-5" />
+                  User Management
+                </span>
+                <Button onClick={fetchUsers}>
+                  Refresh
+                </Button>
+              </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-muted-foreground mb-4">Manage user accounts and permissions</p>
-              <Button>Add New User</Button>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Created</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {users.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        {user.first_name} {user.last_name}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{user.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={user.status === 'active' ? 'default' : 
+                                 user.status === 'pending' ? 'secondary' : 'destructive'}
+                        >
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(user.created_at).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Select onValueChange={(value) => updateUserRole(user.id, value)}>
+                            <SelectTrigger className="w-32">
+                              <SelectValue placeholder="Change Role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="admin">Admin</SelectItem>
+                              <SelectItem value="staff">Staff</SelectItem>
+                              <SelectItem value="student">Student</SelectItem>
+                              <SelectItem value="member">Member</SelectItem>
+                              <SelectItem value="resident">Resident</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          {user.status === 'pending' && (
+                            <Button 
+                              size="sm" 
+                              onClick={() => updateUserStatus(user.id, 'active')}
+                            >
+                              <UserCheck className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {user.status === 'active' && (
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => updateUserStatus(user.id, 'suspended')}
+                            >
+                              <UserX className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Visitors Tab */}
+        <TabsContent value="visitors">
+          <VisitorManagementTab />
+        </TabsContent>
+
+        {/* Inquiries Tab */}
+        <TabsContent value="inquiries">
+          <InquiriesTab />
         </TabsContent>
 
         {/* Residence Tab */}
@@ -502,21 +1141,171 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           <TimetableManagement onRefreshStats={() => fetchDashboardData()} />
         </TabsContent>
 
-        {/* Messages Tab */}
-        <TabsContent value="messages" className="space-y-6">
-          <MessagingTab onRefreshStats={() => {}} />
+        {/* Messaging Tab */}
+        <TabsContent value="messaging" className="space-y-6">
+          <MessagingTab onRefreshStats={fetchDashboardData} />
         </TabsContent>
 
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
-          <ReportsTab />
+          <ReportsTab onRefreshStats={fetchDashboardData} />
         </TabsContent>
 
-        {/* System Tab */}
-        <TabsContent value="system" className="space-y-6">
+        {/* Equipment Tab */}
+        <TabsContent value="equipment" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Package className="w-5 h-5" />
+                  Equipment Management
+                </span>
+                <Button onClick={fetchEquipment}>
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Category</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Barcode</TableHead>
+                    <TableHead>Cost</TableHead>
+                    <TableHead>Created</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {equipment.map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.name}</TableCell>
+                      <TableCell>{item.category}</TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={item.status === 'available' ? 'default' : 
+                                 item.status === 'maintenance' ? 'secondary' : 'destructive'}
+                        >
+                          {item.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{item.barcode || 'N/A'}</TableCell>
+                      <TableCell>
+                        {item.replacement_cost ? `$${item.replacement_cost}` : 'N/A'}
+                      </TableCell>
+                      <TableCell>
+                        {new Date(item.created_at).toLocaleDateString()}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Check-ins Tab */}
+        <TabsContent value="checkins" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <CheckCircle className="w-5 h-5" />
+                  Real-time Check-in History
+                </span>
+                <Button 
+                  onClick={fetchCheckIns}
+                  onFocus={() => {
+                    if (activeTab === "checkins" && checkIns.length === 0) {
+                      fetchCheckIns();
+                    }
+                  }}
+                >
+                  Refresh
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>User</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Check-in Time</TableHead>
+                    <TableHead>Check-out Time</TableHead>
+                    <TableHead>Duration</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Notes</TableHead>
+                    <TableHead>Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {checkIns.map((checkIn) => (
+                    <TableRow key={checkIn.id}>
+                      <TableCell>
+                        {checkIn.profiles.first_name} {checkIn.profiles.last_name}
+                      </TableCell>
+                      <TableCell>{checkIn.profiles.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{checkIn.profiles.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        {new Date(checkIn.check_in_time).toLocaleString()}
+                      </TableCell>
+                      <TableCell>
+                        {checkIn.check_out_time 
+                          ? new Date(checkIn.check_out_time).toLocaleString()
+                          : 'Still checked in'
+                        }
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {formatDuration(checkIn.check_in_time, checkIn.check_out_time)}
+                      </TableCell>
+                      <TableCell>
+                        <Badge 
+                          variant={checkIn.status === 'checked_in' ? 'default' : 'secondary'}
+                        >
+                          {checkIn.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>{checkIn.notes || 'N/A'}</TableCell>
+                      <TableCell>
+                        {checkIn.status === 'checked_in' && (
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleManualCheckOut(
+                              checkIn.id,
+                              `${checkIn.profiles.first_name} ${checkIn.profiles.last_name}`
+                            )}
+                          >
+                            <XCircle className="w-4 h-4 mr-2" />
+                            Check Out
+                          </Button>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* System Info Tab */}
+        <TabsContent value="system">
           <SystemInfoTab user={user} profile={profile} />
         </TabsContent>
       </Tabs>
+
+      <CreateUserDialog
+        open={showCreateUserDialog}
+        onOpenChange={setShowCreateUserDialog}
+        onUserCreated={onUserCreated}
+        editingUser={editingUser}
+      />
     </div>
   );
 };
