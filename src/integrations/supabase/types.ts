@@ -684,30 +684,54 @@ export type Database = {
       residents: {
         Row: {
           created_at: string
+          created_by: string | null
           email: string
+          full_name: string | null
+          hostel_admission: string | null
           id: string
           name: string
-          password_hash: string
-          phone: string
+          password_hash: string | null
+          phone: string | null
+          phone_number: string | null
           role: string
+          school: string | null
+          status: string | null
+          updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
           email: string
+          full_name?: string | null
+          hostel_admission?: string | null
           id?: string
           name: string
-          password_hash: string
-          phone: string
+          password_hash?: string | null
+          phone?: string | null
+          phone_number?: string | null
           role?: string
+          school?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
           email?: string
+          full_name?: string | null
+          hostel_admission?: string | null
           id?: string
           name?: string
-          password_hash?: string
-          phone?: string
+          password_hash?: string | null
+          phone?: string | null
+          phone_number?: string | null
           role?: string
+          school?: string | null
+          status?: string | null
+          updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -873,6 +897,10 @@ export type Database = {
       residence_member_checkin: {
         Args: { member_id: string; schedule_id?: string }
         Returns: string
+      }
+      resident_toggle_checkin: {
+        Args: { p_schedule_id?: string; p_user_id: string }
+        Returns: Json
       }
       student_toggle_checkin: {
         Args: { p_schedule_id?: string; p_user_id: string }

@@ -35,7 +35,7 @@ import {
 import UserApprovalTab from "./UserApprovalTab";
 import TimetableManagement from "./TimetableManagement";
 import MessagingTab from "./MessagingTab";
-import ResidenceTab from "./ResidenceTab";
+import ResidentsTab from "./ResidentsTab";
 import CreateUserDialog from "./CreateUserDialog";
 import SystemInfoTab from "./SystemInfoTab";
 import VisitorManagementTab from './VisitorManagementTab';
@@ -446,7 +446,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="visitors">Visitors</TabsTrigger>
           <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
-          <TabsTrigger value="residence">Residence</TabsTrigger>
+          <TabsTrigger value="residents">Residents</TabsTrigger>
           <TabsTrigger value="schedules">Schedules</TabsTrigger>
           <TabsTrigger value="messaging">Messages</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
@@ -705,9 +705,9 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
           <InquiriesTab />
         </TabsContent>
 
-        {/* Residence Tab */}
-        <TabsContent value="residence" className="space-y-6">
-          <ResidenceTab onRefreshStats={fetchDashboardData} />
+        {/* Residents Tab */}
+        <TabsContent value="residents" className="space-y-6">
+          <ResidentsTab onRefreshStats={fetchDashboardData} />
         </TabsContent>
 
         {/* Schedules Tab */}
