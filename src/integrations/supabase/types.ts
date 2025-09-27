@@ -878,6 +878,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_checkin: {
+        Args: { approved_by_user_id: string; checkin_id: string }
+        Returns: Json
+      }
+      force_checkout: {
+        Args: {
+          checkin_id: string
+          force_reason?: string
+          forced_by_user_id: string
+        }
+        Returns: Json
+      }
       is_admin: {
         Args: { _uid: string }
         Returns: boolean
@@ -893,6 +905,14 @@ export type Database = {
       is_staff: {
         Args: { _uid: string }
         Returns: boolean
+      }
+      reject_checkin: {
+        Args: {
+          checkin_id: string
+          rejected_by_user_id: string
+          rejection_reason?: string
+        }
+        Returns: Json
       }
       residence_member_checkin: {
         Args: { member_id: string; schedule_id?: string }

@@ -35,7 +35,7 @@ import {
   Settings
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ResidenceTab from "./ResidenceTab";
+import ResidentsTab from "./ResidentsTab";
 import MessagingTab from "./MessagingTab";
 import ReportsTab from "./ReportsTab";
 import TimetableManagement from "./TimetableManagement";
@@ -44,6 +44,9 @@ import SystemInfoTab from "./SystemInfoTab";
 import InquiriesTab from "./InquiriesTab";
 import VisitorManagementTab from "./VisitorManagementTab";
 import CreateUserDialog from "./CreateUserDialog";
+import ApprovalsTab from "./ApprovalsTab";
+import PaymentsTab from "./PaymentsTab";
+import VisitorsTab from "./VisitorsTab";
 import { User } from "@supabase/supabase-js";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
@@ -671,10 +674,11 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           <TabsTrigger value="users">Users</TabsTrigger>
           <TabsTrigger value="visitors">Visitors</TabsTrigger>
           <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
-          <TabsTrigger value="residence">Residence</TabsTrigger>
+          <TabsTrigger value="residents">Residents</TabsTrigger>
           <TabsTrigger value="schedules">Schedules</TabsTrigger>
           <TabsTrigger value="messaging">Messages</TabsTrigger>
           <TabsTrigger value="reports">Reports</TabsTrigger>
+          <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="checkins">Check-ins</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
@@ -1025,12 +1029,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
 
         {/* Approvals Tab */}
         <TabsContent value="approvals" className="space-y-6">
-          <UserApprovalTab onRefreshStats={() => fetchDashboardData()} />
-        </TabsContent>
-
-        {/* User Approvals Tab */}
-        <TabsContent value="approvals" className="space-y-6">
-          <UserApprovalTab onRefreshStats={fetchDashboardData} />
+          <ApprovalsTab userProfile={profile} />
         </TabsContent>
 
         {/* Users Tab */}
@@ -1123,7 +1122,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
 
         {/* Visitors Tab */}
         <TabsContent value="visitors">
-          <VisitorManagementTab />
+          <VisitorsTab />
         </TabsContent>
 
         {/* Inquiries Tab */}
@@ -1131,9 +1130,9 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           <InquiriesTab />
         </TabsContent>
 
-        {/* Residence Tab */}
-        <TabsContent value="residence" className="space-y-6">
-          <ResidenceTab onRefreshStats={() => fetchDashboardData()} />
+        {/* Residents Tab */}
+        <TabsContent value="residents" className="space-y-6">
+          <ResidentsTab onRefreshStats={() => fetchDashboardData()} />
         </TabsContent>
 
         {/* Schedules Tab */}
@@ -1292,6 +1291,11 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-6">
+          <PaymentsTab />
         </TabsContent>
 
         {/* System Info Tab */}
