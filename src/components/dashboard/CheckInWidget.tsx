@@ -52,6 +52,8 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
         .eq("user_id", user.id)
         .eq("status", "checked_in")
         .is("check_out_time", null)
+        .order("check_in_time", { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (error) throw error;
@@ -71,8 +73,17 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
       return;
     }
 
-    // Check if user already has an active check-in
-    if (currentCheckIn) {
+    // Double-check if user already has an active check-in
+    const { data: existingCheckIn } = await supabase
+      .from("check_ins")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("status", "checked_in")
+      .is("check_out_time", null)
+      .limit(1)
+      .maybeSingle();
+
+    if (existingCheckIn) {
       toast({
         title: "Already Checked In",
         description: "You are already checked into the pool",
@@ -98,6 +109,7 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
         description: `Welcome to the pool, ${profile.first_name || profile.role}!`,
       });
 
+      // Reload widget state
       fetchCurrentCheckIn();
     } catch (error: any) {
       toast({
@@ -111,24 +123,38 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
   };
 
   const handleCheckOut = async () => {
-    if (!currentCheckIn) {
-      toast({
-        title: "Not Checked In",
-        description: "You are not currently checked in",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
+      // Find the latest active check-in for this user
+      const { data: activeCheckIn, error: fetchError } = await supabase
+        .from("check_ins")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("status", "checked_in")
+        .is("check_out_time", null)
+        .order("check_in_time", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (fetchError) throw fetchError;
+
+      if (!activeCheckIn) {
+        toast({
+          title: "Not Checked In",
+          description: "You are not currently checked in",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Update that record
       const { error } = await supabase
         .from("check_ins")
         .update({
           check_out_time: new Date().toISOString(),
           status: "checked_out"
         })
-        .eq("id", currentCheckIn.id);
+        .eq("id", activeCheckIn.id);
 
       if (error) throw error;
 
@@ -137,6 +163,7 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
         description: "Thanks for visiting! Have a great day",
       });
 
+      // Reload widget state
       setCurrentCheckIn(null);
     } catch (error: any) {
       toast({

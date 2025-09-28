@@ -141,13 +141,10 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
     try {
       const { data, error } = await supabase
         .from("check_ins")
-        .select(`
-          *,
-          pool_schedules(title)
-        `)
+        .select("*")
         .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(8);
+        .order("check_in_time", { ascending: false })
+        .limit(5);
 
       if (error) throw error;
       setRecentVisits(data || []);
