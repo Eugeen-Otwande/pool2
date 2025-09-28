@@ -102,6 +102,7 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "checked_in")
+        .is("check_out_time", null)
         .maybeSingle();
 
       if (error) throw error;
@@ -157,19 +158,41 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
 
   const handleToggleCheckIn = async (scheduleId?: string) => {
     try {
-      const { data, error } = await supabase.rpc('toggle_checkin', {
-        p_user_id: user.id,
-        p_schedule_id: scheduleId || null
-      });
+      if (currentCheckIn) {
+        // User is checked in, so check them out
+        const { error } = await supabase
+          .from("check_ins")
+          .update({
+            check_out_time: new Date().toISOString(),
+            status: "checked_out"
+          })
+          .eq("id", currentCheckIn.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      const result = data as { action: string; record: any; message: string };
-      
-      toast({
-        title: result.action === 'checked_in' ? "Check-in Successful" : "Check-out Successful",
-        description: result.action === 'checked_in' ? "Welcome to your residential pool access" : "Thanks for using the residential pool",
-      });
+        toast({
+          title: "Check-out Successful",
+          description: "Thanks for using the residential pool",
+        });
+      } else {
+        // User is not checked in, so check them in
+        const { error } = await supabase
+          .from("check_ins")
+          .insert({
+            user_id: user.id,
+            schedule_id: scheduleId || null,
+            status: "checked_in",
+            check_in_time: new Date().toISOString(),
+            notes: "Resident check-in"
+          });
+
+        if (error) throw error;
+
+        toast({
+          title: "Check-in Successful",
+          description: "Welcome to your residential pool access",
+        });
+      }
 
       // Refresh data
       await Promise.all([

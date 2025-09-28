@@ -51,6 +51,7 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
         .select("*")
         .eq("user_id", user.id)
         .eq("status", "checked_in")
+        .is("check_out_time", null)
         .maybeSingle();
 
       if (error) throw error;
@@ -63,8 +64,18 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
   const handleCheckIn = async () => {
     if (profile.status !== 'active') {
       toast({
-        title: "Access Denied",
+        title: "Access Denied", 
         description: "Your account needs to be approved to access the pool",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check if user already has an active check-in
+    if (currentCheckIn) {
+      toast({
+        title: "Already Checked In",
+        description: "You are already checked into the pool",
         variant: "destructive",
       });
       return;
@@ -76,7 +87,8 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
         .from("check_ins")
         .insert({
           user_id: user.id,
-          status: "checked_in"
+          status: "checked_in",
+          check_in_time: new Date().toISOString()
         });
 
       if (error) throw error;
@@ -99,7 +111,14 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
   };
 
   const handleCheckOut = async () => {
-    if (!currentCheckIn) return;
+    if (!currentCheckIn) {
+      toast({
+        title: "Not Checked In",
+        description: "You are not currently checked in",
+        variant: "destructive",
+      });
+      return;
+    }
 
     setLoading(true);
     try {
