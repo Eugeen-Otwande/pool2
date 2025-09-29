@@ -6,12 +6,15 @@ import { History, Download, FileSpreadsheet } from "lucide-react";
 
 interface RecentActivity {
   id: string;
+  user_id: string;
+  first_name?: string;
+  last_name?: string;
+  role?: string;
   check_in_time: string;
   check_out_time?: string;
   status: string;
-  user_id: string;
-  pool_schedules?: { title: string } | null;
-  profiles?: { first_name: string; last_name: string; role: string } | null;
+  notes?: string;
+  created_at: string;
 }
 
 interface RecentActivitiesWidgetProps {
@@ -49,10 +52,10 @@ const RecentActivitiesWidget = ({
       const row = [
         new Date(activity.check_in_time).toLocaleDateString(),
         ...(showUserInfo ? [
-          `${activity.profiles?.first_name || ''} ${activity.profiles?.last_name || ''}`.trim() || 'N/A',
-          activity.profiles?.role || 'N/A'
+          `${activity.first_name || ''} ${activity.last_name || ''}`.trim() || 'N/A',
+          activity.role || 'N/A'
         ] : []),
-        activity.pool_schedules?.title || 'Pool Session',
+        'Pool Session',
         activity.status,
         formatDuration(activity.check_in_time, activity.check_out_time),
         new Date(activity.check_in_time).toLocaleString(),
@@ -90,10 +93,10 @@ const RecentActivitiesWidget = ({
       const row = [
         new Date(activity.check_in_time).toLocaleDateString(),
         ...(showUserInfo ? [
-          `${activity.profiles?.first_name || ''} ${activity.profiles?.last_name || ''}`.trim() || 'N/A',
-          activity.profiles?.role || 'N/A'
+          `${activity.first_name || ''} ${activity.last_name || ''}`.trim() || 'N/A',
+          activity.role || 'N/A'
         ] : []),
-        activity.pool_schedules?.title || 'Pool Session',
+        'Pool Session',
         activity.status,
         formatDuration(activity.check_in_time, activity.check_out_time),
         new Date(activity.check_in_time).toLocaleString(),
@@ -162,13 +165,13 @@ const RecentActivitiesWidget = ({
                   activity.status === 'checked_out' ? 'bg-green-500' : 'bg-blue-500'
                 }`}></div>
                 <div className="flex-1 min-w-0">
-                  {showUserInfo && activity.profiles && (
+                  {showUserInfo && (activity.first_name || activity.last_name) && (
                     <p className="text-sm font-medium truncate">
-                      {`${activity.profiles.first_name || ''} ${activity.profiles.last_name || ''}`.trim() || 'Unknown User'}
+                      {`${activity.first_name || ''} ${activity.last_name || ''}`.trim() || 'Unknown User'}
                     </p>
                   )}
                   <p className={`text-sm ${showUserInfo ? 'text-muted-foreground' : 'font-medium'} truncate`}>
-                    {activity.pool_schedules?.title || "Pool Session"}
+                    Pool Session
                   </p>
                   <p className="text-xs text-muted-foreground">
                     {new Date(activity.check_in_time).toLocaleDateString('en-US', { 
@@ -177,8 +180,8 @@ const RecentActivitiesWidget = ({
                       hour: '2-digit',
                       minute: '2-digit'
                     })}
-                    {showUserInfo && activity.profiles && (
-                      <span className="ml-2">• {activity.profiles.role}</span>
+                    {showUserInfo && activity.role && (
+                      <span className="ml-2">• {activity.role}</span>
                     )}
                   </p>
                 </div>

@@ -875,7 +875,21 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      v_recent_activities: {
+        Row: {
+          check_in_time: string | null
+          check_out_time: string | null
+          created_at: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          notes: string | null
+          role: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       approve_checkin: {
@@ -929,6 +943,16 @@ export type Database = {
       toggle_checkin: {
         Args: { p_schedule_id?: string; p_user_id: string }
         Returns: Json
+      }
+      toggle_checkin_for_user: {
+        Args: { _user_id: string }
+        Returns: {
+          check_in_id: string
+          check_in_time: string
+          check_out_time: string
+          status: string
+          user_id: string
+        }[]
       }
       visitor_checkin_checkout: {
         Args: { action: string; visitor_id: string }

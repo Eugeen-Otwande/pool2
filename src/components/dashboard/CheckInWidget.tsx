@@ -63,7 +63,7 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
     }
   };
 
-  const handleCheckIn = async () => {
+  const handleToggleCheckIn = async () => {
     if (profile.status !== 'active') {
       toast({
         title: "Access Denied", 
@@ -73,101 +73,31 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
       return;
     }
 
-    // Double-check if user already has an active check-in
-    const { data: existingCheckIn } = await supabase
-      .from("check_ins")
-      .select("id")
-      .eq("user_id", user.id)
-      .eq("status", "checked_in")
-      .is("check_out_time", null)
-      .limit(1)
-      .maybeSingle();
-
-    if (existingCheckIn) {
-      toast({
-        title: "Already Checked In",
-        description: "You are already checked into the pool",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setLoading(true);
     try {
-      const { error } = await supabase
-        .from("check_ins")
-        .insert({
-          user_id: user.id,
-          status: "checked_in",
-          check_in_time: new Date().toISOString()
-        });
+      const { data, error } = await supabase.rpc('toggle_checkin_for_user', {
+        _user_id: user.id
+      });
 
       if (error) throw error;
 
+      const result = data?.[0];
+      if (!result) throw new Error('No result returned from check-in toggle');
+
+      const isCheckIn = result.status === 'checked_in';
+      
       toast({
-        title: "Check-in Successful",
-        description: `Welcome to the pool, ${profile.first_name || profile.role}!`,
+        title: isCheckIn ? "Check-in Successful" : "Check-out Successful",
+        description: isCheckIn 
+          ? `Welcome to the pool, ${profile.first_name || profile.role}!`
+          : "Thanks for visiting! Have a great day",
       });
 
       // Reload widget state
       fetchCurrentCheckIn();
     } catch (error: any) {
       toast({
-        title: "Check-in Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleCheckOut = async () => {
-    setLoading(true);
-    try {
-      // Find the latest active check-in for this user
-      const { data: activeCheckIn, error: fetchError } = await supabase
-        .from("check_ins")
-        .select("id")
-        .eq("user_id", user.id)
-        .eq("status", "checked_in")
-        .is("check_out_time", null)
-        .order("check_in_time", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      if (!activeCheckIn) {
-        toast({
-          title: "Not Checked In",
-          description: "You are not currently checked in",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Update that record
-      const { error } = await supabase
-        .from("check_ins")
-        .update({
-          check_out_time: new Date().toISOString(),
-          status: "checked_out"
-        })
-        .eq("id", activeCheckIn.id);
-
-      if (error) throw error;
-
-      toast({
-        title: "Check-out Successful",
-        description: "Thanks for visiting! Have a great day",
-      });
-
-      // Reload widget state
-      setCurrentCheckIn(null);
-    } catch (error: any) {
-      toast({
-        title: "Check-out Failed",
+        title: "Operation Failed",
         description: error.message,
         variant: "destructive",
       });
@@ -211,7 +141,7 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
               Checked in: {new Date(currentCheckIn.check_in_time).toLocaleTimeString()}
             </p>
             <Button 
-              onClick={handleCheckOut}
+              onClick={handleToggleCheckIn}
               className="w-full"
               variant="outline"
               disabled={loading}
@@ -232,7 +162,7 @@ const CheckInWidget = ({ user, profile }: CheckInWidgetProps) => {
               }
             </p>
             <Button 
-              onClick={handleCheckIn}
+              onClick={handleToggleCheckIn}
               className="w-full"
               disabled={loading || profile.status !== 'active'}
             >
