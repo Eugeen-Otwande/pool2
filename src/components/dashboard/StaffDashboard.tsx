@@ -47,6 +47,7 @@ import CreateUserDialog from "./CreateUserDialog";
 import ApprovalsTab from "./ApprovalsTab";
 import PaymentsTab from "./PaymentsTab";
 import VisitorsTab from "./VisitorsTab";
+import EnhancedCheckInsTab from "./EnhancedCheckInsTab";
 import { User } from "@supabase/supabase-js";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 
