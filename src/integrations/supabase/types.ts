@@ -904,6 +904,14 @@ export type Database = {
         }
         Returns: Json
       }
+      get_user_checkin_status: {
+        Args: { _user_id: string }
+        Returns: {
+          check_in_time: string
+          is_checked_in: boolean
+          latest_checkin_id: string
+        }[]
+      }
       is_admin: {
         Args: { _uid: string }
         Returns: boolean
@@ -950,6 +958,7 @@ export type Database = {
           check_in_id: string
           check_in_time: string
           check_out_time: string
+          message: string
           status: string
           user_id: string
         }[]

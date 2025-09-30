@@ -94,13 +94,37 @@ const EnhancedCheckInsTab = () => {
     if (!searchTerm.trim()) return;
     
     try {
-      const { data, error } = await supabase
+      // Search for users and get their check-in status
+      const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
-        .select('*')
+        .select('user_id, id, email, first_name, last_name, role')
         .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%`);
       
-      if (error) throw error;
-      setSearchResults(data || []);
+      if (profilesError) throw profilesError;
+      
+      // Get check-in status for each user
+      const enrichedResults = await Promise.all(
+        (profiles || []).map(async (profile) => {
+          try {
+            const { data: statusData } = await supabase.rpc('get_user_checkin_status', {
+              _user_id: profile.user_id
+            });
+            
+            return {
+              ...profile,
+              check_in_status: statusData?.[0]?.is_checked_in ? 'Checked In' : 'Not Checked In'
+            };
+          } catch (statusError) {
+            console.error('Error getting check-in status for user:', profile.user_id, statusError);
+            return {
+              ...profile,
+              check_in_status: 'Unknown'
+            };
+          }
+        })
+      );
+      
+      setSearchResults(enrichedResults);
     } catch (error) {
       console.error('Error searching users:', error);
       toast({
@@ -113,15 +137,22 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckIn = async (userId: string, userName: string) => {
     try {
-      const { error } = await supabase.rpc('toggle_checkin_for_user', {
+      const { data, error } = await supabase.rpc('toggle_checkin_for_user', {
         _user_id: userId
       });
       
       if (error) throw error;
       
+      // Check the response for error status
+      const result = data?.[0];
+      if (result?.status === 'error') {
+        throw new Error(result.message || 'Unknown error occurred');
+      }
+      
+      const action = result?.status === 'checked_in' ? 'checked in' : 'checked out';
       toast({
         title: "Success",
-        description: `${userName} has been checked in`,
+        description: `${userName} has been ${action}`,
       });
       
       // Refresh data
@@ -129,9 +160,24 @@ const EnhancedCheckInsTab = () => {
       handleSearch(); // Refresh search results
     } catch (error) {
       console.error('Error checking in user:', error);
+      let errorMessage = "Failed to check in user";
+      
+      // Parse specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('User not found')) {
+          errorMessage = "User not found in profiles table";
+        } else if (error.message.includes('Database constraint violation')) {
+          errorMessage = "Database error: " + error.message;
+        } else if (error.message.includes('already checked in')) {
+          errorMessage = "User is already checked in";
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Check-in Error",
-        description: "Failed to check in user",
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -139,15 +185,22 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckOut = async (userId: string, userName: string) => {
     try {
-      const { error } = await supabase.rpc('toggle_checkin_for_user', {
+      const { data, error } = await supabase.rpc('toggle_checkin_for_user', {
         _user_id: userId
       });
       
       if (error) throw error;
       
+      // Check the response for error status
+      const result = data?.[0];
+      if (result?.status === 'error') {
+        throw new Error(result.message || 'Unknown error occurred');
+      }
+      
+      const action = result?.status === 'checked_out' ? 'checked out' : 'checked in';
       toast({
         title: "Success",
-        description: `${userName} has been checked out`,
+        description: `${userName} has been ${action}`,
       });
       
       // Refresh data
@@ -155,9 +208,22 @@ const EnhancedCheckInsTab = () => {
       handleSearch(); // Refresh search results
     } catch (error) {
       console.error('Error checking out user:', error);
+      let errorMessage = "Failed to check out user";
+      
+      // Parse specific error messages
+      if (error instanceof Error) {
+        if (error.message.includes('User not found')) {
+          errorMessage = "User not found in profiles table";
+        } else if (error.message.includes('Database constraint violation')) {
+          errorMessage = "Database error: " + error.message;
+        } else {
+          errorMessage = error.message;
+        }
+      }
+      
       toast({
         title: "Check-out Error",
-        description: "Failed to check out user",
+        description: errorMessage,
         variant: "destructive",
       });
     }
