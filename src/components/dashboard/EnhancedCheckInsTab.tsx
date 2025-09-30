@@ -79,7 +79,8 @@ const EnhancedCheckInsTab = () => {
         profiles: {
           first_name: item.first_name!,
           last_name: item.last_name!,
-          role: item.role!
+          role: item.role!,
+          email: item.email || 'No email' // Add email for display
         }
       }));
       
@@ -87,6 +88,11 @@ const EnhancedCheckInsTab = () => {
       setFilteredCheckIns(transformedData);
     } catch (error) {
       console.error('Error fetching check-ins:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fetch check-in history",
+        variant: "destructive",
+      });
     }
   };
 
@@ -137,38 +143,49 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckIn = async (userId: string, userName: string) => {
     try {
-      const { data, error } = await supabase.rpc('toggle_checkin_for_user', {
+      // First check if user is already checked in
+      const { data: statusData, error: statusError } = await supabase.rpc('get_user_checkin_status', {
         _user_id: userId
       });
       
-      if (error) throw error;
+      if (statusError) throw statusError;
       
-      // Check the response for error status
-      const result = data?.[0];
-      if (result?.status === 'error') {
-        throw new Error(result.message || 'Unknown error occurred');
+      if (statusData?.[0]?.is_checked_in) {
+        toast({
+          title: "Check-in Error",
+          description: "User is already checked in.",
+          variant: "destructive",
+        });
+        return;
       }
       
-      const action = result?.status === 'checked_in' ? 'checked in' : 'checked out';
+      // Insert new check-in record
+      const { error: insertError } = await supabase
+        .from('check_ins')
+        .insert({
+          user_id: userId,
+          check_in_time: new Date().toISOString(),
+          status: 'checked_in'
+        });
+      
+      if (insertError) throw insertError;
+      
       toast({
         title: "Success",
-        description: `${userName} has been ${action}`,
+        description: `${userName} has been checked in`,
       });
       
-      // Refresh data
-      fetchAllCheckIns();
-      handleSearch(); // Refresh search results
+      // Refresh data immediately
+      await fetchAllCheckIns();
+      await handleSearch(); // Refresh search results to update status
     } catch (error) {
       console.error('Error checking in user:', error);
       let errorMessage = "Failed to check in user";
       
-      // Parse specific error messages
       if (error instanceof Error) {
-        if (error.message.includes('User not found')) {
-          errorMessage = "User not found in profiles table";
-        } else if (error.message.includes('Database constraint violation')) {
-          errorMessage = "Database error: " + error.message;
-        } else if (error.message.includes('already checked in')) {
+        if (error.message.includes('violates row-level security')) {
+          errorMessage = "Permission denied: User not found or access restricted";
+        } else if (error.message.includes('duplicate key')) {
           errorMessage = "User is already checked in";
         } else {
           errorMessage = error.message;
@@ -185,37 +202,53 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckOut = async (userId: string, userName: string) => {
     try {
-      const { data, error } = await supabase.rpc('toggle_checkin_for_user', {
-        _user_id: userId
-      });
+      // Find the latest open check-in for this user
+      const { data: openCheckIns, error: queryError } = await supabase
+        .from('check_ins')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('status', 'checked_in')
+        .is('check_out_time', null)
+        .order('check_in_time', { ascending: false })
+        .limit(1);
       
-      if (error) throw error;
+      if (queryError) throw queryError;
       
-      // Check the response for error status
-      const result = data?.[0];
-      if (result?.status === 'error') {
-        throw new Error(result.message || 'Unknown error occurred');
+      if (!openCheckIns || openCheckIns.length === 0) {
+        toast({
+          title: "Check-out Error",
+          description: "User is not currently checked in.",
+          variant: "destructive",
+        });
+        return;
       }
       
-      const action = result?.status === 'checked_out' ? 'checked out' : 'checked in';
+      // Update the open check-in record
+      const { error: updateError } = await supabase
+        .from('check_ins')
+        .update({
+          check_out_time: new Date().toISOString(),
+          status: 'checked_out'
+        })
+        .eq('id', openCheckIns[0].id);
+      
+      if (updateError) throw updateError;
+      
       toast({
         title: "Success",
-        description: `${userName} has been ${action}`,
+        description: `${userName} has been checked out`,
       });
       
-      // Refresh data
-      fetchAllCheckIns();
-      handleSearch(); // Refresh search results
+      // Refresh data immediately
+      await fetchAllCheckIns();
+      await handleSearch(); // Refresh search results to update status
     } catch (error) {
       console.error('Error checking out user:', error);
       let errorMessage = "Failed to check out user";
       
-      // Parse specific error messages
       if (error instanceof Error) {
-        if (error.message.includes('User not found')) {
-          errorMessage = "User not found in profiles table";
-        } else if (error.message.includes('Database constraint violation')) {
-          errorMessage = "Database error: " + error.message;
+        if (error.message.includes('violates row-level security')) {
+          errorMessage = "Permission denied: User not found or access restricted";
         } else {
           errorMessage = error.message;
         }
