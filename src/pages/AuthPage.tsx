@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Eye, EyeOff, Waves } from "lucide-react";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 
 const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -123,9 +124,7 @@ const AuthPage = () => {
         <Card className="bg-card/80 backdrop-blur-glass border-white/20 shadow-glass">
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 bg-primary/20 rounded-full flex items-center justify-center">
-                <Waves className="w-8 h-8 text-primary" />
-              </div>
+              <img src={rcmrdLogo} alt="RCMRD Logo" className="h-16 w-auto" />
             </div>
             <CardTitle className="text-2xl font-bold">RCMRD Pool System</CardTitle>
             <p className="text-muted-foreground">Access your aquatic facility dashboard</p>

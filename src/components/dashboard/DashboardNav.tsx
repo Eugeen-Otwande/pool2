@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Waves, LogOut, Settings, User, Bell } from "lucide-react";
 import { User as SupabaseUser } from "@supabase/supabase-js";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 
 interface UserProfile {
   id: string;
@@ -57,9 +58,7 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         {/* Logo & Title */}
         <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center">
-            <Waves className="w-6 h-6 text-primary" />
-          </div>
+          <img src={rcmrdLogo} alt="RCMRD Logo" className="h-10 w-auto" />
           <div>
             <h1 className="text-lg font-bold text-foreground">Pool Management</h1>
             <p className="text-xs text-muted-foreground">RCMRD Aquatic Center</p>

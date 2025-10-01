@@ -18,6 +18,7 @@ import {
   Moon,
   Sun
 } from "lucide-react";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 import {
   Sidebar,
   SidebarContent,
@@ -134,10 +135,8 @@ export default function ModernDashboardLayout({
       <div className={`min-h-screen w-full ${theme === "dark" ? "dark" : ""}`}>
         <Sidebar variant="inset" className="border-r border-border/40">
           <SidebarHeader className="border-b border-border/40 p-4">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                <Home className="h-4 w-4 text-primary-foreground" />
-              </div>
+            <div className="flex items-center gap-3">
+              <img src={rcmrdLogo} alt="RCMRD Logo" className="h-10 w-auto" />
               <div className="grid flex-1 text-left text-sm leading-tight">
                 <span className="truncate font-semibold">RCMRD Pool</span>
                 <span className="truncate text-xs text-muted-foreground">Management</span>
