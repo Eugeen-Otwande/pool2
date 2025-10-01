@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 import { Badge } from "@/components/ui/badge";
 import { Waves, Menu, X } from "lucide-react";
 import { useState } from "react";
@@ -21,9 +22,7 @@ const Navigation = () => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gradient-hero rounded-lg flex items-center justify-center shadow-glass">
-              <Waves className="w-6 h-6 text-white" />
-            </div>
+            <img src={rcmrdLogo} alt="RCMRD Logo" className="h-12 w-auto" />
             <div className="flex items-center gap-2">
               <span className="text-xl font-bold text-foreground">RCMRD Pool</span>
               <Badge variant="secondary" className="text-xs">

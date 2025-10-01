@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Mail, Phone, Facebook, Instagram, Twitter, Waves, Send } from "lucide-react";
 import { Link } from "react-router-dom";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 
 const RcmrdFooter = () => {
   return (
@@ -14,10 +15,8 @@ const RcmrdFooter = () => {
               
               {/* About Us */}
               <div className="space-y-6">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 bg-primary rounded-lg flex items-center justify-center">
-                    <Waves className="w-6 h-6 text-white" />
-                  </div>
+                <div className="flex items-center gap-3">
+                  <img src={rcmrdLogo} alt="RCMRD Logo" className="h-12 w-auto" />
                   <span className="text-xl font-semibold text-foreground">RCMRD Pool</span>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">

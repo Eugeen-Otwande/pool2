@@ -1,4 +1,5 @@
 import { MapPin, Mail, Phone, Clock } from "lucide-react";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 
 const PreHeader = () => {
   return (
@@ -6,6 +7,7 @@ const PreHeader = () => {
       <div className="container mx-auto px-6 py-2">
         <div className="flex flex-col sm:flex-row justify-between items-center text-sm text-primary/80 space-y-1 sm:space-y-0">
           <div className="flex items-center space-x-4">
+            <img src={rcmrdLogo} alt="RCMRD Logo" className="h-8 w-auto" />
             <div className="flex items-center space-x-1">
               <MapPin className="w-3 h-3" />
               <span>Kasarani Road, Nairobi</span>

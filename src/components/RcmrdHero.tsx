@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { ArrowRight, MapPin } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 const RcmrdHero = () => {
   const [scrollY, setScrollY] = useState(0);
   const mapRef = useRef<HTMLDivElement>(null);
@@ -74,8 +75,8 @@ const RcmrdHero = () => {
       <div className="relative z-10 container mx-auto px-6 text-center text-white">
         <div className="max-w-5xl mx-auto space-y-8 animate-fade-in">
           {/* Location Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-6 py-3 shadow-glass">
-            <MapPin className="w-4 h-4 text-primary" />
+          <div className="inline-flex items-center gap-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-full px-6 py-3 shadow-glass">
+            <img src={rcmrdLogo} alt="RCMRD Logo" className="h-10 w-auto" />
             <span className="text-sm font-medium">RCMRD Swimming Pool Complex</span>
           </div>
 

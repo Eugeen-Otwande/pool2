@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import rcmrdLogo from "@/assets/rcmrd-logo.png";
 import { 
   Waves, 
   Mail, 
@@ -50,9 +51,7 @@ const Footer = () => {
             {/* Brand Section */}
             <div className="lg:col-span-4">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-12 h-12 bg-gradient-hero rounded-xl flex items-center justify-center shadow-glass">
-                  <Waves className="w-7 h-7 text-white" />
-                </div>
+                <img src={rcmrdLogo} alt="RCMRD Logo" className="h-14 w-auto" />
                 <div>
                   <h3 className="text-xl font-bold text-foreground">RCMRD Pool Management</h3>
                   <p className="text-sm text-muted-foreground">Simplifying pool management and access for modern facilities.</p>
