@@ -880,6 +880,7 @@ export type Database = {
           check_in_time: string | null
           check_out_time: string | null
           created_at: string | null
+          email: string | null
           first_name: string | null
           id: string | null
           last_name: string | null

@@ -38,6 +38,7 @@ interface CheckIn {
     first_name: string;
     last_name: string;
     role: string;
+    email?: string;
   };
 }
 
@@ -77,10 +78,10 @@ const EnhancedCheckInsTab = () => {
         status: item.status!,
         notes: item.notes || undefined,
         profiles: {
-          first_name: item.first_name!,
-          last_name: item.last_name!,
-          role: item.role!,
-          email: item.email || 'No email' // Add email for display
+          first_name: item.first_name || 'Unknown',
+          last_name: item.last_name || 'Unknown',
+          role: item.role || 'Unknown',
+          email: (item as any).email || 'No email' // Safely access email field
         }
       }));
       
@@ -317,9 +318,10 @@ const EnhancedCheckInsTab = () => {
         status: item.status!,
         notes: item.notes || undefined,
         profiles: {
-          first_name: item.first_name!,
-          last_name: item.last_name!,
-          role: item.role!
+          first_name: item.first_name || 'Unknown',
+          last_name: item.last_name || 'Unknown',
+          role: item.role || 'Unknown',
+          email: (item as any).email || 'No email'
         }
       }));
       
@@ -344,6 +346,7 @@ const EnhancedCheckInsTab = () => {
   const downloadCSVReport = () => {
     const csvData = filteredCheckIns.map(checkIn => ({
       Name: `${checkIn.profiles?.first_name} ${checkIn.profiles?.last_name}`,
+      Email: checkIn.profiles?.email || 'No email',
       Role: checkIn.profiles?.role,
       'Check-in Time': new Date(checkIn.check_in_time).toLocaleString(),
       'Check-out Time': checkIn.check_out_time ? new Date(checkIn.check_out_time).toLocaleString() : 'Still checked in',
@@ -539,6 +542,7 @@ const EnhancedCheckInsTab = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
+                <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
                 <TableHead>Check-in Time</TableHead>
                 <TableHead>Check-out Time</TableHead>
@@ -552,6 +556,9 @@ const EnhancedCheckInsTab = () => {
                 <TableRow key={checkIn.id}>
                   <TableCell className="font-medium">
                     {checkIn.profiles?.first_name} {checkIn.profiles?.last_name}
+                  </TableCell>
+                  <TableCell>
+                    {checkIn.profiles?.email || 'No email'}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{checkIn.profiles?.role}</Badge>
