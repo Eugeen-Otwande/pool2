@@ -21,15 +21,9 @@ const Navigation = () => {
       <div className="container mx-auto px-6">
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
-          <div className="flex items-center gap-3">
-            <img src={rcmrdLogo} alt="RCMRD Logo" className="h-12 w-auto" />
-            <div className="flex items-center gap-2">
-              <span className="text-xl font-bold text-foreground">RCMRD Pool</span>
-              <Badge variant="secondary" className="text-xs">
-                Management
-              </Badge>
-            </div>
-          </div>
+          <Link to="/" className="flex items-center">
+            <img src={rcmrdLogo} alt="RCMRD Logo" className="h-12 w-auto hover:opacity-90 transition-opacity" />
+          </Link>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-8">
