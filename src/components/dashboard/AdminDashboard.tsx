@@ -40,6 +40,7 @@ import CreateUserDialog from "./CreateUserDialog";
 import SystemInfoTab from "./SystemInfoTab";
 import VisitorManagementTab from './VisitorManagementTab';
 import InquiriesTab from './InquiriesTab';
+import PoolLogsTab from './PoolLogsTab';
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -440,7 +441,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
             break;
         }
       }} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-13">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -452,6 +453,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
           <TabsTrigger value="reports">Reports</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="checkins">Check-ins</TabsTrigger>
+          <TabsTrigger value="poollogs">Pool Logs</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -850,6 +852,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Pool Logs Tab */}
+        <TabsContent value="poollogs">
+          <PoolLogsTab user={user} />
         </TabsContent>
 
         {/* System Info Tab */}

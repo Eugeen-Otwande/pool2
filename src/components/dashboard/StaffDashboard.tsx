@@ -45,6 +45,7 @@ import InquiriesTab from "./InquiriesTab";
 import VisitorManagementTab from "./VisitorManagementTab";
 import CreateUserDialog from "./CreateUserDialog";
 import ApprovalsTab from "./ApprovalsTab";
+import PoolLogsTab from "./PoolLogsTab";
 import PaymentsTab from "./PaymentsTab";
 import VisitorsTab from "./VisitorsTab";
 import EnhancedCheckInsTab from "./EnhancedCheckInsTab";
@@ -669,7 +670,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
             break;
         }
       }} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-12">
+        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-14">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="approvals">Approvals</TabsTrigger>
           <TabsTrigger value="users">Users</TabsTrigger>
@@ -682,6 +683,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
           <TabsTrigger value="payments">Payments</TabsTrigger>
           <TabsTrigger value="equipment">Equipment</TabsTrigger>
           <TabsTrigger value="checkins">Check-ins</TabsTrigger>
+          <TabsTrigger value="poollogs">Pool Logs</TabsTrigger>
           <TabsTrigger value="system">System</TabsTrigger>
         </TabsList>
 
@@ -1213,6 +1215,11 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
         {/* Payments Tab */}
         <TabsContent value="payments" className="space-y-6">
           <PaymentsTab />
+        </TabsContent>
+
+        {/* Pool Logs Tab */}
+        <TabsContent value="poollogs">
+          <PoolLogsTab user={user} />
         </TabsContent>
 
         {/* System Info Tab */}
