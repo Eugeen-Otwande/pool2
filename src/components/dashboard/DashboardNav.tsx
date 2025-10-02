@@ -56,13 +56,9 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-glass border-b border-border/50 shadow-glass">
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo & Title */}
-        <div className="flex items-center space-x-3">
-          <img src={rcmrdLogo} alt="RCMRD Logo" className="h-10 w-auto" />
-          <div>
-            <h1 className="text-lg font-bold text-foreground">Pool Management</h1>
-            <p className="text-xs text-muted-foreground">RCMRD Aquatic Center</p>
-          </div>
+        {/* Logo */}
+        <div className="flex items-center">
+          <img src={rcmrdLogo} alt="RCMRD Logo" className="h-10 w-auto hover:opacity-90 transition-opacity" />
         </div>
 
         {/* User Info & Actions */}

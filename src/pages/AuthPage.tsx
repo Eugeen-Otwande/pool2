@@ -124,9 +124,8 @@ const AuthPage = () => {
         <Card className="bg-card/80 backdrop-blur-glass border-white/20 shadow-glass">
           <CardHeader className="text-center space-y-4">
             <div className="flex justify-center">
-              <img src={rcmrdLogo} alt="RCMRD Logo" className="h-16 w-auto" />
+              <img src={rcmrdLogo} alt="RCMRD Logo" className="h-20 w-auto" />
             </div>
-            <CardTitle className="text-2xl font-bold">RCMRD Pool System</CardTitle>
             <p className="text-muted-foreground">Access your aquatic facility dashboard</p>
           </CardHeader>
           

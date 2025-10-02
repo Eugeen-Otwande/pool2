@@ -15,9 +15,8 @@ const RcmrdFooter = () => {
               
               {/* About Us */}
               <div className="space-y-6">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center">
                   <img src={rcmrdLogo} alt="RCMRD Logo" className="h-12 w-auto" />
-                  <span className="text-xl font-semibold text-foreground">RCMRD Pool</span>
                 </div>
                 <p className="text-muted-foreground leading-relaxed">
                   Your premier swimming destination in Nairobi. We provide safe, professional, and enjoyable aquatic experiences for swimmers of all ages and skill levels.

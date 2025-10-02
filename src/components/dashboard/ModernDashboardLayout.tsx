@@ -135,12 +135,8 @@ export default function ModernDashboardLayout({
       <div className={`min-h-screen w-full ${theme === "dark" ? "dark" : ""}`}>
         <Sidebar variant="inset" className="border-r border-border/40">
           <SidebarHeader className="border-b border-border/40 p-4">
-            <div className="flex items-center gap-3">
-              <img src={rcmrdLogo} alt="RCMRD Logo" className="h-10 w-auto" />
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-semibold">RCMRD Pool</span>
-                <span className="truncate text-xs text-muted-foreground">Management</span>
-              </div>
+            <div className="flex items-center justify-center">
+              <img src={rcmrdLogo} alt="RCMRD Logo" className="h-12 w-auto hover:opacity-90 transition-opacity" />
             </div>
             <div className="mt-3">
               <SidebarInput
