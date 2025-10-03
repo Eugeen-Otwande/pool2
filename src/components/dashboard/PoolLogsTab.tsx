@@ -58,11 +58,7 @@ const PoolLogsTab = ({ user }: PoolLogsTabProps) => {
     try {
       let query = supabase
         .from("pool_logs")
-        .select(`
-          *,
-          checked_by_profile:checked_by(first_name, last_name),
-          confirmed_by_profile:confirmed_by(first_name, last_name)
-        `)
+        .select("*")
         .order("date", { ascending: false })
         .order("created_at", { ascending: false })
         .limit(50);
@@ -95,6 +91,17 @@ const PoolLogsTab = ({ user }: PoolLogsTabProps) => {
     setLoading(true);
 
     try {
+      // Get user's profile to get their name
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('first_name, last_name')
+        .eq('user_id', user.id)
+        .single();
+
+      const userName = profile 
+        ? `${profile.first_name || ''} ${profile.last_name || ''}`.trim()
+        : user.email || 'Unknown';
+
       const total_swimmers =
         formData.students_count +
         formData.staff_count +
@@ -104,7 +111,7 @@ const PoolLogsTab = ({ user }: PoolLogsTabProps) => {
       const { error } = await supabase.from("pool_logs").insert({
         ...formData,
         total_swimmers,
-        checked_by: user.id,
+        checked_by: userName, // Store user's full name as text
         chlorine_ppm: formData.chlorine_ppm ? parseFloat(formData.chlorine_ppm) : null,
         ph_level: formData.ph_level ? parseFloat(formData.ph_level) : null,
       });
@@ -194,9 +201,7 @@ const PoolLogsTab = ({ user }: PoolLogsTabProps) => {
       log.cleaning_status || "",
       log.maintenance_performed || "",
       log.occurrence_reported ? "Yes" : "No",
-      log.checked_by_profile
-        ? `${log.checked_by_profile.first_name} ${log.checked_by_profile.last_name}`
-        : "",
+      log.checked_by || "",
     ]);
 
     const csvContent =
