@@ -23,6 +23,7 @@ import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
+import PoolTimetable from "./PoolTimetable";
 
 interface UserProfile {
   id: string;
@@ -228,10 +229,14 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <div className="px-8 py-4">
-            <TabsList className="grid w-full max-w-md grid-cols-4 h-auto">
+            <TabsList className="grid w-full max-w-2xl grid-cols-5 h-auto">
               <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
                 <Home className="w-4 h-4" />
                 <span>Overview</span>
+              </TabsTrigger>
+              <TabsTrigger value="timetable" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
+                <Calendar className="w-4 h-4" />
+                <span>Timetable</span>
               </TabsTrigger>
               <TabsTrigger value="activity" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
                 <BarChart3 className="w-4 h-4" />
@@ -350,6 +355,10 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                 </CardContent>
               </Card>
             </div>
+          </TabsContent>
+
+          <TabsContent value="timetable" className="space-y-4 sm:space-y-6 mt-0">
+            <PoolTimetable userRole="student" />
           </TabsContent>
 
           <TabsContent value="activity" className="space-y-4 sm:space-y-6 mt-0">

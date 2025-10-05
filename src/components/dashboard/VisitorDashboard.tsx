@@ -17,6 +17,8 @@ import {
 import { User } from "@supabase/supabase-js";
 import CheckInWidget from "./CheckInWidget";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
+import PoolTimetable from "./PoolTimetable";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface UserProfile {
   id: string;
@@ -288,8 +290,9 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="flex justify-between items-start">
+      <Tabs defaultValue="overview" className="space-y-6">
+        {/* Header */}
+        <div className="flex justify-between items-start">
         <div>
           <h1 className="text-3xl font-bold text-foreground">
             Welcome, {profile.first_name || "Visitor"}!
@@ -318,7 +321,16 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
         </Card>
       </div>
 
-      {/* Quick Access Grid */}
+      {/* Tab Navigation */}
+      <TabsList className="grid w-full max-w-md grid-cols-3">
+        <TabsTrigger value="overview">Overview</TabsTrigger>
+        <TabsTrigger value="timetable">Timetable</TabsTrigger>
+        <TabsTrigger value="info">Information</TabsTrigger>
+      </TabsList>
+
+      {/* Overview Tab */}
+      <TabsContent value="overview" className="space-y-6">
+        {/* Quick Access Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Check-in Status */}
         <CheckInWidget 
@@ -597,6 +609,56 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
           </div>
         </CardContent>
       </Card>
+      </TabsContent>
+
+      {/* Timetable Tab */}
+      <TabsContent value="timetable" className="space-y-6">
+        <PoolTimetable userRole="visitor" />
+      </TabsContent>
+
+      {/* Information Tab */}
+      <TabsContent value="info" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Info className="w-5 h-5" />
+              Important Information for Visitors
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="p-4 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800">
+              <h4 className="font-semibold mb-2">Welcome to Our Pool Facility</h4>
+              <p className="text-sm text-muted-foreground">
+                As a visitor, you have access to our pool during designated visitor hours. 
+                Please check the timetable for available sessions and follow all facility rules.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="font-medium flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-primary" />
+                  Facility Location
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  RCMRD Complex, United Nations Avenue
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <h4 className="font-medium flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-primary" />
+                  Contact Hours
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  Monday - Sunday: 6:00 AM - 8:00 PM
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      </Tabs>
     </div>
   );
 };

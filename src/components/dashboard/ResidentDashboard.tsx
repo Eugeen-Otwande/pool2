@@ -24,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
+import PoolTimetable from "./PoolTimetable";
 
 interface UserProfile {
   id: string;
@@ -267,8 +268,9 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="timetable">Timetable</TabsTrigger>
           <TabsTrigger value="visits">Recent Visits</TabsTrigger>
           <TabsTrigger value="messages">Messages</TabsTrigger>
           <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -476,6 +478,11 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Timetable Tab */}
+        <TabsContent value="timetable" className="space-y-6">
+          <PoolTimetable userRole="resident" />
         </TabsContent>
 
         {/* Recent Visits Tab */}

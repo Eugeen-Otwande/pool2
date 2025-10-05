@@ -33,6 +33,7 @@ import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
+import PoolTimetable from "./PoolTimetable";
 
 interface UserProfile {
   id: string;
@@ -331,13 +332,17 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
       {/* Main Content with Tabs */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Home className="w-4 h-4" />
               Overview
             </TabsTrigger>
-            <TabsTrigger value="sessions" className="flex items-center gap-2">
+            <TabsTrigger value="timetable" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
+              Timetable
+            </TabsTrigger>
+            <TabsTrigger value="sessions" className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
               Sessions
             </TabsTrigger>
             <TabsTrigger value="activity" className="flex items-center gap-2">
@@ -473,6 +478,11 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
               title="Recent Visits"
               limit={3}
             />
+          </TabsContent>
+
+          {/* Timetable Tab */}
+          <TabsContent value="timetable" className="space-y-6">
+            <PoolTimetable userRole="member" />
           </TabsContent>
 
           {/* Sessions Tab */}
