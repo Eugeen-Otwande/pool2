@@ -98,20 +98,26 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
     setLoading(true);
     
     try {
-      // Fetch recent activities
+      // Fetch recent activities with user profile data
       const { data: activities } = await supabase
         .from("check_ins")
-        .select("*")
+        .select(`
+          *,
+          profiles!check_ins_user_id_fkey(first_name, last_name, email)
+        `)
         .eq("user_id", user.id)
         .order("created_at", { ascending: false })
         .limit(5);
       
       setRecentActivities(activities || []);
 
-      // Fetch unread messages
+      // Fetch unread messages with sender profile data
       const { data: messages } = await supabase
         .from("messages")
-        .select("*")
+        .select(`
+          *,
+          sender:profiles!messages_sender_id_fkey(first_name, last_name, role)
+        `)
         .or(`recipient_id.eq.${user.id},recipient_role.eq.${profile.role}`)
         .is("read_at", null)
         .order("created_at", { ascending: false })
@@ -190,7 +196,7 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
                     <h4 className="font-medium text-sm">Unread Messages</h4>
                   </div>
                   <div className="space-y-2">
-                    {unreadMessages.map((message) => (
+                    {unreadMessages.map((message: any) => (
                       <div 
                         key={message.id}
                         className="p-3 rounded-lg bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 hover:bg-blue-100 dark:hover:bg-blue-900 transition-colors cursor-pointer"
@@ -201,6 +207,11 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
                             <p className="text-xs text-muted-foreground line-clamp-2 mt-1">
                               {message.content}
                             </p>
+                            {message.sender && (
+                              <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                                From: {message.sender.first_name} {message.sender.last_name} ({message.sender.role})
+                              </p>
+                            )}
                           </div>
                           <Badge variant="secondary" className="text-xs shrink-0">
                             {message.message_type}
