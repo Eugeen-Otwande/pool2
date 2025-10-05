@@ -155,10 +155,10 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
   const NotificationsPopover = () => (
     <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="relative h-8 w-8">
+          <Bell className="w-4 h-4" />
           {totalNotifications > 0 && (
-            <Badge className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center p-0 text-xs">
+            <Badge className="absolute -top-1 -right-1 w-4 h-4 flex items-center justify-center p-0 text-[10px]">
               {totalNotifications}
             </Badge>
           )}
@@ -283,14 +283,14 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
   const UserDropdown = () => (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" className="relative h-10 w-auto px-2 space-x-2">
-          <Avatar className="h-8 w-8">
-            <AvatarFallback className="text-sm font-medium">
+        <Button variant="ghost" className="relative h-8 w-auto px-1.5 space-x-1.5">
+          <Avatar className="h-6 w-6">
+            <AvatarFallback className="text-xs font-medium">
               {getInitials(profile.first_name, profile.last_name)}
             </AvatarFallback>
           </Avatar>
           <div className="text-left hidden lg:block">
-            <p className="text-sm font-medium">
+            <p className="text-xs font-medium">
               {profile.first_name && profile.last_name 
                 ? `${profile.first_name} ${profile.last_name}`
                 : profile.email
@@ -298,7 +298,7 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
             </p>
             <Badge 
               variant="secondary" 
-              className={`text-xs text-white ${roleColors[profile.role as keyof typeof roleColors] || roleColors.visitor}`}
+              className={`text-[10px] text-white ${roleColors[profile.role as keyof typeof roleColors] || roleColors.visitor}`}
             >
               {getRoleLabel(profile.role)}
             </Badge>
@@ -343,10 +343,10 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-glass border-b border-border/50 shadow-glass">
-      <div className="container mx-auto px-4 md:px-6 h-16 flex items-center justify-between">
+      <div className="container mx-auto px-4 md:px-6 h-14 flex items-center justify-between">
         {/* Logo */}
         <div className="flex items-center">
-          <img src={rcmrdLogo} alt="RCMRD Logo" className="h-8 md:h-10 w-auto hover:opacity-90 transition-opacity" />
+          <img src={rcmrdLogo} alt="RCMRD Logo" className="h-7 md:h-8 w-auto hover:opacity-90 transition-opacity" />
         </div>
 
         {/* Desktop: User Info & Actions */}
@@ -359,8 +359,8 @@ const DashboardNav = ({ user, profile, onSignOut }: DashboardNavProps) => {
         <div className="md:hidden">
           <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
             <SheetTrigger asChild>
-              <Button variant="ghost" size="sm">
-                <Menu className="w-5 h-5" />
+              <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Menu className="w-4 h-4" />
               </Button>
             </SheetTrigger>
             <SheetContent side="right" className="w-[300px] sm:w-[400px]">
