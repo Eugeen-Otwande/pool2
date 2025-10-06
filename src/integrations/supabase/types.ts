@@ -70,6 +70,8 @@ export type Database = {
           description: string | null
           id: string
           name: string
+          quantity_available: number | null
+          quantity_total: number | null
           replacement_cost: number | null
           status: string
           updated_at: string
@@ -81,6 +83,8 @@ export type Database = {
           description?: string | null
           id?: string
           name: string
+          quantity_available?: number | null
+          quantity_total?: number | null
           replacement_cost?: number | null
           status?: string
           updated_at?: string
@@ -92,6 +96,8 @@ export type Database = {
           description?: string | null
           id?: string
           name?: string
+          quantity_available?: number | null
+          quantity_total?: number | null
           replacement_cost?: number | null
           status?: string
           updated_at?: string
@@ -111,6 +117,7 @@ export type Database = {
           late_return: boolean | null
           loaned_at: string
           notes: string | null
+          quantity_borrowed: number | null
           returned_at: string | null
           status: string
           user_id: string
@@ -127,6 +134,7 @@ export type Database = {
           late_return?: boolean | null
           loaned_at?: string
           notes?: string | null
+          quantity_borrowed?: number | null
           returned_at?: string | null
           status?: string
           user_id: string
@@ -143,6 +151,7 @@ export type Database = {
           late_return?: boolean | null
           loaned_at?: string
           notes?: string | null
+          quantity_borrowed?: number | null
           returned_at?: string | null
           status?: string
           user_id?: string

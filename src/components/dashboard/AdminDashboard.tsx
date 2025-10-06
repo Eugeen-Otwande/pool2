@@ -42,6 +42,7 @@ import VisitorManagementTab from './VisitorManagementTab';
 import InquiriesTab from './InquiriesTab';
 import PoolLogsTab from './PoolLogsTab';
 import OverviewStatsWidget from './OverviewStatsWidget';
+import { EquipmentManagementTab } from './EquipmentManagementTab';
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -681,56 +682,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
         {/* Equipment Tab */}
         <TabsContent value="equipment" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Package className="w-5 h-5" />
-                  Equipment Management
-                </span>
-                <Button onClick={fetchEquipment}>
-                  Refresh
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Category</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Barcode</TableHead>
-                    <TableHead>Cost</TableHead>
-                    <TableHead>Created</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {equipment.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="font-medium">{item.name}</TableCell>
-                      <TableCell>{item.category}</TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={item.status === 'available' ? 'default' : 
-                                 item.status === 'maintenance' ? 'secondary' : 'destructive'}
-                        >
-                          {item.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{item.barcode || 'N/A'}</TableCell>
-                      <TableCell>
-                        {item.replacement_cost ? `$${item.replacement_cost}` : 'N/A'}
-                      </TableCell>
-                      <TableCell>
-                        {new Date(item.created_at).toLocaleDateString()}
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <EquipmentManagementTab userRole={profile.role} />
         </TabsContent>
 
         {/* Check-ins Tab */}

@@ -27,13 +27,15 @@ import {
   Twitter,
   Send,
   Clock,
-  Activity
+  Activity,
+  Package
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import PoolTimetable from "./PoolTimetable";
+import { MyBorrowedEquipment } from "./MyBorrowedEquipment";
 
 interface UserProfile {
   id: string;
@@ -332,7 +334,7 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
       {/* Main Content with Tabs */}
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <Home className="w-4 h-4" />
               Overview
@@ -340,6 +342,10 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
             <TabsTrigger value="timetable" className="flex items-center gap-2">
               <Calendar className="w-4 h-4" />
               Timetable
+            </TabsTrigger>
+            <TabsTrigger value="equipment" className="flex items-center gap-2">
+              <Package className="w-4 h-4" />
+              Equipment
             </TabsTrigger>
             <TabsTrigger value="sessions" className="flex items-center gap-2">
               <Clock className="w-4 h-4" />
@@ -483,6 +489,11 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
           {/* Timetable Tab */}
           <TabsContent value="timetable" className="space-y-6">
             <PoolTimetable userRole="member" />
+          </TabsContent>
+
+          {/* Equipment Tab */}
+          <TabsContent value="equipment" className="space-y-6">
+            <MyBorrowedEquipment userId={user.id} />
           </TabsContent>
 
           {/* Sessions Tab */}

@@ -17,7 +17,8 @@ import {
   XCircle,
   Home,
   MessageSquare,
-  User as UserIcon
+  User as UserIcon,
+  Package
 } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -25,6 +26,7 @@ import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import PoolTimetable from "./PoolTimetable";
+import { MyBorrowedEquipment } from "./MyBorrowedEquipment";
 
 interface UserProfile {
   id: string;
@@ -268,12 +270,31 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
 
       {/* Tabs Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="timetable">Timetable</TabsTrigger>
-          <TabsTrigger value="visits">Recent Visits</TabsTrigger>
-          <TabsTrigger value="messages">Messages</TabsTrigger>
-          <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-6">
+          <TabsTrigger value="overview">
+            <Home className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Overview</span>
+          </TabsTrigger>
+          <TabsTrigger value="timetable">
+            <Calendar className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Timetable</span>
+          </TabsTrigger>
+          <TabsTrigger value="equipment">
+            <Package className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Equipment</span>
+          </TabsTrigger>
+          <TabsTrigger value="visits">
+            <History className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Visits</span>
+          </TabsTrigger>
+          <TabsTrigger value="messages">
+            <MessageSquare className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Messages</span>
+          </TabsTrigger>
+          <TabsTrigger value="profile">
+            <UserIcon className="w-4 h-4 sm:mr-2" />
+            <span className="hidden sm:inline">Profile</span>
+          </TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
@@ -483,6 +504,11 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
         {/* Timetable Tab */}
         <TabsContent value="timetable" className="space-y-6">
           <PoolTimetable userRole="resident" />
+        </TabsContent>
+
+        {/* Equipment Tab */}
+        <TabsContent value="equipment" className="space-y-6">
+          <MyBorrowedEquipment userId={user.id} />
         </TabsContent>
 
         {/* Recent Visits Tab */}
