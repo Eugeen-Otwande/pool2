@@ -230,34 +230,32 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
       {/* Tab Navigation */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="px-8 py-4">
-            <TabsList className="grid w-full max-w-3xl grid-cols-6 h-auto">
-              <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
-                <Home className="w-4 h-4" />
-                <span>Overview</span>
-              </TabsTrigger>
-              <TabsTrigger value="timetable" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
-                <Calendar className="w-4 h-4" />
-                <span>Timetable</span>
-              </TabsTrigger>
-              <TabsTrigger value="equipment" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
-                <Package className="w-4 h-4" />
-                <span>Equipment</span>
-              </TabsTrigger>
-              <TabsTrigger value="activity" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
-                <BarChart3 className="w-4 h-4" />
-                <span>Activity</span>
-              </TabsTrigger>
-              <TabsTrigger value="messages" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
-                <MessageSquare className="w-4 h-4" />
-                <span>Messages</span>
-              </TabsTrigger>
-              <TabsTrigger value="profile" className="flex flex-col sm:flex-row items-center gap-1 sm:gap-2 p-2 sm:p-3 text-xs sm:text-sm">
-                <UserIcon className="w-4 h-4" />
-                <span>Profile</span>
-              </TabsTrigger>
-            </TabsList>
-          </div>
+          <TabsList className="inline-flex h-auto w-full flex-wrap gap-1 bg-transparent p-2 px-4 sm:px-8">
+            <TabsTrigger value="overview" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Home className="w-4 h-4" />
+              <span>Overview</span>
+            </TabsTrigger>
+            <TabsTrigger value="timetable" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Calendar className="w-4 h-4" />
+              <span>Timetable</span>
+            </TabsTrigger>
+            <TabsTrigger value="equipment" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <Package className="w-4 h-4" />
+              <span>Equipment</span>
+            </TabsTrigger>
+            <TabsTrigger value="activity" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <BarChart3 className="w-4 h-4" />
+              <span>Activity</span>
+            </TabsTrigger>
+            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <MessageSquare className="w-4 h-4" />
+              <span>Messages</span>
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <UserIcon className="w-4 h-4" />
+              <span>Profile</span>
+            </TabsTrigger>
+          </TabsList>
         </div>
 
         {/* Tab Content */}
