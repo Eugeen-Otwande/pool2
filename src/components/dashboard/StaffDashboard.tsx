@@ -1046,6 +1046,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
                               <SelectItem value="student">Student</SelectItem>
                               <SelectItem value="member">Member</SelectItem>
                               <SelectItem value="resident">Resident</SelectItem>
+                              <SelectItem value="faculty">RCMRD Team (Faculty)</SelectItem>
                             </SelectContent>
                           </Select>
                           {user.status === 'pending' && (
