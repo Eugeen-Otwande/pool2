@@ -28,6 +28,7 @@ interface OverviewStats {
     residents: number;
     members: number;
     visitors: number;
+    faculty: number;
   };
   activeUsersCheckedIn: number;
   averageStayDuration: number;
@@ -66,6 +67,7 @@ export default function OverviewStatsWidget() {
       residents: 0,
       members: 0,
       visitors: 0,
+      faculty: 0,
     },
     activeUsersCheckedIn: 0,
     averageStayDuration: 0,
@@ -129,6 +131,7 @@ export default function OverviewStatsWidget() {
         residents: 0,
         members: 0,
         visitors: 0,
+        faculty: 0,
       };
 
       if (checkInsToday && checkInsToday.length > 0) {
@@ -146,6 +149,7 @@ export default function OverviewStatsWidget() {
             else if (role === 'resident') roleBreakdown.residents++;
             else if (role === 'member') roleBreakdown.members++;
             else if (role === 'visitor') roleBreakdown.visitors++;
+            else if (role === 'faculty') roleBreakdown.faculty++;
           }
         }
       }
@@ -366,6 +370,10 @@ export default function OverviewStatsWidget() {
                 <div className="flex justify-between">
                   <span>Members:</span>
                   <span className="font-semibold">{stats.checkInsByRole.members}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Faculty:</span>
+                  <span className="font-semibold">{stats.checkInsByRole.faculty}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Visitors:</span>

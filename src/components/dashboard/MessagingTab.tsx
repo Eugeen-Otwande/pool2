@@ -78,7 +78,7 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
   });
   const { toast } = useToast();
 
-  const roleOptions = ["student", "staff", "resident", "member", "visitor"];
+  const roleOptions = ["student", "staff", "resident", "member", "visitor", "faculty"];
 
   useEffect(() => {
     fetchMessages();
