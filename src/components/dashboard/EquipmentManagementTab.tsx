@@ -91,7 +91,7 @@ export function EquipmentManagementTab({ userRole }: EquipmentManagementTabProps
         .from("equipment_loans")
         .select(`
           *,
-          equipment:equipment!equipment_loans_equipment_id_fkey(*),
+          equipment:equipment(id, name, category, description, status),
           profiles:profiles!equipment_loans_user_id_fkey(first_name, last_name, email, role)
         `)
         .order("loaned_at", { ascending: false });
