@@ -1,24 +1,7 @@
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
-import { 
-  Users, 
-  UserCheck, 
-  Clock, 
-  DollarSign, 
-  CreditCard, 
-  Droplet, 
-  TestTube, 
-  Package, 
-  AlertTriangle, 
-  Mail, 
-  MessageSquare,
-  UserPlus,
-  UserX,
-  TrendingUp,
-  Activity
-} from "lucide-react";
-
+import { Users, UserCheck, Clock, DollarSign, CreditCard, Droplet, TestTube, Package, AlertTriangle, Mail, MessageSquare, UserPlus, UserX, TrendingUp, Activity } from "lucide-react";
 interface OverviewStats {
   // Attendance
   totalCheckInsToday: number;
@@ -33,13 +16,13 @@ interface OverviewStats {
   };
   activeUsersCheckedIn: number;
   averageStayDuration: number;
-  
+
   // Financial
   totalRevenueToday: number;
   pendingPayments: number;
   paidPayments: number;
   failedPayments: number;
-  
+
   // Pool Operations
   latestChlorine: number | null;
   latestPh: number | null;
@@ -47,18 +30,17 @@ interface OverviewStats {
   activeLoans: number;
   availableEquipment: number;
   recentIncidents: number;
-  
+
   // Communication
   unreadInquiries: number;
   messagesLast24h: number;
-  
+
   // System
   totalUsers: number;
   activeUsers: number;
   inactiveUsers: number;
   pendingApprovals: number;
 }
-
 export default function OverviewStatsWidget() {
   const [stats, setStats] = useState<OverviewStats>({
     totalCheckInsToday: 0,
@@ -69,7 +51,7 @@ export default function OverviewStatsWidget() {
       members: 0,
       visitors: 0,
       rcmrd_team: 0,
-      rcmrd_official: 0,
+      rcmrd_official: 0
     },
     activeUsersCheckedIn: 0,
     averageStayDuration: 0,
@@ -88,43 +70,52 @@ export default function OverviewStatsWidget() {
     totalUsers: 0,
     activeUsers: 0,
     inactiveUsers: 0,
-    pendingApprovals: 0,
+    pendingApprovals: 0
   });
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
     fetchAllStats();
 
     // Real-time subscriptions
-    const channel = supabase
-      .channel('overview-stats-realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, fetchAllStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'payments' }, fetchAllStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pool_logs' }, fetchAllStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, fetchAllStats)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'profiles' }, fetchAllStats)
-      .subscribe();
-
+    const channel = supabase.channel('overview-stats-realtime').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'check_ins'
+    }, fetchAllStats).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'payments'
+    }, fetchAllStats).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'pool_logs'
+    }, fetchAllStats).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'inquiries'
+    }, fetchAllStats).on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'profiles'
+    }, fetchAllStats).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, []);
-
   const fetchAllStats = async () => {
     try {
       const today = new Date().toISOString().split('T')[0];
 
       // Attendance Stats
-      const { data: checkInsToday } = await supabase
-        .from('check_ins')
-        .select('id, user_id, check_in_time, check_out_time, status')
-        .gte('check_in_time', `${today}T00:00:00`)
-        .lte('check_in_time', `${today}T23:59:59`);
-
-      const { count: activeCount } = await supabase
-        .from('check_ins')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'checked_in');
+      const {
+        data: checkInsToday
+      } = await supabase.from('check_ins').select('id, user_id, check_in_time, check_out_time, status').gte('check_in_time', `${today}T00:00:00`).lte('check_in_time', `${today}T23:59:59`);
+      const {
+        count: activeCount
+      } = await supabase.from('check_ins').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'checked_in');
 
       // Calculate check-ins by role - fetch profile data separately
       const roleBreakdown = {
@@ -134,26 +125,16 @@ export default function OverviewStatsWidget() {
         members: 0,
         visitors: 0,
         rcmrd_team: 0,
-        rcmrd_official: 0,
+        rcmrd_official: 0
       };
-
       if (checkInsToday && checkInsToday.length > 0) {
         for (const checkIn of checkInsToday) {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('role')
-            .eq('user_id', checkIn.user_id)
-            .single();
-          
+          const {
+            data: profile
+          } = await supabase.from('profiles').select('role').eq('user_id', checkIn.user_id).single();
           if (profile) {
             const role = profile.role.toLowerCase();
-            if (role === 'student') roleBreakdown.students++;
-            else if (role === 'staff') roleBreakdown.staff++;
-            else if (role === 'resident') roleBreakdown.residents++;
-            else if (role === 'member') roleBreakdown.members++;
-            else if (role === 'visitor') roleBreakdown.visitors++;
-            else if (role === 'rcmrd_team') roleBreakdown.rcmrd_team++;
-            else if (role === 'rcmrd_official') roleBreakdown.rcmrd_official++;
+            if (role === 'student') roleBreakdown.students++;else if (role === 'staff') roleBreakdown.staff++;else if (role === 'resident') roleBreakdown.residents++;else if (role === 'member') roleBreakdown.members++;else if (role === 'visitor') roleBreakdown.visitors++;else if (role === 'rcmrd_team') roleBreakdown.rcmrd_team++;else if (role === 'rcmrd_official') roleBreakdown.rcmrd_official++;
           }
         }
       }
@@ -171,86 +152,94 @@ export default function OverviewStatsWidget() {
       }
 
       // Financial Stats
-      const { data: paymentsToday } = await supabase
-        .from('payments')
-        .select('amount, payment_status')
-        .gte('created_at', `${today}T00:00:00`);
-
-      const revenueToday = paymentsToday?.reduce((acc, p) => 
-        p.payment_status === 'Paid' ? acc + Number(p.amount) : acc, 0) || 0;
-
-      const { count: pendingCount } = await supabase
-        .from('payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('payment_status', 'Pending');
-
-      const { count: paidCount } = await supabase
-        .from('payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('payment_status', 'Paid');
-
-      const { count: failedCount } = await supabase
-        .from('payments')
-        .select('*', { count: 'exact', head: true })
-        .eq('payment_status', 'Failed');
+      const {
+        data: paymentsToday
+      } = await supabase.from('payments').select('amount, payment_status').gte('created_at', `${today}T00:00:00`);
+      const revenueToday = paymentsToday?.reduce((acc, p) => p.payment_status === 'Paid' ? acc + Number(p.amount) : acc, 0) || 0;
+      const {
+        count: pendingCount
+      } = await supabase.from('payments').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('payment_status', 'Pending');
+      const {
+        count: paidCount
+      } = await supabase.from('payments').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('payment_status', 'Paid');
+      const {
+        count: failedCount
+      } = await supabase.from('payments').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('payment_status', 'Failed');
 
       // Pool Operations Stats
-      const { data: latestLog } = await supabase
-        .from('pool_logs')
-        .select('chlorine_ppm, ph_level, water_clarity, occurrence_reported')
-        .order('date', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      const { count: activeLoansCount } = await supabase
-        .from('equipment_loans')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active')
-        .is('returned_at', null);
-
-      const { count: availableEquipCount } = await supabase
-        .from('equipment')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'available');
-
-      const { count: incidentsCount } = await supabase
-        .from('pool_logs')
-        .select('*', { count: 'exact', head: true })
-        .eq('occurrence_reported', true)
-        .gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
+      const {
+        data: latestLog
+      } = await supabase.from('pool_logs').select('chlorine_ppm, ph_level, water_clarity, occurrence_reported').order('date', {
+        ascending: false
+      }).limit(1).maybeSingle();
+      const {
+        count: activeLoansCount
+      } = await supabase.from('equipment_loans').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'active').is('returned_at', null);
+      const {
+        count: availableEquipCount
+      } = await supabase.from('equipment').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'available');
+      const {
+        count: incidentsCount
+      } = await supabase.from('pool_logs').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('occurrence_reported', true).gte('date', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]);
 
       // Communication Stats
-      const { count: unreadInquiriesCount } = await supabase
-        .from('inquiries')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'new');
-
+      const {
+        count: unreadInquiriesCount
+      } = await supabase.from('inquiries').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'new');
       const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const { count: messagesCount } = await supabase
-        .from('messages')
-        .select('*', { count: 'exact', head: true })
-        .gte('created_at', yesterday);
+      const {
+        count: messagesCount
+      } = await supabase.from('messages').select('*', {
+        count: 'exact',
+        head: true
+      }).gte('created_at', yesterday);
 
       // System Stats
-      const { count: totalUsersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true });
-
-      const { count: activeUsersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'active');
-
-      const { count: inactiveUsersCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'inactive');
-
-      const { count: pendingApprovalsCount } = await supabase
-        .from('profiles')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending');
-
+      const {
+        count: totalUsersCount
+      } = await supabase.from('profiles').select('*', {
+        count: 'exact',
+        head: true
+      });
+      const {
+        count: activeUsersCount
+      } = await supabase.from('profiles').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'active');
+      const {
+        count: inactiveUsersCount
+      } = await supabase.from('profiles').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'inactive');
+      const {
+        count: pendingApprovalsCount
+      } = await supabase.from('profiles').select('*', {
+        count: 'exact',
+        head: true
+      }).eq('status', 'pending');
       setStats({
         totalCheckInsToday: checkInsToday?.length || 0,
         checkInsByRole: roleBreakdown,
@@ -271,7 +260,7 @@ export default function OverviewStatsWidget() {
         totalUsers: totalUsersCount || 0,
         activeUsers: activeUsersCount || 0,
         inactiveUsers: inactiveUsersCount || 0,
-        pendingApprovals: pendingApprovalsCount || 0,
+        pendingApprovals: pendingApprovalsCount || 0
       });
     } catch (error) {
       console.error('Error fetching overview stats:', error);
@@ -279,40 +268,41 @@ export default function OverviewStatsWidget() {
       setLoading(false);
     }
   };
-
-  const getStatusColor = (value: number, thresholds: { good: number; warning: number }) => {
+  const getStatusColor = (value: number, thresholds: {
+    good: number;
+    warning: number;
+  }) => {
     if (value >= thresholds.good) return 'text-emerald-600 dark:text-emerald-400';
     if (value >= thresholds.warning) return 'text-amber-600 dark:text-amber-400';
     return 'text-destructive';
   };
-
   const getWaterQualityStatus = () => {
     const chlorineOk = stats.latestChlorine && stats.latestChlorine >= 1 && stats.latestChlorine <= 3;
     const phOk = stats.latestPh && stats.latestPh >= 7.2 && stats.latestPh <= 7.8;
-    
-    if (chlorineOk && phOk) return { color: 'text-emerald-600 dark:text-emerald-400', text: 'Good' };
-    if (!chlorineOk || !phOk) return { color: 'text-amber-600 dark:text-amber-400', text: 'Check' };
-    return { color: 'text-muted-foreground', text: 'N/A' };
+    if (chlorineOk && phOk) return {
+      color: 'text-emerald-600 dark:text-emerald-400',
+      text: 'Good'
+    };
+    if (!chlorineOk || !phOk) return {
+      color: 'text-amber-600 dark:text-amber-400',
+      text: 'Check'
+    };
+    return {
+      color: 'text-muted-foreground',
+      text: 'N/A'
+    };
   };
-
   if (loading) {
-    return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(16)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
+    return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(16)].map((_, i) => <Card key={i} className="animate-pulse">
             <CardContent className="p-6">
               <div className="h-20 bg-muted rounded"></div>
             </CardContent>
-          </Card>
-        ))}
-      </div>
-    );
+          </Card>)}
+      </div>;
   }
-
   const waterQuality = getWaterQualityStatus();
-
-  return (
-    <div className="space-y-6">
+  return <div className="space-y-6">
       {/* Attendance Section */}
       <div>
         <h3 className="text-lg font-semibold mb-3">Attendance</h3>
@@ -329,7 +319,7 @@ export default function OverviewStatsWidget() {
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
+          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 bg-gray-900">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
@@ -457,12 +447,8 @@ export default function OverviewStatsWidget() {
                 <div>
                   <p className="text-xs font-medium text-muted-foreground">Water Quality</p>
                   <p className={`text-2xl font-bold ${waterQuality.color}`}>{waterQuality.text}</p>
-                  {stats.latestChlorine && (
-                    <p className="text-xs text-muted-foreground mt-1">Cl: {stats.latestChlorine} ppm</p>
-                  )}
-                  {stats.latestPh && (
-                    <p className="text-xs text-muted-foreground">pH: {stats.latestPh}</p>
-                  )}
+                  {stats.latestChlorine && <p className="text-xs text-muted-foreground mt-1">Cl: {stats.latestChlorine} ppm</p>}
+                  {stats.latestPh && <p className="text-xs text-muted-foreground">pH: {stats.latestPh}</p>}
                 </div>
                 <Droplet className={`w-8 h-8 ${waterQuality.color}`} />
               </div>
@@ -569,6 +555,5 @@ export default function OverviewStatsWidget() {
           </Card>
         </div>
       </div>
-    </div>
-  );
+    </div>;
 }
