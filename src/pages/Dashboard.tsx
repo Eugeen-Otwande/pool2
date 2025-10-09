@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User, Session } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
 import DashboardNav from "@/components/dashboard/DashboardNav";
 import AdminDashboard from "@/components/dashboard/AdminDashboard";
 import StudentDashboard from "@/components/dashboard/StudentDashboard";
@@ -124,6 +125,57 @@ const Dashboard = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center space-y-4">
           <p className="text-muted-foreground">Unable to load user data</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user account is pending approval
+  if (profile.status === 'pending') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-6 max-w-md p-8">
+          <div className="w-16 h-16 bg-yellow-500/10 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-yellow-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Account Pending Approval</h2>
+            <p className="text-muted-foreground mb-4">
+              Your account is awaiting approval from the pool staff. You will be notified once your account has been reviewed.
+            </p>
+            <p className="text-sm text-muted-foreground">
+              This usually takes 1-2 business days.
+            </p>
+          </div>
+          <Button onClick={handleSignOut} variant="outline">
+            Sign Out
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
+  // Check if user account is rejected or suspended
+  if (profile.status === 'rejected' || profile.status === 'suspended') {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center space-y-6 max-w-md p-8">
+          <div className="w-16 h-16 bg-red-500/10 rounded-full flex items-center justify-center mx-auto">
+            <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold mb-2">Account {profile.status === 'rejected' ? 'Not Approved' : 'Suspended'}</h2>
+            <p className="text-muted-foreground mb-4">
+              Your account registration was not approved. Please contact the pool staff for more information.
+            </p>
+          </div>
+          <Button onClick={handleSignOut} variant="outline">
+            Sign Out
+          </Button>
         </div>
       </div>
     );

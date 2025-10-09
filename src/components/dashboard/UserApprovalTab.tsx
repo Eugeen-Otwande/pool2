@@ -77,15 +77,17 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
 
       if (profileError) throw profileError;
 
-      // Create approval record using user_id from profiles
+      // Update or insert approval record
       const { error: approvalError } = await supabase
         .from("user_approvals")
-        .insert({
+        .upsert({
           user_id: userId,
           status: "approved",
           approved_at: new Date().toISOString(),
           approved_by: currentUser.user.id,
           approval_notes: notes,
+        }, {
+          onConflict: 'user_id'
         });
 
       if (approvalError) throw approvalError;
@@ -114,22 +116,24 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user?.id) throw new Error("No authenticated user");
 
-      // Update user status to rejected
+      // Update user status to suspended (rejected users can't access)
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ status: "rejected", updated_at: new Date().toISOString() })
+        .update({ status: "suspended", updated_at: new Date().toISOString() })
         .eq("user_id", userId);
 
       if (profileError) throw profileError;
 
-      // Create approval record using user_id from profiles
+      // Update or insert approval record
       const { error: approvalError } = await supabase
         .from("user_approvals")
-        .insert({
+        .upsert({
           user_id: userId,
           status: "rejected",
           approved_by: currentUser.user.id,
           approval_notes: notes,
+        }, {
+          onConflict: 'user_id'
         });
 
       if (approvalError) throw approvalError;
@@ -240,9 +244,10 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
                             <div className="space-y-4">
                               <div className="p-4 bg-muted rounded-lg">
                                 <h4 className="font-medium mb-2">User Details</h4>
-                                <p><strong>Name:</strong> {user.first_name} {user.last_name}</p>
+                                 <p><strong>Name:</strong> {user.first_name} {user.last_name}</p>
                                 <p><strong>Email:</strong> {user.email}</p>
                                 <p><strong>Role:</strong> {user.role}</p>
+                                <p className="text-xs text-muted-foreground mt-2">User ID: {user.user_id}</p>
                                 {user.phone && <p><strong>Phone:</strong> {user.phone}</p>}
                                 {user.emergency_contact && (
                                   <p><strong>Emergency Contact:</strong> {user.emergency_contact}</p>
@@ -257,16 +262,16 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
                                   className="mt-1"
                                 />
                               </div>
-                              <div className="flex gap-2 pt-4">
+                               <div className="flex gap-2 pt-4">
                                 <Button
-                                  onClick={() => selectedUser && approveUser(selectedUser.id, approvalNotes)}
+                                  onClick={() => selectedUser && approveUser(selectedUser.user_id, approvalNotes)}
                                   className="flex-1"
                                 >
                                   <UserCheck className="w-4 h-4 mr-2" />
                                   Approve User
                                 </Button>
                                 <Button
-                                  onClick={() => selectedUser && rejectUser(selectedUser.id, approvalNotes)}
+                                  onClick={() => selectedUser && rejectUser(selectedUser.user_id, approvalNotes)}
                                   variant="destructive"
                                   className="flex-1"
                                 >
@@ -280,7 +285,7 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
                         <Button
                           size="sm"
                           variant="destructive"
-                          onClick={() => rejectUser(user.id)}
+                          onClick={() => rejectUser(user.user_id)}
                         >
                           <UserX className="w-3 h-3 mr-1" />
                           Reject

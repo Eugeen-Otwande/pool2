@@ -98,7 +98,7 @@ const AuthPage = () => {
       } else {
         toast({
           title: "Account Created",
-          description: "Please check your email to verify your account.",
+          description: "Your account is pending approval from pool staff. You'll be notified when approved.",
         });
       }
     } catch (error) {
