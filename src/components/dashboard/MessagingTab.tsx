@@ -22,6 +22,7 @@ interface Message {
   message_type: string;
   read_at?: string;
   created_at: string;
+  updated_at: string;
   sender_profile?: {
     first_name: string;
     last_name: string;
@@ -78,7 +79,7 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
   });
   const { toast } = useToast();
 
-  const roleOptions = ["student", "staff", "resident", "member", "visitor", "faculty"];
+  const roleOptions = ["admin", "staff", "student", "resident", "member", "visitor", "rcmrd_official", "rcmrd_team"];
 
   useEffect(() => {
     fetchMessages();
@@ -90,20 +91,20 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
       const { data: currentUser } = await supabase.auth.getUser();
       if (!currentUser.user?.id) throw new Error("No authenticated user");
 
-      // Get current user's profile to check their role
-      const { data: userProfile } = await supabase
+      // Get current user's role
+      const { data: profile } = await supabase
         .from("profiles")
         .select("role")
         .eq("user_id", currentUser.user.id)
         .single();
 
-      if (!userProfile) throw new Error("User profile not found");
+      if (!profile) throw new Error("Profile not found");
 
       // Fetch messages sent to this user directly OR to their role
       const { data: messagesData, error } = await supabase
         .from("messages")
         .select("*")
-        .or(`recipient_id.eq.${currentUser.user.id},recipient_role.eq.${userProfile.role}`)
+        .or(`recipient_id.eq.${currentUser.user.id},and(recipient_id.eq.${currentUser.user.id},recipient_role.eq.${profile.role})`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -235,8 +236,8 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
       if (error) throw error;
 
       toast({
-        title: "Message Sent",
-        description: "Your message has been sent successfully",
+        title: "✅ Message Sent",
+        description: "Your message has been delivered successfully and synced across the system",
       });
 
       fetchMessages();
@@ -289,16 +290,6 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
     }
   };
 
-  const openMessageDialog = async (message: Message) => {
-    const replies = await fetchMessageReplies(message.id);
-    setSelectedMessage({ ...message, replies });
-    
-    // Mark message as read if not already read
-    if (!message.read_at) {
-      await markAsRead(message.id);
-    }
-  };
-
   const markAsRead = async (messageId: string) => {
     try {
       const { error } = await supabase
@@ -309,11 +300,25 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
       if (error) throw error;
 
       // Update local state
-      setMessages(messages.map(msg => 
-        msg.id === messageId ? { ...msg, read_at: new Date().toISOString() } : msg
-      ));
+      setMessages(prev => 
+        prev.map(msg => 
+          msg.id === messageId 
+            ? { ...msg, read_at: new Date().toISOString() } 
+            : msg
+        )
+      );
     } catch (error) {
       console.error("Error marking message as read:", error);
+    }
+  };
+
+  const openMessageDialog = async (message: Message) => {
+    const replies = await fetchMessageReplies(message.id);
+    setSelectedMessage({ ...message, replies });
+    
+    // Mark message as read if not already read
+    if (!message.read_at) {
+      await markAsRead(message.id);
     }
   };
 
@@ -450,6 +455,7 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
                       <SelectItem value="announcement">Announcement</SelectItem>
                       <SelectItem value="reminder">Reminder</SelectItem>
                       <SelectItem value="alert">Alert</SelectItem>
+                      <SelectItem value="inquiry">Inquiry</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -478,7 +484,7 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
             <TableHeader>
               <TableRow>
                 <TableHead>Subject</TableHead>
-                <TableHead>Recipient</TableHead>
+                <TableHead>From</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Date</TableHead>
                 <TableHead>Status</TableHead>
@@ -486,45 +492,50 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {messages.map((message) => (
-                <TableRow key={message.id}>
-                  <TableCell className="font-medium">{message.title}</TableCell>
-                  <TableCell>
-                    {message.recipient_profile ? (
-                      <div>
-                        <div>{message.recipient_profile.first_name} {message.recipient_profile.last_name}</div>
-                        <div className="text-sm text-muted-foreground">{message.recipient_profile.email}</div>
-                      </div>
-                    ) : (
-                      <Badge variant="outline">
-                        <Users className="w-3 h-3 mr-1" />
-                        {message.recipient_role}
-                      </Badge>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="secondary">{message.message_type}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {new Date(message.created_at).toLocaleDateString()}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={message.read_at ? "default" : "secondary"}>
-                      {message.read_at ? "Read" : "Unread"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => openMessageDialog(message)}
-                    >
-                      <MessageCircle className="w-3 h-3 mr-1" />
-                      View
-                    </Button>
+              {messages.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    No messages found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                messages.map((message) => (
+                  <TableRow key={message.id} className={!message.read_at ? "font-semibold" : ""}>
+                    <TableCell className="font-medium">{message.title}</TableCell>
+                    <TableCell>
+                      {message.sender_profile ? (
+                        <div>
+                          <div>{message.sender_profile.first_name} {message.sender_profile.last_name}</div>
+                          <div className="text-sm text-muted-foreground">{message.sender_profile.role}</div>
+                        </div>
+                      ) : (
+                        <span className="text-muted-foreground">Unknown</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary">{message.message_type}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(message.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={message.read_at ? "default" : "destructive"}>
+                        {message.read_at ? "Read" : "Unread"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => openMessageDialog(message)}
+                      >
+                        <MessageCircle className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
@@ -561,8 +572,13 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
                   {selectedMessage.replies.map((reply) => (
                     <div key={reply.id} className="p-3 bg-background border rounded-lg">
                       <div className="flex justify-between items-start mb-2">
-                        <div className="font-medium text-sm">
-                          {reply.sender_profile?.first_name} {reply.sender_profile?.last_name}
+                        <div>
+                          <div className="font-medium text-sm">
+                            {reply.sender_profile?.first_name} {reply.sender_profile?.last_name}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {reply.sender_profile?.role}
+                          </div>
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {new Date(reply.created_at).toLocaleString()}
@@ -583,7 +599,10 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
                   placeholder="Type your reply..."
                   rows={3}
                 />
-                <Button onClick={() => handleReply(selectedMessage.id)} disabled={!replyContent.trim()}>
+                <Button 
+                  onClick={() => handleReply(selectedMessage.id)}
+                  disabled={!replyContent.trim()}
+                >
                   <Reply className="w-4 h-4 mr-2" />
                   Send Reply
                 </Button>
