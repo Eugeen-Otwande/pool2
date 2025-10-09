@@ -42,7 +42,8 @@ const PoolTimetable = ({ userRole }: PoolTimetableProps) => {
     staff: "bg-cyan-500 text-white",
     resident: "bg-orange-500 text-white",
     member: "bg-purple-500 text-white",
-    faculty: "bg-indigo-500 text-white",
+    rcmrd_team: "bg-indigo-500 text-white",
+    rcmrd_official: "bg-violet-500 text-white",
     visitor: "bg-gray-500 text-white",
   };
 

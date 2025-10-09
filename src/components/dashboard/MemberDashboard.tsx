@@ -129,7 +129,7 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
       const { data, error } = await supabase
         .from("pool_schedules")
         .select("*")
-        .or(`allowed_roles.cs.{member},allowed_roles.cs.{faculty}`)
+        .or(`allowed_roles.cs.{member},allowed_roles.cs.{rcmrd_team},allowed_roles.cs.{rcmrd_official}`)
         .contains("days_of_week", [currentDay])
         .eq("is_active", true);
 

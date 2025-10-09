@@ -52,13 +52,13 @@ const TimetableManagement = ({ onRefreshStats }: TimetableManagementProps) => {
     max_staff: 5,
     max_residents: 8,
     max_members: 2,
-    allowed_roles: ["student", "staff", "resident", "member", "faculty"] as string[],
+    allowed_roles: ["student", "staff", "resident", "member", "rcmrd_team", "rcmrd_official"] as string[],
     is_active: true,
   });
   const { toast } = useToast();
 
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const roleOptions = ["student", "staff", "resident", "member", "visitor", "faculty"];
+  const roleOptions = ["student", "staff", "resident", "member", "rcmrd_team", "rcmrd_official", "visitor"];
 
   useEffect(() => {
     fetchSchedules();
@@ -98,7 +98,7 @@ const TimetableManagement = ({ onRefreshStats }: TimetableManagementProps) => {
       max_staff: 5,
       max_residents: 8,
       max_members: 2,
-      allowed_roles: ["student", "staff", "resident", "member", "faculty"],
+      allowed_roles: ["student", "staff", "resident", "member", "rcmrd_team", "rcmrd_official"],
       is_active: true,
     });
     setSelectedSchedule(null);

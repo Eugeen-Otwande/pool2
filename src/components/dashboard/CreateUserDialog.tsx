@@ -156,8 +156,9 @@ export default function CreateUserDialog({
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="resident">Resident</SelectItem>
                 <SelectItem value="member">Member</SelectItem>
+                <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
                 <SelectItem value="visitor">Visitor</SelectItem>
-                <SelectItem value="faculty">RCMRD Team (Faculty)</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>

@@ -28,7 +28,8 @@ interface OverviewStats {
     residents: number;
     members: number;
     visitors: number;
-    faculty: number;
+    rcmrd_team: number;
+    rcmrd_official: number;
   };
   activeUsersCheckedIn: number;
   averageStayDuration: number;
@@ -67,7 +68,8 @@ export default function OverviewStatsWidget() {
       residents: 0,
       members: 0,
       visitors: 0,
-      faculty: 0,
+      rcmrd_team: 0,
+      rcmrd_official: 0,
     },
     activeUsersCheckedIn: 0,
     averageStayDuration: 0,
@@ -131,7 +133,8 @@ export default function OverviewStatsWidget() {
         residents: 0,
         members: 0,
         visitors: 0,
-        faculty: 0,
+        rcmrd_team: 0,
+        rcmrd_official: 0,
       };
 
       if (checkInsToday && checkInsToday.length > 0) {
@@ -149,7 +152,8 @@ export default function OverviewStatsWidget() {
             else if (role === 'resident') roleBreakdown.residents++;
             else if (role === 'member') roleBreakdown.members++;
             else if (role === 'visitor') roleBreakdown.visitors++;
-            else if (role === 'faculty') roleBreakdown.faculty++;
+            else if (role === 'rcmrd_team') roleBreakdown.rcmrd_team++;
+            else if (role === 'rcmrd_official') roleBreakdown.rcmrd_official++;
           }
         }
       }
@@ -372,8 +376,12 @@ export default function OverviewStatsWidget() {
                   <span className="font-semibold">{stats.checkInsByRole.members}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span>Faculty:</span>
-                  <span className="font-semibold">{stats.checkInsByRole.faculty}</span>
+                  <span>RCMRD Team:</span>
+                  <span className="font-semibold">{stats.checkInsByRole.rcmrd_team}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>RCMRD Official:</span>
+                  <span className="font-semibold">{stats.checkInsByRole.rcmrd_official}</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Visitors:</span>

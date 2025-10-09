@@ -192,7 +192,8 @@ const Dashboard = () => {
       case "student":
         return <StudentDashboard user={user} profile={profile} />;
       case "member":
-      case "faculty":
+      case "rcmrd_team":
+      case "rcmrd_official":
         return <MemberDashboard user={user} profile={profile} />;
       case "resident":
         return <ResidentDashboard user={user} profile={profile} />;

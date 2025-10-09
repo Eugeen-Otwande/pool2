@@ -63,7 +63,7 @@ export function IssueEquipmentDialog({
       const { data, error } = await supabase
         .from("profiles")
         .select("user_id, first_name, last_name, email, role")
-        .in("role", ["student", "member", "resident", "visitor", "staff", "faculty"])
+        .in("role", ["student", "member", "resident", "visitor", "staff", "rcmrd_team", "rcmrd_official"])
         .order("first_name");
 
       if (error) throw error;
