@@ -87,10 +87,23 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const fetchMessages = async () => {
     try {
-      // Fetch messages first
+      const { data: currentUser } = await supabase.auth.getUser();
+      if (!currentUser.user?.id) throw new Error("No authenticated user");
+
+      // Get current user's profile to check their role
+      const { data: userProfile } = await supabase
+        .from("profiles")
+        .select("role")
+        .eq("user_id", currentUser.user.id)
+        .single();
+
+      if (!userProfile) throw new Error("User profile not found");
+
+      // Fetch messages sent to this user directly OR to their role
       const { data: messagesData, error } = await supabase
         .from("messages")
         .select("*")
+        .or(`recipient_id.eq.${currentUser.user.id},recipient_role.eq.${userProfile.role}`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -279,6 +292,29 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
   const openMessageDialog = async (message: Message) => {
     const replies = await fetchMessageReplies(message.id);
     setSelectedMessage({ ...message, replies });
+    
+    // Mark message as read if not already read
+    if (!message.read_at) {
+      await markAsRead(message.id);
+    }
+  };
+
+  const markAsRead = async (messageId: string) => {
+    try {
+      const { error } = await supabase
+        .from("messages")
+        .update({ read_at: new Date().toISOString() })
+        .eq("id", messageId);
+
+      if (error) throw error;
+
+      // Update local state
+      setMessages(messages.map(msg => 
+        msg.id === messageId ? { ...msg, read_at: new Date().toISOString() } : msg
+      ));
+    } catch (error) {
+      console.error("Error marking message as read:", error);
+    }
   };
 
   if (loading) {

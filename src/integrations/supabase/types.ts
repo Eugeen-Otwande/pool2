@@ -255,10 +255,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fk_message_replies_message"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_messages_summary"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fk_message_replies_message_id"
             columns: ["message_id"]
             isOneToOne: false
             referencedRelation: "messages"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_message_replies_message_id"
+            columns: ["message_id"]
+            isOneToOne: false
+            referencedRelation: "v_messages_summary"
             referencedColumns: ["id"]
           },
         ]
@@ -908,6 +922,24 @@ export type Database = {
       }
     }
     Views: {
+      v_messages_summary: {
+        Row: {
+          content: string | null
+          created_at: string | null
+          id: string | null
+          message_type: string | null
+          read_at: string | null
+          recipient_id: string | null
+          recipient_name: string | null
+          recipient_role: string | null
+          reply_count: number | null
+          sender_id: string | null
+          sender_name: string | null
+          title: string | null
+          updated_at: string | null
+        }
+        Relationships: []
+      }
       v_recent_activities: {
         Row: {
           check_in_time: string | null
