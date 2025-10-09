@@ -36,14 +36,39 @@ export default function CreateUserDialog({
     
     try {
       if (editingUser) {
-        // Update existing user
-        const { error } = await supabase
-          .from("profiles")
-          .update(formData)
-          .eq("id", editingUser.id);
+        // Update existing user - check if role is changing
+        const roleChanged = editingUser.role !== formData.role;
+        
+        if (roleChanged) {
+          // Use the secure role update function
+          const { data: { user } } = await supabase.auth.getUser();
+          if (!user) throw new Error('Not authenticated');
 
-        if (error) throw error;
-        toast.success("User updated successfully");
+          const { data, error } = await supabase.rpc('update_user_role', {
+            _user_id: editingUser.user_id,
+            _new_role: formData.role,
+            _updated_by: user.id
+          });
+
+          if (error) throw error;
+
+          const result = data as { success: boolean; message: string };
+          if (!result.success) throw new Error(result.message);
+        }
+        
+        // Update other profile fields
+        const { role, ...otherFields } = formData;
+        const { error: updateError } = await supabase
+          .from("profiles")
+          .update(roleChanged ? otherFields : formData)
+          .eq("user_id", editingUser.user_id);
+
+        if (updateError) throw updateError;
+        
+        toast.success(roleChanged 
+          ? "✅ User updated and role synced across the system" 
+          : "User updated successfully"
+        );
       } else {
         // Create new user via pre_existing_accounts
         const { error } = await supabase

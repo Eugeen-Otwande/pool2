@@ -532,16 +532,20 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
       const { error } = await supabase
         .from("profiles")
         .update({ status })
-        .eq("id", userId);
+        .eq("user_id", userId);
 
       if (error) throw error;
 
       toast({
-        title: "Success",
+        title: "✅ Success",
         description: `User status updated to ${status}`,
       });
-      fetchUsers();
-      fetchDashboardData();
+      
+      // Refresh all data to reflect status changes
+      await Promise.all([
+        fetchUsers(),
+        fetchDashboardData()
+      ]);
     } catch (error) {
       console.error("Error updating user status:", error);
       toast({
@@ -554,24 +558,40 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
 
   const updateUserRole = async (userId: string, role: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role })
-        .eq("id", userId);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Use the secure role update function
+      const { data, error } = await supabase.rpc('update_user_role', {
+        _user_id: userId,
+        _new_role: role,
+        _updated_by: user.id
+      });
 
       if (error) throw error;
 
+      const result = data as { success: boolean; message: string; old_role?: string; new_role?: string };
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
       toast({
-        title: "Success",
-        description: `User role updated to ${role}`,
+        title: "✅ Success",
+        description: result.message,
       });
-      fetchUsers();
-      fetchDashboardData();
+
+      // Refresh all data to reflect role changes
+      await Promise.all([
+        fetchUsers(),
+        fetchDashboardData(),
+        fetchActiveCheckIns()
+      ]);
     } catch (error) {
       console.error("Error updating user role:", error);
       toast({
         title: "Error",
-        description: "Failed to update user role",
+        description: error instanceof Error ? error.message : "Failed to update user role",
         variant: "destructive",
       });
     }
