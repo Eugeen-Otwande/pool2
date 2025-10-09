@@ -5,28 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  Clock, 
-  Calendar, 
-  QrCode, 
-  History,
-  Timer,
-  Users,
-  CheckCircle,
-  XCircle,
-  MessageSquare,
-  Home,
-  BarChart3,
-  User as UserIcon,
-  Package
-} from "lucide-react";
+import { Clock, Calendar, QrCode, History, Timer, Users, CheckCircle, XCircle, MessageSquare, Home, BarChart3, User as UserIcon, Package } from "lucide-react";
 import { User } from "@supabase/supabase-js";
 import MessagingTab from "./MessagingTab";
 import ProfileTab from "./ProfileTab";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import PoolTimetable from "./PoolTimetable";
 import { MyBorrowedEquipment } from "./MyBorrowedEquipment";
-
 interface UserProfile {
   id: string;
   user_id: string;
@@ -46,175 +31,132 @@ interface UserProfile {
   created_at: string;
   updated_at: string;
 }
-
 interface StudentDashboardProps {
   user: User;
   profile: UserProfile;
 }
-
-const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
+const StudentDashboard = ({
+  user,
+  profile
+}: StudentDashboardProps) => {
   const [currentCheckIn, setCurrentCheckIn] = useState<any>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [recentVisits, setRecentVisits] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
-  const { toast } = useToast();
-
+  const {
+    toast
+  } = useToast();
   useEffect(() => {
     fetchDashboardData();
-    
-    // Set up real-time subscription for check-ins
-    const channel = supabase
-      .channel('student-checkins')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'check_ins',
-          filter: `user_id=eq.${user.id}`
-        },
-        () => fetchCurrentCheckIn()
-      )
-      .subscribe();
 
+    // Set up real-time subscription for check-ins
+    const channel = supabase.channel('student-checkins').on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'check_ins',
+      filter: `user_id=eq.${user.id}`
+    }, () => fetchCurrentCheckIn()).subscribe();
     return () => {
       supabase.removeChannel(channel);
     };
   }, [user.id]);
-
   const fetchDashboardData = async () => {
-    await Promise.all([
-      fetchCurrentCheckIn(),
-      fetchSchedules(),
-      fetchRecentVisits()
-    ]);
+    await Promise.all([fetchCurrentCheckIn(), fetchSchedules(), fetchRecentVisits()]);
     setLoading(false);
   };
-
   const fetchCurrentCheckIn = async () => {
     try {
-      const { data, error } = await supabase
-        .from("check_ins")
-        .select("*")
-        .eq("user_id", user.id)
-        .eq("status", "checked_in")
-        .is("check_out_time", null)
-        .maybeSingle();
-
+      const {
+        data,
+        error
+      } = await supabase.from("check_ins").select("*").eq("user_id", user.id).eq("status", "checked_in").is("check_out_time", null).maybeSingle();
       if (error) throw error;
       setCurrentCheckIn(data);
     } catch (error) {
       console.error("Error fetching current check-in:", error);
     }
   };
-
   const fetchSchedules = async () => {
     try {
       const currentDay = new Date().getDay();
       const currentTime = new Date().toTimeString().slice(0, 5);
-
-      const { data, error } = await supabase
-        .from("pool_schedules")
-        .select("*")
-        .contains("allowed_roles", ["student"])
-        .contains("days_of_week", [currentDay])
-        .eq("is_active", true);
-
+      const {
+        data,
+        error
+      } = await supabase.from("pool_schedules").select("*").contains("allowed_roles", ["student"]).contains("days_of_week", [currentDay]).eq("is_active", true);
       if (error) throw error;
 
       // Filter schedules for current and upcoming sessions
-      const relevantSchedules = data?.filter(schedule => 
-        schedule.end_time > currentTime
-      ) || [];
-
+      const relevantSchedules = data?.filter(schedule => schedule.end_time > currentTime) || [];
       setSchedules(relevantSchedules);
     } catch (error) {
       console.error("Error fetching schedules:", error);
     }
   };
-
   const fetchRecentVisits = async () => {
     try {
-      const { data, error } = await supabase
-        .from("v_recent_activities")
-        .select("*")
-        .eq("user_id", user.id)
-        .limit(5);
-
+      const {
+        data,
+        error
+      } = await supabase.from("v_recent_activities").select("*").eq("user_id", user.id).limit(5);
       if (error) throw error;
       setRecentVisits(data || []);
     } catch (error) {
       console.error("Error fetching recent visits:", error);
     }
   };
-
   const handleToggleCheckIn = async (scheduleId?: string) => {
     try {
-      const { data, error } = await supabase.rpc('toggle_checkin_for_user', {
+      const {
+        data,
+        error
+      } = await supabase.rpc('toggle_checkin_for_user', {
         _user_id: user.id
       });
-
       if (error) throw error;
-
       const result = data?.[0];
       if (!result) throw new Error('No result returned from check-in toggle');
-
       const isCheckIn = result.status === 'checked_in';
-      
       toast({
         title: isCheckIn ? "Check-in Successful" : "Check-out Successful",
-        description: isCheckIn 
-          ? "Welcome to the pool! Enjoy your session"
-          : "Thanks for visiting! Have a great day",
+        description: isCheckIn ? "Welcome to the pool! Enjoy your session" : "Thanks for visiting! Have a great day"
       });
 
       // Refresh data
-      await Promise.all([
-        fetchCurrentCheckIn(),
-        fetchRecentVisits()
-      ]);
+      await Promise.all([fetchCurrentCheckIn(), fetchRecentVisits()]);
     } catch (error: any) {
       toast({
         title: "Operation Failed",
         description: error.message,
-        variant: "destructive",
+        variant: "destructive"
       });
     }
   };
-
   const formatDuration = (checkInTime: string, checkOutTime?: string) => {
     const start = new Date(checkInTime);
     const end = checkOutTime ? new Date(checkOutTime) : new Date();
     const diff = Math.floor((end.getTime() - start.getTime()) / 60000); // minutes
-    
+
     if (diff < 60) return `${diff}m`;
     return `${Math.floor(diff / 60)}h ${diff % 60}m`;
   };
-
   const isScheduleActive = (startTime: string, endTime: string) => {
     const now = new Date().toTimeString().slice(0, 5);
     return now >= startTime && now <= endTime;
   };
-
   if (loading) {
-    return (
-      <div className="p-6 space-y-6">
+    return <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {[1, 2].map((i) => (
-            <Card key={i} className="animate-pulse">
+          {[1, 2].map(i => <Card key={i} className="animate-pulse">
               <CardContent className="p-6">
                 <div className="h-32 bg-muted rounded"></div>
               </CardContent>
-            </Card>
-          ))}
+            </Card>)}
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="max-w-7xl mx-auto">
+  return <div className="max-w-7xl mx-auto">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-8 border-b">
         <div className="max-w-4xl">
@@ -267,17 +209,12 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
               <Card className={`${currentCheckIn ? 'bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 border-emerald-200 dark:border-emerald-800' : 'bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900'}`}>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    {currentCheckIn ? (
-                      <CheckCircle className="w-5 h-5 text-emerald-600" />
-                    ) : (
-                      <XCircle className="w-5 h-5 text-slate-600" />
-                    )}
+                    {currentCheckIn ? <CheckCircle className="w-5 h-5 text-emerald-600" /> : <XCircle className="w-5 h-5 text-slate-600" />}
                     Pool Access Status
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {currentCheckIn ? (
-                    <div>
+                  {currentCheckIn ? <div>
                       <Badge className="mb-3 bg-emerald-600">Currently Checked In</Badge>
                       <p className="text-sm text-muted-foreground">
                         Session duration: {formatDuration(currentCheckIn.check_in_time)}
@@ -285,32 +222,17 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                       <p className="text-xs text-muted-foreground">
                         Checked in at: {new Date(currentCheckIn.check_in_time).toLocaleTimeString()}
                       </p>
-                      <Button 
-                        onClick={() => handleToggleCheckIn()}
-                        className="w-full mt-4"
-                        variant="outline"
-                        size="lg"
-                      >
+                      <Button onClick={() => handleToggleCheckIn()} className="w-full mt-4" variant="outline" size="lg">
                         <XCircle className="w-4 h-4 mr-2" />
                         Check Out
                       </Button>
-                    </div>
-                  ) : (
-                    <div>
+                    </div> : <div>
                       <Badge variant="secondary" className="mb-3">Not Checked In</Badge>
                       <p className="text-sm text-muted-foreground mb-4">
                         You are not currently checked into the pool.
                       </p>
-                      <Button 
-                        onClick={() => handleToggleCheckIn()}
-                        className="w-full"
-                        size="lg"
-                      >
-                        <QrCode className="w-4 h-4 mr-2" />
-                        Check In Now
-                      </Button>
-                    </div>
-                  )}
+                      
+                    </div>}
                 </CardContent>
               </Card>
 
@@ -324,16 +246,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-3">
-                    {schedules.length > 0 ? (
-                      schedules.map((schedule) => (
-                        <div 
-                          key={schedule.id} 
-                          className={`p-3 rounded-lg border ${
-                            isScheduleActive(schedule.start_time, schedule.end_time)
-                              ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800'
-                              : 'bg-muted/50'
-                          }`}
-                        >
+                    {schedules.length > 0 ? schedules.map(schedule => <div key={schedule.id} className={`p-3 rounded-lg border ${isScheduleActive(schedule.start_time, schedule.end_time) ? 'bg-emerald-50 border-emerald-200 dark:bg-emerald-950 dark:border-emerald-800' : 'bg-muted/50'}`}>
                           <div className="flex justify-between items-start">
                             <div>
                               <p className="font-medium">{schedule.title}</p>
@@ -344,17 +257,11 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
                                 Capacity: {schedule.capacity_limit} people
                               </p>
                             </div>
-                            {isScheduleActive(schedule.start_time, schedule.end_time) && (
-                              <Badge className="bg-emerald-600">Active Now</Badge>
-                            )}
+                            {isScheduleActive(schedule.start_time, schedule.end_time) && <Badge className="bg-emerald-600">Active Now</Badge>}
                           </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-muted-foreground text-center py-4">
+                        </div>) : <p className="text-muted-foreground text-center py-4">
                         No student sessions scheduled for today
-                      </p>
-                    )}
+                      </p>}
                   </div>
                 </CardContent>
               </Card>
@@ -404,11 +311,7 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
               </Card>
 
               {/* Recent Activity Timeline with Export */}
-              <RecentActivitiesWidget 
-                activities={recentVisits} 
-                title="Recent Activity"
-                limit={5}
-              />
+              <RecentActivitiesWidget activities={recentVisits} title="Recent Activity" limit={5} />
             </div>
           </TabsContent>
 
@@ -422,8 +325,6 @@ const StudentDashboard = ({ user, profile }: StudentDashboardProps) => {
           </TabsContent>
         </div>
       </Tabs>
-    </div>
-  );
+    </div>;
 };
-
 export default StudentDashboard;
