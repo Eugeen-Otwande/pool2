@@ -1,10 +1,14 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MapPin, Mail, Phone, Facebook, Instagram, Twitter, Waves, Send } from "lucide-react";
 import { Link } from "react-router-dom";
 import rcmrdLogo from "@/assets/rcmrd-logo.png";
+import PolicyModal from "./PolicyModal";
 
 const RcmrdFooter = () => {
+  const [openModal, setOpenModal] = useState<"privacy" | "terms" | "accessibility" | null>(null);
+
   return (
     <footer className="bg-background border-t border-border/50">
       {/* Main Footer */}
@@ -129,20 +133,38 @@ const RcmrdFooter = () => {
                 © 2025 RCMRD Swimming Pool. All rights reserved.
               </div>
               <div className="flex items-center space-x-6 text-sm">
-                <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
+                <button
+                  onClick={() => setOpenModal("privacy")}
+                  className="text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                >
                   Privacy Policy
-                </Link>
-                <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
+                </button>
+                <button
+                  onClick={() => setOpenModal("terms")}
+                  className="text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                >
                   Terms of Service
-                </Link>
-                <Link to="#" className="text-muted-foreground hover:text-primary transition-colors">
+                </button>
+                <button
+                  onClick={() => setOpenModal("accessibility")}
+                  className="text-muted-foreground hover:text-primary transition-colors cursor-pointer"
+                >
                   Accessibility
-                </Link>
+                </button>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Policy Modals */}
+      {openModal && (
+        <PolicyModal
+          open={!!openModal}
+          onOpenChange={(open) => !open && setOpenModal(null)}
+          type={openModal}
+        />
+      )}
     </footer>
   );
 };
