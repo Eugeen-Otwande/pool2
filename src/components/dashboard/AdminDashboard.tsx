@@ -374,26 +374,39 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
     }
   };
 
-  const updateUserRole = async (userId: string, role: string) => {
+  const updateUserRole = async (userIdOrUserId: string, role: string) => {
     try {
-      const { error } = await supabase
-        .from("profiles")
-        .update({ role })
-        .eq("id", userId);
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Use the secure role update function with user_id
+      const { data, error } = await supabase.rpc('update_user_role', {
+        _user_id: userIdOrUserId,
+        _new_role: role,
+        _updated_by: user.id
+      });
 
       if (error) throw error;
 
+      const result = data as { success: boolean; message: string; old_role?: string; new_role?: string };
+      
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
       toast({
-        title: "Success",
-        description: `User role updated to ${role}`,
+        title: "✅ Success",
+        description: result.message,
       });
+
+      // Refresh all data to reflect role changes
       fetchUsers();
       fetchDashboardData();
     } catch (error) {
       console.error("Error updating user role:", error);
       toast({
-        title: "Error",
-        description: "Failed to update user role",
+        title: "❌ Error",
+        description: error instanceof Error ? error.message : "Failed to update user role",
         variant: "destructive",
       });
     }
@@ -657,7 +670,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Select onValueChange={(value) => updateUserRole(user.id, value)}>
+                          <Select onValueChange={(value) => updateUserRole(user.user_id, value)}>
                             <SelectTrigger className="w-32">
                               <SelectValue placeholder="Change Role" />
                             </SelectTrigger>
@@ -667,6 +680,9 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
                               <SelectItem value="student">Student</SelectItem>
                               <SelectItem value="member">Member</SelectItem>
                               <SelectItem value="resident">Resident</SelectItem>
+                              <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                              <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
+                              <SelectItem value="visitor">Visitor</SelectItem>
                             </SelectContent>
                           </Select>
                           {user.status === 'pending' && (

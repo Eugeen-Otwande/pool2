@@ -590,7 +590,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
     } catch (error) {
       console.error("Error updating user role:", error);
       toast({
-        title: "Error",
+        title: "❌ Error",
         description: error instanceof Error ? error.message : "Failed to update user role",
         variant: "destructive",
       });
@@ -1058,7 +1058,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
-                          <Select onValueChange={(value) => updateUserRole(user.id, value)}>
+                          <Select onValueChange={(value) => updateUserRole(user.user_id, value)}>
                             <SelectTrigger className="w-32">
                               <SelectValue placeholder="Change Role" />
                             </SelectTrigger>
