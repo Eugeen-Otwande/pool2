@@ -44,6 +44,7 @@ const PoolTimetable = ({ userRole }: PoolTimetableProps) => {
     member: "bg-purple-500 text-white",
     rcmrd_team: "bg-indigo-500 text-white",
     rcmrd_official: "bg-violet-500 text-white",
+    faculty: "bg-teal-500 text-white",
     visitor: "bg-gray-500 text-white",
   };
 
@@ -179,7 +180,7 @@ const PoolTimetable = ({ userRole }: PoolTimetableProps) => {
               <SelectTrigger className="w-[140px]">
                 <SelectValue placeholder="All Roles" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background">
                 <SelectItem value="all">All Roles</SelectItem>
                 <SelectItem value="student">Students</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
@@ -187,6 +188,7 @@ const PoolTimetable = ({ userRole }: PoolTimetableProps) => {
                 <SelectItem value="member">Members</SelectItem>
                 <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
                 <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
+                <SelectItem value="faculty">Faculty</SelectItem>
                 <SelectItem value="visitor">Visitors</SelectItem>
               </SelectContent>
             </Select>

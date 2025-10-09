@@ -151,13 +151,14 @@ export default function CreateUserDialog({
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className="bg-background">
                 <SelectItem value="student">Student</SelectItem>
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="resident">Resident</SelectItem>
                 <SelectItem value="member">Member</SelectItem>
                 <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
                 <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
+                <SelectItem value="faculty">Faculty</SelectItem>
                 <SelectItem value="visitor">Visitor</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
