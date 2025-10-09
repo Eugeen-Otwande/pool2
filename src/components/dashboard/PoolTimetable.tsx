@@ -185,6 +185,8 @@ const PoolTimetable = ({ userRole }: PoolTimetableProps) => {
                 <SelectItem value="staff">Staff</SelectItem>
                 <SelectItem value="resident">Residents</SelectItem>
                 <SelectItem value="member">Members</SelectItem>
+                <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
                 <SelectItem value="visitor">Visitors</SelectItem>
               </SelectContent>
             </Select>

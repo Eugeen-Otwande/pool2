@@ -691,22 +691,24 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
             break;
         }
       }} className="w-full">
-        <TabsList className="grid w-full grid-cols-6 lg:grid-cols-14">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="approvals">Approvals</TabsTrigger>
-          <TabsTrigger value="users">Users</TabsTrigger>
-          <TabsTrigger value="visitors">Visitors</TabsTrigger>
-          <TabsTrigger value="inquiries">Inquiries</TabsTrigger>
-          <TabsTrigger value="residents">Residents</TabsTrigger>
-          <TabsTrigger value="schedules">Schedules</TabsTrigger>
-          <TabsTrigger value="messaging">Messages</TabsTrigger>
-          <TabsTrigger value="reports">Reports</TabsTrigger>
-          <TabsTrigger value="payments">Payments</TabsTrigger>
-          <TabsTrigger value="equipment">Equipment</TabsTrigger>
-          <TabsTrigger value="checkins">Check-ins</TabsTrigger>
-          <TabsTrigger value="poollogs">Pool Logs</TabsTrigger>
-          <TabsTrigger value="system">System</TabsTrigger>
-        </TabsList>
+        <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+          <TabsList className="inline-flex h-auto w-full flex-wrap gap-1 bg-transparent p-2">
+            <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Overview</TabsTrigger>
+            <TabsTrigger value="approvals" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Approvals</TabsTrigger>
+            <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Users</TabsTrigger>
+            <TabsTrigger value="visitors" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Visitors</TabsTrigger>
+            <TabsTrigger value="inquiries" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Inquiries</TabsTrigger>
+            <TabsTrigger value="residents" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Residents</TabsTrigger>
+            <TabsTrigger value="schedules" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Schedules</TabsTrigger>
+            <TabsTrigger value="messaging" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Messages</TabsTrigger>
+            <TabsTrigger value="reports" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Reports</TabsTrigger>
+            <TabsTrigger value="payments" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Payments</TabsTrigger>
+            <TabsTrigger value="equipment" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Equipment</TabsTrigger>
+            <TabsTrigger value="checkins" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Check-ins</TabsTrigger>
+            <TabsTrigger value="poollogs" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Pool Logs</TabsTrigger>
+            <TabsTrigger value="system" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">System</TabsTrigger>
+          </TabsList>
+        </div>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="space-y-6">

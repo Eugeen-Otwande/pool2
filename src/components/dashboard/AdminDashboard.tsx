@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 import ReportsTab from "./ReportsTab";
 import { 
   Users, 
@@ -41,6 +41,7 @@ import SystemInfoTab from "./SystemInfoTab";
 import VisitorManagementTab from './VisitorManagementTab';
 import InquiriesTab from './InquiriesTab';
 import PoolLogsTab from './PoolLogsTab';
+import PaymentsTab from './PaymentsTab';
 import OverviewStatsWidget from './OverviewStatsWidget';
 import { EquipmentManagementTab } from './EquipmentManagementTab';
 import { User } from "@supabase/supabase-js";
@@ -109,6 +110,7 @@ interface AdminDashboardProps {
 }
 
 const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
+  const { toast } = useToast();
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeCheckIns: 0,
@@ -221,7 +223,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       setRecentActivity(recentActivity);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      toast.error("Failed to load dashboard data");
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -243,7 +249,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       setUsers(data || []);
     } catch (error) {
       console.error("Error fetching users:", error);
-      toast.error("Failed to load users");
+      toast({
+        title: "Error",
+        description: "Failed to load users",
+        variant: "destructive",
+      });
     }
   };
 
@@ -258,7 +268,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       setEquipment(data || []);
     } catch (error) {
       console.error("Error fetching equipment:", error);
-      toast.error("Failed to load equipment");
+      toast({
+        title: "Error",
+        description: "Failed to load equipment",
+        variant: "destructive",
+      });
     }
   };
 
@@ -273,7 +287,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       setSchedules(data || []);
     } catch (error) {
       console.error("Error fetching schedules:", error);
-      toast.error("Failed to load schedules");
+      toast({
+        title: "Error",
+        description: "Failed to load schedules",
+        variant: "destructive",
+      });
     }
   };
 
@@ -314,7 +332,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
       setCheckIns(checkInsWithProfiles);
     } catch (error) {
       console.error("Error fetching check-ins:", error);
-      toast.error("Failed to load check-ins");
+      toast({
+        title: "Error",
+        description: "Failed to load check-ins",
+        variant: "destructive",
+      });
     }
   };
 
@@ -336,12 +358,19 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
       if (error) throw error;
 
-      toast.success(`User status updated to ${status}`);
+      toast({
+        title: "Success",
+        description: `User status updated to ${status}`,
+      });
       fetchUsers();
       fetchDashboardData();
     } catch (error) {
       console.error("Error updating user status:", error);
-      toast.error("Failed to update user status");
+      toast({
+        title: "Error",
+        description: "Failed to update user status",
+        variant: "destructive",
+      });
     }
   };
 
@@ -354,12 +383,19 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
       if (error) throw error;
 
-      toast.success(`User role updated to ${role}`);
+      toast({
+        title: "Success",
+        description: `User role updated to ${role}`,
+      });
       fetchUsers();
       fetchDashboardData();
     } catch (error) {
       console.error("Error updating user role:", error);
-      toast.error("Failed to update user role");
+      toast({
+        title: "Error",
+        description: "Failed to update user role",
+        variant: "destructive",
+      });
     }
   };
 
@@ -381,11 +417,18 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
 
       if (error) throw error;
       
-      toast.success("User has been deleted successfully");
+      toast({
+        title: "Success",
+        description: "User has been deleted successfully",
+      });
       fetchUsers();
     } catch (error: any) {
       console.error("Error deleting user:", error);
-      toast.error(error.message || "Failed to delete user");
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete user",
+        variant: "destructive",
+      });
     }
   };
 
@@ -454,6 +497,7 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
             <TabsTrigger value="schedules" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Schedules</TabsTrigger>
             <TabsTrigger value="messaging" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Messages</TabsTrigger>
             <TabsTrigger value="reports" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Reports</TabsTrigger>
+            <TabsTrigger value="payments" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Payments</TabsTrigger>
             <TabsTrigger value="equipment" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Equipment</TabsTrigger>
             <TabsTrigger value="checkins" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Check-ins</TabsTrigger>
             <TabsTrigger value="poollogs" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Pool Logs</TabsTrigger>
@@ -680,6 +724,11 @@ const AdminDashboard = ({ user, profile }: AdminDashboardProps) => {
         {/* Reports Tab */}
         <TabsContent value="reports" className="space-y-6">
           <ReportsTab onRefreshStats={fetchDashboardData} />
+        </TabsContent>
+
+        {/* Payments Tab */}
+        <TabsContent value="payments" className="space-y-6">
+          <PaymentsTab />
         </TabsContent>
 
         {/* Equipment Tab */}
