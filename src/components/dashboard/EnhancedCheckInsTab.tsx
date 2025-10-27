@@ -427,10 +427,15 @@ const EnhancedCheckInsTab = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="resident">Resident</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                   <SelectItem value="staff">Staff</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="resident">Resident</SelectItem>
+                  <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                  <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
+                  <SelectItem value="faculty">Faculty</SelectItem>
+                  <SelectItem value="visitor">Visitor</SelectItem>
                 </SelectContent>
               </Select>
             </div>
