@@ -171,7 +171,7 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckIn = async (userId: string, userName: string) => {
     try {
-      // First check if user is already checked in
+      // Check if user is already checked in
       const { data: statusData, error: statusError } = await supabase.rpc('get_user_checkin_status', {
         _user_id: userId
       });
@@ -182,6 +182,24 @@ const EnhancedCheckInsTab = () => {
         toast({
           title: "Check-in Error",
           description: "User is already checked in.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Check for existing check-in today (prevent duplicate same-day check-ins)
+      const today = new Date().toISOString().split('T')[0];
+      const { data: todayCheckIns } = await supabase
+        .from('check_ins')
+        .select('id')
+        .eq('user_id', userId)
+        .gte('check_in_time', `${today}T00:00:00`)
+        .lte('check_in_time', `${today}T23:59:59`);
+      
+      if (todayCheckIns && todayCheckIns.length > 0) {
+        toast({
+          title: "Check-in Error",
+          description: "User already has a check-in record for today.",
           variant: "destructive",
         });
         return;
@@ -419,9 +437,16 @@ const EnhancedCheckInsTab = () => {
     fetchAllCheckIns();
   }, []);
 
+  // Auto-apply filters when role or date changes
+  useEffect(() => {
+    if (allCheckIns.length > 0) {
+      handleFilterCheckIns();
+    }
+  }, [roleFilter, dateFrom, dateTo, allCheckIns]);
+
   return (
     <div className="space-y-6">
-      {/* Search and Filters */}
+      {/* User Search */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -429,65 +454,19 @@ const EnhancedCheckInsTab = () => {
             User Search & Check-in Management
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Search Box */}
+        <CardContent>
           <div className="flex gap-2">
             <Input
-              placeholder="Search by name, email, or role..."
+              placeholder="Search by name, email, or phone (Students, Members, Residents, Visitors)..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="flex-1"
             />
             <Button onClick={handleSearch} disabled={!searchTerm.trim()}>
               <Search className="w-4 h-4 mr-2" />
               Search
             </Button>
-          </div>
-
-          {/* Filters */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">Role Filter</label>
-              <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Roles" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Roles</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="member">Member</SelectItem>
-                  <SelectItem value="resident">Resident</SelectItem>
-                  <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
-                  <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
-                  <SelectItem value="faculty">Faculty</SelectItem>
-                  <SelectItem value="visitor">Visitor</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">From Date</label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="text-sm font-medium mb-2 block">To Date</label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
-            </div>
-            <div className="flex items-end">
-              <Button onClick={handleFilterCheckIns} className="w-full">
-                <Filter className="w-4 h-4 mr-2" />
-                Apply Filters
-              </Button>
-            </div>
           </div>
         </CardContent>
       </Card>
@@ -549,6 +528,52 @@ const EnhancedCheckInsTab = () => {
         </Card>
       )}
 
+      {/* Filters for Check-ins History */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Filter className="w-5 h-5" />
+            Filter Check-ins History
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">Role</label>
+              <Select value={roleFilter} onValueChange={setRoleFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Roles" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Roles</SelectItem>
+                  <SelectItem value="student">Student</SelectItem>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="resident">Resident</SelectItem>
+                  <SelectItem value="visitor">Visitor</SelectItem>
+                  <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">From Date</label>
+              <Input
+                type="date"
+                value={dateFrom}
+                onChange={(e) => setDateFrom(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">To Date</label>
+              <Input
+                type="date"
+                value={dateTo}
+                onChange={(e) => setDateTo(e.target.value)}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Check-ins History Table */}
       <Card>
         <CardHeader>
@@ -558,11 +583,11 @@ const EnhancedCheckInsTab = () => {
               Check-ins History ({filteredCheckIns.length})
             </span>
             <div className="flex gap-2">
-              <Button onClick={downloadCSVReport} variant="outline">
+              <Button onClick={downloadCSVReport} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Download CSV
               </Button>
-              <Button onClick={fetchAllCheckIns}>
+              <Button onClick={fetchAllCheckIns} size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
