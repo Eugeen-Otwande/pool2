@@ -101,7 +101,7 @@ const EnhancedCheckInsTab = () => {
     if (!searchTerm.trim()) return;
     
     try {
-      // Search for users and get their check-in status
+      // Search for users in profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, id, email, first_name, last_name, role')
@@ -109,9 +109,36 @@ const EnhancedCheckInsTab = () => {
       
       if (profilesError) throw profilesError;
       
+      // Search for residents
+      const { data: residents, error: residentsError } = await supabase
+        .from('residents')
+        .select('user_id, id, email, name, phone, status')
+        .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+        .eq('status', 'active');
+      
+      if (residentsError) throw residentsError;
+      
+      // Convert residents to profile format
+      const residentsAsProfiles = (residents || [])
+        .filter(r => r.user_id) // Only residents with user_id can check in
+        .map(resident => ({
+          user_id: resident.user_id!,
+          id: resident.id,
+          email: resident.email,
+          first_name: resident.name?.split(' ')[0] || 'Resident',
+          last_name: resident.name?.split(' ').slice(1).join(' ') || '',
+          role: 'resident'
+        }));
+      
+      // Combine and deduplicate results
+      const allProfiles = [...(profiles || []), ...residentsAsProfiles];
+      const uniqueProfiles = allProfiles.filter((profile, index, self) =>
+        index === self.findIndex((p) => p.user_id === profile.user_id)
+      );
+      
       // Get check-in status for each user
       const enrichedResults = await Promise.all(
-        (profiles || []).map(async (profile) => {
+        uniqueProfiles.map(async (profile) => {
           try {
             const { data: statusData } = await supabase.rpc('get_user_checkin_status', {
               _user_id: profile.user_id
