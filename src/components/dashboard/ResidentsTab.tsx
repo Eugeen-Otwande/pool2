@@ -24,6 +24,12 @@ interface Resident {
   user_id?: string;
   created_at: string;
   updated_at: string;
+  currentCheckIn?: {
+    id: string;
+    status: string;
+    check_in_time: string;
+    check_out_time?: string;
+  } | null;
 }
 
 interface CheckIn {
@@ -47,11 +53,11 @@ interface ResidentsTabProps {
 
 export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
   const [residents, setResidents] = useState<Resident[]>([]);
-  const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [sortBy, setSortBy] = useState<'time' | 'status'>('time');
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -64,7 +70,6 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
 
   useEffect(() => {
     fetchResidents();
-    fetchCheckIns();
 
     // Set up real-time subscriptions
     const residentsChannel = supabase
@@ -93,7 +98,7 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
           table: 'check_ins'
         },
         () => {
-          fetchCheckIns();
+          fetchResidents();
           onRefreshStats?.();
         }
       )
@@ -107,13 +112,35 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
 
   const fetchResidents = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: residentsData, error } = await supabase
         .from('residents')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setResidents(data || []);
+
+      // For each resident, get their latest check-in status
+      const residentsWithStatus = await Promise.all(
+        (residentsData || []).map(async (resident) => {
+          if (!resident.user_id) return resident;
+
+          const { data: checkInData } = await supabase
+            .from('check_ins')
+            .select('id, status, check_in_time, check_out_time')
+            .eq('user_id', resident.user_id)
+            .eq('status', 'checked_in')
+            .order('check_in_time', { ascending: false })
+            .limit(1)
+            .single();
+
+          return {
+            ...resident,
+            currentCheckIn: checkInData || null
+          };
+        })
+      );
+
+      setResidents(residentsWithStatus);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -125,55 +152,6 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     }
   };
 
-  const fetchCheckIns = async () => {
-    try {
-      // Get all residents' user_ids
-      const residentUserIds = residents
-        .filter(r => r.user_id)
-        .map(r => r.user_id);
-
-      if (residentUserIds.length === 0) {
-        setCheckIns([]);
-        return;
-      }
-
-      const { data: checkInsData, error } = await supabase
-        .from('check_ins')
-        .select('*')
-        .in('user_id', residentUserIds)
-        .order('check_in_time', { ascending: false })
-        .limit(50);
-
-      if (error) throw error;
-
-      // Fetch user details for each check-in
-      const checkInsWithProfiles = [];
-      if (checkInsData && checkInsData.length > 0) {
-        for (const checkIn of checkInsData) {
-          const { data: userProfile } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, email, role')
-            .eq('user_id', checkIn.user_id)
-            .single();
-
-          if (userProfile) {
-            checkInsWithProfiles.push({
-              ...checkIn,
-              profiles: userProfile
-            });
-          }
-        }
-      }
-
-      setCheckIns(checkInsWithProfiles);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: "Failed to fetch check-ins",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -270,7 +248,7 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     }
   };
 
-  const handleToggleCheckIn = async (resident: Resident) => {
+  const handleCheckIn = async (resident: Resident) => {
     if (!resident.user_id) {
       toast({
         title: "Error",
@@ -281,53 +259,24 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     }
 
     try {
-      // Check for existing active check-in to prevent duplicates
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const { data: existingCheckIns } = await supabase
+      // Create new check-in record
+      const { error } = await supabase
         .from('check_ins')
-        .select('*')
-        .eq('user_id', resident.user_id)
-        .eq('status', 'checked_in')
-        .gte('check_in_time', today.toISOString());
-
-      if (existingCheckIns && existingCheckIns.length > 0) {
-        // User already checked in today, check them out
-        const { error: checkoutError } = await supabase
-          .from('check_ins')
-          .update({ 
-            status: 'checked_out', 
-            check_out_time: new Date().toISOString(),
-          })
-          .eq('id', existingCheckIns[0].id);
-
-        if (checkoutError) throw checkoutError;
-
-        toast({
-          title: "Success",
-          description: "Resident checked out successfully",
+        .insert({
+          user_id: resident.user_id,
+          status: 'checked_in',
+          check_in_time: new Date().toISOString(),
+          notes: 'Checked in by staff from Residents tab'
         });
-      } else {
-        // No active check-in, create new one
-        const { error: checkinError } = await supabase
-          .from('check_ins')
-          .insert({
-            user_id: resident.user_id,
-            status: 'checked_in',
-            check_in_time: new Date().toISOString(),
-            notes: 'Checked in by staff from Residents tab'
-          });
 
-        if (checkinError) throw checkinError;
+      if (error) throw error;
 
-        toast({
-          title: "Success",
-          description: "Resident checked in successfully",
-        });
-      }
+      toast({
+        title: "Success",
+        description: "Resident checked in successfully",
+      });
 
-      fetchCheckIns();
+      fetchResidents();
       onRefreshStats?.();
     } catch (error: any) {
       toast({
@@ -338,25 +287,33 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     }
   };
 
-  const handleManualCheckOut = async (checkInId: string) => {
+  const handleCheckOut = async (resident: Resident) => {
+    if (!resident.currentCheckIn) {
+      toast({
+        title: "Error",
+        description: "No active check-in found for this resident",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const { error } = await supabase
         .from('check_ins')
         .update({ 
           status: 'checked_out', 
           check_out_time: new Date().toISOString(),
-          notes: 'Manual checkout by admin'
         })
-        .eq('id', checkInId);
+        .eq('id', resident.currentCheckIn.id);
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: "Successfully checked out resident",
+        description: "Resident checked out successfully",
       });
 
-      fetchCheckIns();
+      fetchResidents();
       onRefreshStats?.();
     } catch (error: any) {
       toast({
@@ -405,27 +362,30 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     }
   };
 
-  const getCurrentCheckInStatus = (resident: Resident) => {
-    if (!resident.user_id) return null;
-    
-    const activeCheckIn = checkIns.find(
-      checkIn => checkIn.user_id === resident.user_id && checkIn.status === 'checked_in'
-    );
-    
-    return activeCheckIn ? 'checked_in' : 'checked_out';
-  };
-
-  // Filter residents based on search query
-  const filteredResidents = residents.filter(resident => {
-    if (!searchQuery) return true;
-    
-    const query = searchQuery.toLowerCase();
-    const name = (resident.full_name || resident.name || '').toLowerCase();
-    const email = (resident.email || '').toLowerCase();
-    const hostel = (resident.hostel_admission || '').toLowerCase();
-    
-    return name.includes(query) || email.includes(query) || hostel.includes(query);
-  });
+  // Filter and sort residents
+  const filteredAndSortedResidents = residents
+    .filter(resident => {
+      if (!searchQuery) return true;
+      
+      const query = searchQuery.toLowerCase();
+      const name = (resident.full_name || resident.name || '').toLowerCase();
+      const email = (resident.email || '').toLowerCase();
+      const hostel = (resident.hostel_admission || '').toLowerCase();
+      
+      return name.includes(query) || email.includes(query) || hostel.includes(query);
+    })
+    .sort((a, b) => {
+      if (sortBy === 'status') {
+        const aStatus = a.currentCheckIn ? 1 : 0;
+        const bStatus = b.currentCheckIn ? 1 : 0;
+        return bStatus - aStatus;
+      } else {
+        // Sort by most recent check-in time
+        const aTime = a.currentCheckIn?.check_in_time || a.created_at;
+        const bTime = b.currentCheckIn?.check_in_time || b.created_at;
+        return new Date(bTime).getTime() - new Date(aTime).getTime();
+      }
+    });
 
   if (loading) {
     return (
@@ -542,69 +502,109 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
       {/* Recent Check-ins Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Recent Check-ins</CardTitle>
-          <CardDescription>
-            Latest activity from residents
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Recent Check-ins</CardTitle>
+              <CardDescription>
+                Latest activity from residents
+              </CardDescription>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant={sortBy === 'time' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('time')}
+              >
+                Sort by Time
+              </Button>
+              <Button
+                variant={sortBy === 'status' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setSortBy('status')}
+              >
+                Sort by Status
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          {checkIns.length === 0 ? (
+          {filteredAndSortedResidents.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              No check-in records yet
+              No residents found
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Resident Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Check-in Time</TableHead>
-                  <TableHead>Check-out Time</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Approved By</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {checkIns.map((checkIn) => (
-                  <TableRow key={checkIn.id}>
-                    <TableCell className="font-medium">
-                      {checkIn.profiles ? (
-                        `${checkIn.profiles.first_name} ${checkIn.profiles.last_name}`
-                      ) : (
-                        'Unknown'
-                      )}
-                    </TableCell>
-                    <TableCell>{checkIn.profiles?.email || '-'}</TableCell>
-                    <TableCell>
-                      {new Date(checkIn.check_in_time).toLocaleString()}
-                    </TableCell>
-                    <TableCell>
-                      {checkIn.check_out_time ? 
-                        new Date(checkIn.check_out_time).toLocaleString() : 
-                        '-'
-                      }
-                    </TableCell>
-                    <TableCell>{getCheckInStatusBadge(checkIn.status)}</TableCell>
-                    <TableCell>
-                      {checkIn.notes?.includes('staff') ? 'Staff' : 'Self'}
-                    </TableCell>
-                    <TableCell>
-                      {checkIn.status === 'checked_in' && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleManualCheckOut(checkIn.id)}
-                        >
-                          <UserX className="mr-1 h-3 w-3" />
-                          Check Out
-                        </Button>
-                      )}
-                    </TableCell>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Resident Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Check-in Time</TableHead>
+                    <TableHead>Check-out Time</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredAndSortedResidents.map((resident) => (
+                    <TableRow key={resident.id}>
+                      <TableCell className="font-medium">
+                        {resident.full_name || resident.name}
+                      </TableCell>
+                      <TableCell>{resident.email}</TableCell>
+                      <TableCell>
+                        {resident.currentCheckIn?.check_in_time ? 
+                          new Date(resident.currentCheckIn.check_in_time).toLocaleString() : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {resident.currentCheckIn?.check_out_time ? 
+                          new Date(resident.currentCheckIn.check_out_time).toLocaleString() : 
+                          '-'
+                        }
+                      </TableCell>
+                      <TableCell>
+                        {resident.currentCheckIn ? (
+                          <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                            Checked In
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline">Not Checked In</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          {resident.user_id && (
+                            <>
+                              {resident.currentCheckIn ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleCheckOut(resident)}
+                                >
+                                  <UserX className="mr-1 h-3 w-3" />
+                                  Check Out
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="default"
+                                  size="sm"
+                                  onClick={() => handleCheckIn(resident)}
+                                >
+                                  <UserCheck className="mr-1 h-3 w-3" />
+                                  Check In
+                                </Button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -643,60 +643,44 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredResidents.map((resident) => {
-                const checkInStatus = getCurrentCheckInStatus(resident);
-                return (
-                  <TableRow key={resident.id}>
-                    <TableCell className="font-medium">
-                      {resident.full_name || resident.name}
-                    </TableCell>
-                    <TableCell>{resident.email}</TableCell>
-                    <TableCell>{resident.phone_number || resident.phone || '-'}</TableCell>
-                    <TableCell>{resident.school || '-'}</TableCell>
-                    <TableCell>{getStatusBadge(resident.status)}</TableCell>
-                    <TableCell>
-                      {checkInStatus ? getCheckInStatusBadge(checkInStatus) : '-'}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center space-x-2">
-                        {resident.user_id && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleToggleCheckIn(resident)}
-                          >
-                            {checkInStatus === 'checked_in' ? (
-                              <>
-                                <UserX className="mr-1 h-3 w-3" />
-                                Check Out
-                              </>
-                            ) : (
-                              <>
-                                <UserCheck className="mr-1 h-3 w-3" />
-                                Check In
-                              </>
-                            )}
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEdit(resident)}
-                        >
-                          <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDelete(resident.id)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filteredAndSortedResidents.map((resident) => (
+                <TableRow key={resident.id}>
+                  <TableCell className="font-medium">
+                    {resident.full_name || resident.name}
+                  </TableCell>
+                  <TableCell>{resident.email}</TableCell>
+                  <TableCell>{resident.phone_number || resident.phone || '-'}</TableCell>
+                  <TableCell>{resident.school || '-'}</TableCell>
+                  <TableCell>{getStatusBadge(resident.status)}</TableCell>
+                  <TableCell>
+                    {resident.currentCheckIn ? (
+                      <Badge variant="secondary" className="bg-blue-100 text-blue-800">
+                        Checked In
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline">Not Checked In</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center space-x-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleEdit(resident)}
+                      >
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(resident.id)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
             </TableBody>
           </Table>
         </CardContent>
