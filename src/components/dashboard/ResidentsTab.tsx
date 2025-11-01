@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Download, Plus, Edit, Trash2, UserCheck, UserX } from "lucide-react";
+import { Download, Plus, Edit, Trash2, UserCheck, UserX, Search } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Resident {
@@ -32,10 +32,12 @@ interface CheckIn {
   check_in_time: string;
   check_out_time?: string;
   status: string;
+  notes?: string;
   profiles?: {
     first_name: string;
     last_name: string;
     email: string;
+    role: string;
   };
 }
 
@@ -49,6 +51,7 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
   const [loading, setLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingResident, setEditingResident] = useState<Resident | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -124,9 +127,20 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
 
   const fetchCheckIns = async () => {
     try {
+      // Get all residents' user_ids
+      const residentUserIds = residents
+        .filter(r => r.user_id)
+        .map(r => r.user_id);
+
+      if (residentUserIds.length === 0) {
+        setCheckIns([]);
+        return;
+      }
+
       const { data: checkInsData, error } = await supabase
         .from('check_ins')
         .select('*')
+        .in('user_id', residentUserIds)
         .order('check_in_time', { ascending: false })
         .limit(50);
 
@@ -138,7 +152,7 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
         for (const checkIn of checkInsData) {
           const { data: userProfile } = await supabase
             .from('profiles')
-            .select('first_name, last_name, email')
+            .select('first_name, last_name, email, role')
             .eq('user_id', checkIn.user_id)
             .single();
 
@@ -267,16 +281,51 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     }
 
     try {
-      const { data, error } = await supabase.rpc('resident_toggle_checkin', {
-        p_user_id: resident.user_id
-      });
+      // Check for existing active check-in to prevent duplicates
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const { data: existingCheckIns } = await supabase
+        .from('check_ins')
+        .select('*')
+        .eq('user_id', resident.user_id)
+        .eq('status', 'checked_in')
+        .gte('check_in_time', today.toISOString());
 
-      if (error) throw error;
+      if (existingCheckIns && existingCheckIns.length > 0) {
+        // User already checked in today, check them out
+        const { error: checkoutError } = await supabase
+          .from('check_ins')
+          .update({ 
+            status: 'checked_out', 
+            check_out_time: new Date().toISOString(),
+          })
+          .eq('id', existingCheckIns[0].id);
 
-      toast({
-        title: "Success",
-        description: (data as any)?.message || "Check-in/check-out successful",
-      });
+        if (checkoutError) throw checkoutError;
+
+        toast({
+          title: "Success",
+          description: "Resident checked out successfully",
+        });
+      } else {
+        // No active check-in, create new one
+        const { error: checkinError } = await supabase
+          .from('check_ins')
+          .insert({
+            user_id: resident.user_id,
+            status: 'checked_in',
+            check_in_time: new Date().toISOString(),
+            notes: 'Checked in by staff from Residents tab'
+          });
+
+        if (checkinError) throw checkinError;
+
+        toast({
+          title: "Success",
+          description: "Resident checked in successfully",
+        });
+      }
 
       fetchCheckIns();
       onRefreshStats?.();
@@ -365,6 +414,18 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     
     return activeCheckIn ? 'checked_in' : 'checked_out';
   };
+
+  // Filter residents based on search query
+  const filteredResidents = residents.filter(resident => {
+    if (!searchQuery) return true;
+    
+    const query = searchQuery.toLowerCase();
+    const name = (resident.full_name || resident.name || '').toLowerCase();
+    const email = (resident.email || '').toLowerCase();
+    const hostel = (resident.hostel_admission || '').toLowerCase();
+    
+    return name.includes(query) || email.includes(query) || hostel.includes(query);
+  });
 
   if (loading) {
     return (
@@ -478,14 +539,97 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
         </div>
       </div>
 
+      {/* Recent Check-ins Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Residents</CardTitle>
+          <CardTitle>Recent Check-ins</CardTitle>
           <CardDescription>
-            All registered residents in the facility
+            Latest activity from residents
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {checkIns.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              No check-in records yet
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Resident Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Check-in Time</TableHead>
+                  <TableHead>Check-out Time</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Approved By</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {checkIns.map((checkIn) => (
+                  <TableRow key={checkIn.id}>
+                    <TableCell className="font-medium">
+                      {checkIn.profiles ? (
+                        `${checkIn.profiles.first_name} ${checkIn.profiles.last_name}`
+                      ) : (
+                        'Unknown'
+                      )}
+                    </TableCell>
+                    <TableCell>{checkIn.profiles?.email || '-'}</TableCell>
+                    <TableCell>
+                      {new Date(checkIn.check_in_time).toLocaleString()}
+                    </TableCell>
+                    <TableCell>
+                      {checkIn.check_out_time ? 
+                        new Date(checkIn.check_out_time).toLocaleString() : 
+                        '-'
+                      }
+                    </TableCell>
+                    <TableCell>{getCheckInStatusBadge(checkIn.status)}</TableCell>
+                    <TableCell>
+                      {checkIn.notes?.includes('staff') ? 'Staff' : 'Self'}
+                    </TableCell>
+                    <TableCell>
+                      {checkIn.status === 'checked_in' && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleManualCheckOut(checkIn.id)}
+                        >
+                          <UserX className="mr-1 h-3 w-3" />
+                          Check Out
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Resident Search & Management */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Resident Search & Check-in Management</CardTitle>
+          <CardDescription>
+            Search and manage resident check-ins
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="mb-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search by name, email, or hostel..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+          </div>
+          
           <Table>
             <TableHeader>
               <TableRow>
@@ -499,7 +643,7 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {residents.map((resident) => {
+              {filteredResidents.map((resident) => {
                 const checkInStatus = getCurrentCheckInStatus(resident);
                 return (
                   <TableRow key={resident.id}>
@@ -553,63 +697,6 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
                   </TableRow>
                 );
               })}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Recent Check-ins</CardTitle>
-          <CardDescription>
-            Latest check-in activity from residents
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Resident</TableHead>
-                <TableHead>Check-in Time</TableHead>
-                <TableHead>Check-out Time</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {checkIns.map((checkIn) => (
-                <TableRow key={checkIn.id}>
-                  <TableCell>
-                    {checkIn.profiles ? (
-                      `${checkIn.profiles.first_name} ${checkIn.profiles.last_name}`
-                    ) : (
-                      checkIn.user_id
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(checkIn.check_in_time).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {checkIn.check_out_time ? 
-                      new Date(checkIn.check_out_time).toLocaleString() : 
-                      '-'
-                    }
-                  </TableCell>
-                  <TableCell>{getCheckInStatusBadge(checkIn.status)}</TableCell>
-                  <TableCell>
-                    {checkIn.status === 'checked_in' && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleManualCheckOut(checkIn.id)}
-                      >
-                        <UserX className="mr-1 h-3 w-3" />
-                        Check Out
-                      </Button>
-                    )}
-                  </TableCell>
-                </TableRow>
-              ))}
             </TableBody>
           </Table>
         </CardContent>
