@@ -120,16 +120,16 @@ const RcmrdHero = () => {
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-3xl mx-auto pt-8">
             <div className="text-center space-y-2">
-              <div className="text-4xl font-light text-white">500+</div>
-              <div className="text-sm text-blue-200 uppercase tracking-wider">Active Members</div>
+              <div className="text-4xl font-light text-white">350+</div>
+              <div className="text-sm text-blue-200 uppercase tracking-wider">Happy Members</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-4xl font-light text-white">15+</div>
-              <div className="text-sm text-blue-200 uppercase tracking-wider">Years of Excellence</div>
+              <div className="text-4xl font-light text-white">6.9</div>
+              <div className="text-sm text-blue-200 uppercase tracking-wider">Average Rating</div>
             </div>
             <div className="text-center space-y-2">
-              <div className="text-4xl font-light text-white">7</div>
-              <div className="text-sm text-blue-200 uppercase tracking-wider">Days Open</div>
+              <div className="text-4xl font-light text-white">2</div>
+              <div className="text-sm text-blue-200 uppercase tracking-wider">Years of Service</div>
             </div>
           </div>
         </div>
