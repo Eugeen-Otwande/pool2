@@ -986,10 +986,7 @@ export type Database = {
           latest_checkin_id: string
         }[]
       }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: string
-      }
+      get_user_role: { Args: { _user_id: string }; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -997,22 +994,10 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: { _uid: string }
-        Returns: boolean
-      }
-      is_rcmrd_official: {
-        Args: { _uid: string }
-        Returns: boolean
-      }
-      is_rcmrd_team: {
-        Args: { _uid: string }
-        Returns: boolean
-      }
-      is_staff: {
-        Args: { _uid: string }
-        Returns: boolean
-      }
+      is_admin: { Args: { _uid: string }; Returns: boolean }
+      is_rcmrd_official: { Args: { _uid: string }; Returns: boolean }
+      is_rcmrd_team: { Args: { _uid: string }; Returns: boolean }
+      is_staff: { Args: { _uid: string }; Returns: boolean }
       reject_checkin: {
         Args: {
           checkin_id: string
