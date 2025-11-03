@@ -321,7 +321,7 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
       }
 
       // Create new check-in record
-      const { error } = await supabase
+      const { error: checkInError } = await supabase
         .from('check_ins')
         .insert({
           user_id: userId,
@@ -330,7 +330,19 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
           notes: 'Checked in by staff from Residents tab'
         });
 
-      if (error) throw error;
+      if (checkInError) throw checkInError;
+
+      // Update residents table check_in_status
+      const { error: residentError } = await supabase
+        .from('residents')
+        .update({ 
+          status: 'active'
+        })
+        .eq('user_id', userId);
+
+      if (residentError) console.error("Error updating resident status:", residentError);
+
+      // Note: profiles table is updated automatically via trigger update_profile_checkin_status
 
       toast({
         title: "Success",
@@ -773,6 +785,26 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
+                      {resident.currentCheckIn ? (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleCheckOut(resident)}
+                        >
+                          <UserX className="mr-1 h-3 w-3" />
+                          Check Out
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleCheckIn(resident)}
+                          disabled={!resident.user_id}
+                        >
+                          <UserCheck className="mr-1 h-3 w-3" />
+                          Check In
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
