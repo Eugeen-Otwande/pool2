@@ -52,6 +52,7 @@ import EnhancedCheckInsTab from "./EnhancedCheckInsTab";
 import OverviewStatsWidget from "./OverviewStatsWidget";
 import { User } from "@supabase/supabase-js";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
+import UserManagementTab from "./UserManagementTab";
 
 interface UserProfile {
   id: string;
@@ -1011,93 +1012,7 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
 
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span className="flex items-center gap-2">
-                  <Users className="w-5 h-5" />
-                  User Management
-                </span>
-                <Button onClick={fetchUsers}>
-                  Refresh
-                </Button>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Role</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Created</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {users.map((user) => (
-                    <TableRow key={user.id}>
-                      <TableCell>
-                        {user.first_name} {user.last_name}
-                      </TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{user.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={user.status === 'active' ? 'default' : 
-                                 user.status === 'pending' ? 'secondary' : 'destructive'}
-                        >
-                          {user.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(user.created_at).toLocaleDateString()}
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Select onValueChange={(value) => updateUserRole(user.user_id, value)}>
-                            <SelectTrigger className="w-32">
-                              <SelectValue placeholder="Change Role" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="admin">Admin</SelectItem>
-                              <SelectItem value="staff">Staff</SelectItem>
-                              <SelectItem value="student">Student</SelectItem>
-                              <SelectItem value="member">Member</SelectItem>
-                              <SelectItem value="resident">Resident</SelectItem>
-                              <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
-                              <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
-                              <SelectItem value="visitor">Visitor</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          {user.status === 'pending' && (
-                            <Button 
-                              size="sm" 
-                              onClick={() => updateUserStatus(user.id, 'active')}
-                            >
-                              <UserCheck className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {user.status === 'active' && (
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => updateUserStatus(user.id, 'suspended')}
-                            >
-                              <UserX className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+          <UserManagementTab onRefreshStats={fetchDashboardData} />
         </TabsContent>
 
         {/* Visitors Tab */}
