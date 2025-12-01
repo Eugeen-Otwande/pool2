@@ -498,12 +498,12 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
     return (
       <div className="space-y-4">
         {[...Array(3)].map((_, i) => (
-          <Card key={i}>
+          <Card key={i} className="bg-stat-card border-stat-card-border backdrop-blur-sm">
             <CardHeader>
-              <Skeleton className="h-4 w-[250px]" />
+              <Skeleton className="h-4 w-[250px] bg-stat-card-bg-light" />
             </CardHeader>
             <CardContent>
-              <Skeleton className="h-[200px] w-full" />
+              <Skeleton className="h-[200px] w-full bg-stat-card-bg-light" />
             </CardContent>
           </Card>
         ))}
@@ -607,12 +607,12 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
       </div>
 
       {/* Recent Check-ins Section */}
-      <Card>
+      <Card className="bg-stat-card border-stat-card-border backdrop-blur-sm hover:bg-stat-card-bg-hover transition-all duration-300 hover:shadow-lg">
         <CardHeader>
           <div className="flex items-center justify-between flex-wrap gap-4">
             <div>
-              <CardTitle>Recent Check-ins</CardTitle>
-              <CardDescription>
+              <CardTitle className="text-stat-card-text">Recent Check-ins</CardTitle>
+              <CardDescription className="text-stat-card-muted">
                 Latest activity from residents
               </CardDescription>
             </div>
@@ -732,22 +732,22 @@ export default function ResidentsTab({ onRefreshStats }: ResidentsTabProps) {
       </Card>
 
       {/* Resident Search & Management */}
-      <Card>
+      <Card className="bg-stat-card border-stat-card-border backdrop-blur-sm hover:bg-stat-card-bg-hover transition-all duration-300 hover:shadow-lg">
         <CardHeader>
-          <CardTitle>Resident Search & Check-in Management</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-stat-card-text">Resident Search & Check-in Management</CardTitle>
+          <CardDescription className="text-stat-card-muted">
             Search and manage resident check-ins
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-4">
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-stat-card-muted" />
               <Input
                 placeholder="Search by name, email, or hostel..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
+                className="pl-10 bg-stat-card-bg-light border-stat-card-border text-stat-card-text placeholder:text-stat-card-muted focus-visible:ring-stat-card-border"
               />
             </div>
           </div>
