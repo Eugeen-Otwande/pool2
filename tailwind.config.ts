@@ -57,6 +57,16 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        stat: {
+          card: {
+            DEFAULT: "hsl(var(--stat-card-bg))",
+            light: "hsl(var(--stat-card-bg-light))",
+            hover: "hsl(var(--stat-card-bg-hover))",
+            border: "hsl(var(--stat-card-border))",
+            text: "hsl(var(--stat-card-text))",
+            muted: "hsl(var(--stat-card-muted))",
+          },
+        },
       },
       backgroundImage: {
         'gradient-admin': 'var(--gradient-admin)',
@@ -66,6 +76,7 @@ export default {
         'gradient-member': 'var(--gradient-member)',
         'gradient-hero': 'var(--gradient-hero)',
         'gradient-card': 'var(--gradient-card)',
+        'gradient-stat-card': 'var(--gradient-stat-card)',
       },
       backdropBlur: {
         'glass': '16px',

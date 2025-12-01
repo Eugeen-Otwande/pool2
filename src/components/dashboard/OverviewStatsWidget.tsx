@@ -294,9 +294,9 @@ export default function OverviewStatsWidget() {
   };
   if (loading) {
     return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {[...Array(16)].map((_, i) => <Card key={i} className="animate-pulse">
+        {[...Array(16)].map((_, i) => <Card key={i} className="bg-gradient-stat-card border-stat-card-border animate-pulse">
             <CardContent className="p-6">
-              <div className="h-20 bg-muted rounded"></div>
+              <div className="h-20 bg-stat-card-light rounded"></div>
             </CardContent>
           </Card>)}
       </div>;
@@ -307,48 +307,48 @@ export default function OverviewStatsWidget() {
       <div>
         <h3 className="text-lg font-semibold mb-3">Attendance</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Check-ins Today</p>
-                  <p className="text-2xl font-bold">{stats.totalCheckInsToday}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Check-ins Today</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.totalCheckInsToday}</p>
                 </div>
-                <Activity className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                <Activity className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900 bg-gray-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Currently Checked In</p>
-                  <p className="text-2xl font-bold">{stats.activeUsersCheckedIn}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Currently Checked In</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.activeUsersCheckedIn}</p>
                 </div>
-                <UserCheck className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                <UserCheck className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Avg Stay (min)</p>
-                  <p className="text-2xl font-bold">{stats.averageStayDuration}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Avg Stay (min)</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.averageStayDuration}</p>
                 </div>
-                <Clock className="w-8 h-8 text-purple-600 dark:text-purple-400" />
+                <Clock className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardHeader className="p-4 pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">By Role</CardTitle>
+              <CardTitle className="text-xs font-medium text-stat-card-muted">By Role</CardTitle>
             </CardHeader>
             <CardContent className="p-4 pt-0">
-              <div className="space-y-1 text-sm">
+              <div className="space-y-1 text-sm text-stat-card-text">
                 <div className="flex justify-between">
                   <span>Students:</span>
                   <span className="font-semibold">{stats.checkInsByRole.students}</span>
@@ -387,50 +387,50 @@ export default function OverviewStatsWidget() {
       <div>
         <h3 className="text-lg font-semibold mb-3">Financial</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Revenue Today</p>
-                  <p className="text-2xl font-bold">Ksh {stats.totalRevenueToday.toFixed(2)}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Revenue Today</p>
+                  <p className="text-2xl font-bold text-stat-card-text">Ksh {stats.totalRevenueToday.toFixed(2)}</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-green-600 dark:text-green-400" />
+                <DollarSign className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-950 dark:to-emerald-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Paid Payments</p>
-                  <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.paidPayments}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Paid Payments</p>
+                  <p className="text-2xl font-bold text-emerald-400">{stats.paidPayments}</p>
                 </div>
-                <CreditCard className="w-8 h-8 text-emerald-600 dark:text-emerald-400" />
+                <CreditCard className="w-8 h-8 text-emerald-400 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Pending Payments</p>
-                  <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.pendingPayments}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Pending Payments</p>
+                  <p className="text-2xl font-bold text-amber-400">{stats.pendingPayments}</p>
                 </div>
-                <Clock className="w-8 h-8 text-amber-600 dark:text-amber-400" />
+                <Clock className="w-8 h-8 text-amber-400 opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Failed Payments</p>
-                  <p className="text-2xl font-bold text-destructive">{stats.failedPayments}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Failed Payments</p>
+                  <p className="text-2xl font-bold text-red-400">{stats.failedPayments}</p>
                 </div>
-                <AlertTriangle className="w-8 h-8 text-destructive" />
+                <AlertTriangle className="w-8 h-8 text-red-400 opacity-80" />
               </div>
             </CardContent>
           </Card>
@@ -441,54 +441,54 @@ export default function OverviewStatsWidget() {
       <div>
         <h3 className="text-lg font-semibold mb-3">Pool Operations</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Water Quality</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Water Quality</p>
                   <p className={`text-2xl font-bold ${waterQuality.color}`}>{waterQuality.text}</p>
-                  {stats.latestChlorine && <p className="text-xs text-muted-foreground mt-1">Cl: {stats.latestChlorine} ppm</p>}
-                  {stats.latestPh && <p className="text-xs text-muted-foreground">pH: {stats.latestPh}</p>}
+                  {stats.latestChlorine && <p className="text-xs text-stat-card-muted mt-1">Cl: {stats.latestChlorine} ppm</p>}
+                  {stats.latestPh && <p className="text-xs text-stat-card-muted">pH: {stats.latestPh}</p>}
                 </div>
-                <Droplet className={`w-8 h-8 ${waterQuality.color}`} />
+                <Droplet className={`w-8 h-8 ${waterQuality.color} opacity-80`} />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-cyan-50 to-cyan-100 dark:from-cyan-950 dark:to-cyan-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Active Loans</p>
-                  <p className="text-2xl font-bold">{stats.activeLoans}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Active Loans</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.activeLoans}</p>
                 </div>
-                <Package className="w-8 h-8 text-cyan-600 dark:text-cyan-400" />
+                <Package className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-indigo-50 to-indigo-100 dark:from-indigo-950 dark:to-indigo-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Available Equipment</p>
-                  <p className="text-2xl font-bold">{stats.availableEquipment}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Available Equipment</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.availableEquipment}</p>
                 </div>
-                <Package className="w-8 h-8 text-indigo-600 dark:text-indigo-400" />
+                <Package className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className={stats.recentIncidents > 0 ? "bg-gradient-to-br from-red-50 to-red-100 dark:from-red-950 dark:to-red-900" : ""}>
+          <Card className={`bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover ${stats.recentIncidents > 0 ? 'ring-2 ring-red-500/50' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Incidents (7 days)</p>
-                  <p className={`text-2xl font-bold ${stats.recentIncidents > 0 ? 'text-destructive' : ''}`}>
+                  <p className="text-xs font-medium text-stat-card-muted">Incidents (7 days)</p>
+                  <p className={`text-2xl font-bold ${stats.recentIncidents > 0 ? 'text-red-400' : 'text-stat-card-text'}`}>
                     {stats.recentIncidents}
                   </p>
                 </div>
-                <AlertTriangle className={`w-8 h-8 ${stats.recentIncidents > 0 ? 'text-destructive' : 'text-muted-foreground'}`} />
+                <AlertTriangle className={`w-8 h-8 ${stats.recentIncidents > 0 ? 'text-red-400' : 'text-stat-card-text opacity-80'}`} />
               </div>
             </CardContent>
           </Card>
@@ -499,57 +499,57 @@ export default function OverviewStatsWidget() {
       <div>
         <h3 className="text-lg font-semibold mb-3">Communication & System</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className={stats.unreadInquiries > 0 ? "bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900" : ""}>
+          <Card className={`bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover ${stats.unreadInquiries > 0 ? 'ring-2 ring-amber-500/50' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Unread Inquiries</p>
-                  <p className={`text-2xl font-bold ${stats.unreadInquiries > 0 ? 'text-amber-600 dark:text-amber-400' : ''}`}>
+                  <p className="text-xs font-medium text-stat-card-muted">Unread Inquiries</p>
+                  <p className={`text-2xl font-bold ${stats.unreadInquiries > 0 ? 'text-amber-400' : 'text-stat-card-text'}`}>
                     {stats.unreadInquiries}
                   </p>
                 </div>
-                <Mail className={`w-8 h-8 ${stats.unreadInquiries > 0 ? 'text-amber-600 dark:text-amber-400' : 'text-muted-foreground'}`} />
+                <Mail className={`w-8 h-8 ${stats.unreadInquiries > 0 ? 'text-amber-400' : 'text-stat-card-text opacity-80'}`} />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-violet-50 to-violet-100 dark:from-violet-950 dark:to-violet-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Messages (24h)</p>
-                  <p className="text-2xl font-bold">{stats.messagesLast24h}</p>
+                  <p className="text-xs font-medium text-stat-card-muted">Messages (24h)</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.messagesLast24h}</p>
                 </div>
-                <MessageSquare className="w-8 h-8 text-violet-600 dark:text-violet-400" />
+                <MessageSquare className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900">
+          <Card className="bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Total Users</p>
-                  <p className="text-2xl font-bold">{stats.totalUsers}</p>
-                  <p className="text-xs text-muted-foreground mt-1">
+                  <p className="text-xs font-medium text-stat-card-muted">Total Users</p>
+                  <p className="text-2xl font-bold text-stat-card-text">{stats.totalUsers}</p>
+                  <p className="text-xs text-stat-card-muted mt-1">
                     Active: {stats.activeUsers} | Inactive: {stats.inactiveUsers}
                   </p>
                 </div>
-                <Users className="w-8 h-8 text-blue-600 dark:text-blue-400" />
+                <Users className="w-8 h-8 text-stat-card-text opacity-80" />
               </div>
             </CardContent>
           </Card>
 
-          <Card className={stats.pendingApprovals > 0 ? "bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900" : ""}>
+          <Card className={`bg-gradient-stat-card border-stat-card-border transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:border-stat-card-hover focus-within:ring-2 focus-within:ring-stat-card-hover ${stats.pendingApprovals > 0 ? 'ring-2 ring-orange-500/50' : ''}`}>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Pending Approvals</p>
-                  <p className={`text-2xl font-bold ${stats.pendingApprovals > 0 ? 'text-orange-600 dark:text-orange-400' : ''}`}>
+                  <p className="text-xs font-medium text-stat-card-muted">Pending Approvals</p>
+                  <p className={`text-2xl font-bold ${stats.pendingApprovals > 0 ? 'text-orange-400' : 'text-stat-card-text'}`}>
                     {stats.pendingApprovals}
                   </p>
                 </div>
-                <UserPlus className={`w-8 h-8 ${stats.pendingApprovals > 0 ? 'text-orange-600 dark:text-orange-400' : 'text-muted-foreground'}`} />
+                <UserPlus className={`w-8 h-8 ${stats.pendingApprovals > 0 ? 'text-orange-400' : 'text-stat-card-text opacity-80'}`} />
               </div>
             </CardContent>
           </Card>
