@@ -39,6 +39,14 @@ Glassmorphism theme with aquatic-inspired gradients.
     --input: 215 25% 18%;
     --ring: 207 90% 54%;
 
+    /* Deep Blue Theme (#002B5B) */
+    --stat-card-bg: 212 100% 18%;
+    --stat-card-bg-light: 212 95% 22%;
+    --stat-card-bg-hover: 212 100% 25%;
+    --stat-card-border: 212 60% 30%;
+    --stat-card-text: 212 40% 95%;
+    --stat-card-muted: 212 30% 70%;
+    
     /* Custom aquatic gradients from PRD */
     --gradient-admin: linear-gradient(135deg, hsl(232 100% 16%) 0%, hsl(207 100% 29%) 100%);
     --gradient-student: linear-gradient(135deg, hsl(210 29% 24%) 0%, hsl(192 61% 53%) 100%);
@@ -49,6 +57,7 @@ Glassmorphism theme with aquatic-inspired gradients.
     /* Hero and main gradients */
     --gradient-hero: linear-gradient(135deg, hsl(207 90% 54%) 0%, hsl(232 100% 16%) 100%);
     --gradient-card: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%);
+    --gradient-stat-card: linear-gradient(135deg, hsl(var(--stat-card-bg)) 0%, hsl(var(--stat-card-bg-light)) 100%);
     
     /* Glassmorphism effects */
     --glass-bg: rgba(255, 255, 255, 0.1);
