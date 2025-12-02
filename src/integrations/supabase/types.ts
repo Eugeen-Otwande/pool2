@@ -970,6 +970,7 @@ export type Database = {
         Args: { approved_by_user_id: string; checkin_id: string }
         Returns: Json
       }
+      cleanup_old_checkins: { Args: never; Returns: number }
       force_checkout: {
         Args: {
           checkin_id: string
@@ -1023,7 +1024,7 @@ export type Database = {
         Returns: Json
       }
       toggle_checkin_for_user: {
-        Args: { _user_id: string }
+        Args: { _schedule_id?: string; _user_id: string }
         Returns: {
           check_in_id: string
           check_in_time: string
@@ -1035,6 +1036,10 @@ export type Database = {
       }
       update_user_role: {
         Args: { _new_role: string; _updated_by: string; _user_id: string }
+        Returns: Json
+      }
+      validate_checkin: {
+        Args: { p_schedule_id?: string; p_user_id: string }
         Returns: Json
       }
       visitor_checkin_checkout: {
