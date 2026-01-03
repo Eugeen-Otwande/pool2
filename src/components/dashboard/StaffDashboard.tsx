@@ -118,9 +118,11 @@ interface CheckIn {
 interface StaffDashboardProps {
   user: User;
   profile: UserProfile;
+  activeTab?: string;
+  onTabChange?: (tab: string) => void;
 }
 
-const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
+const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChange }: StaffDashboardProps) => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeCheckIns: 0,
@@ -139,10 +141,14 @@ const StaffDashboard = ({ user, profile }: StaffDashboardProps) => {
   const [searchEmail, setSearchEmail] = useState("");
   const [searchResult, setSearchResult] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const [internalActiveTab, setInternalActiveTab] = useState("overview");
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const { toast } = useToast();
+
+  // Use external tab if provided, otherwise use internal
+  const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
+  const setActiveTab = onTabChange || setInternalActiveTab;
 
   useEffect(() => {
     fetchDashboardData();

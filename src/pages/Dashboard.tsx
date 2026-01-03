@@ -181,14 +181,20 @@ const Dashboard = () => {
     );
   }
 
+  const [activeTab, setActiveTab] = useState("overview");
+
+  const handleNavigateToTab = (tab: string) => {
+    setActiveTab(tab);
+  };
+
   const renderDashboard = () => {
     switch (profile.role) {
       case "admin":
       case "system_admin":
       case "pool_admin":
-        return <AdminDashboard user={user} profile={profile} />;
+        return <AdminDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
       case "staff":
-        return <StaffDashboard user={user} profile={profile} />;
+        return <StaffDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
       case "student":
         return <StudentDashboard user={user} profile={profile} />;
       case "member":
@@ -216,6 +222,7 @@ const Dashboard = () => {
         user={user} 
         profile={profile} 
         onSignOut={handleSignOut}
+        onNavigateToTab={handleNavigateToTab}
       />
       <main className="pt-16">
         {renderDashboard()}
