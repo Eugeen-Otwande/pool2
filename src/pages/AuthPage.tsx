@@ -219,7 +219,8 @@ const AuthPage = () => {
                         <SelectItem value="member">Member</SelectItem>
                         <SelectItem value="resident">Resident</SelectItem>
                         <SelectItem value="visitor">Visitor</SelectItem>
-                        <SelectItem value="faculty">RCMRD Team (Faculty)</SelectItem>
+                        <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                        <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
