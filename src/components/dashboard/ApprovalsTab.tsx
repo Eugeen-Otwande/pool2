@@ -16,7 +16,8 @@ import {
   Users, 
   UserCheck, 
   AlertTriangle,
-  Eye
+  Eye,
+  RefreshCw
 } from "lucide-react";
 
 interface PendingApproval {
@@ -429,6 +430,21 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
 
   return (
     <div className="space-y-6">
+      {/* Header with Refresh Button */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-foreground">Approvals & Check-ins</h2>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={fetchAllApprovals}
+          disabled={loading}
+          className="flex items-center gap-2"
+        >
+          <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
+      </div>
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card className="bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950 dark:to-orange-900 border-orange-200 dark:border-orange-800">
