@@ -37,6 +37,7 @@ const Dashboard = () => {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState("overview");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -180,8 +181,6 @@ const Dashboard = () => {
       </div>
     );
   }
-
-  const [activeTab, setActiveTab] = useState("overview");
 
   const handleNavigateToTab = (tab: string) => {
     setActiveTab(tab);
