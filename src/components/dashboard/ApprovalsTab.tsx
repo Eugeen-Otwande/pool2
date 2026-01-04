@@ -21,6 +21,8 @@ import {
 
 interface PendingApproval {
   id: string;
+  user_id: string;
+  approval_id: string;
   first_name: string;
   last_name: string;
   email: string;
@@ -116,14 +118,42 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
 
   const fetchPendingApprovals = async () => {
     try {
-      const { data, error } = await supabase
-        .from("profiles")
+      // Fetch from user_approvals table with pending status
+      const { data: approvalsData, error: approvalsError } = await supabase
+        .from("user_approvals")
         .select("*")
         .eq("status", "pending")
-        .order("created_at", { ascending: false });
+        .order("requested_at", { ascending: false });
 
-      if (error) throw error;
-      setPendingApprovals(data || []);
+      if (approvalsError) throw approvalsError;
+
+      // Now fetch profiles for these users
+      const approvals: PendingApproval[] = [];
+      if (approvalsData && approvalsData.length > 0) {
+        for (const approval of approvalsData) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("id, first_name, last_name, email, role, status, created_at")
+            .eq("user_id", approval.user_id)
+            .single();
+
+          if (profile) {
+            approvals.push({
+              id: profile.id,
+              first_name: profile.first_name || "",
+              last_name: profile.last_name || "",
+              email: profile.email,
+              role: profile.role,
+              status: approval.status,
+              created_at: approval.requested_at,
+              user_id: approval.user_id,
+              approval_id: approval.id
+            });
+          }
+        }
+      }
+
+      setPendingApprovals(approvals);
     } catch (error) {
       console.error("Error fetching pending approvals:", error);
       toast({
@@ -214,14 +244,27 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
     }
   };
 
-  const handleApproveUser = async (userId: string, userName: string) => {
+  const handleApproveUser = async (approval: PendingApproval, userName: string) => {
     try {
-      const { error } = await supabase
+      // Update profile status to active
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({ status: "active" })
-        .eq("id", userId);
+        .eq("user_id", approval.user_id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update user_approvals record
+      const { error: approvalError } = await supabase
+        .from("user_approvals")
+        .update({ 
+          status: "approved", 
+          approved_at: new Date().toISOString(),
+          approved_by: userProfile.user_id
+        })
+        .eq("id", approval.approval_id);
+
+      if (approvalError) throw approvalError;
 
       toast({
         title: "User Approved",
@@ -238,14 +281,27 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
     }
   };
 
-  const handleRejectUser = async (userId: string, userName: string) => {
+  const handleRejectUser = async (approval: PendingApproval, userName: string) => {
     try {
-      const { error } = await supabase
+      // Update profile status to rejected
+      const { error: profileError } = await supabase
         .from("profiles")
         .update({ status: "rejected" })
-        .eq("id", userId);
+        .eq("user_id", approval.user_id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update user_approvals record
+      const { error: approvalError } = await supabase
+        .from("user_approvals")
+        .update({ 
+          status: "rejected", 
+          approved_at: new Date().toISOString(),
+          approved_by: userProfile.user_id
+        })
+        .eq("id", approval.approval_id);
+
+      if (approvalError) throw approvalError;
 
       toast({
         title: "User Rejected",
@@ -457,7 +513,7 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
                           <div className="flex gap-2">
                             <Button
                               size="sm"
-                              onClick={() => handleApproveUser(approval.id, `${approval.first_name} ${approval.last_name}`)}
+                              onClick={() => handleApproveUser(approval, `${approval.first_name} ${approval.last_name}`)}
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <CheckCircle className="w-4 h-4 mr-1" />
@@ -466,7 +522,7 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
                             <Button
                               size="sm"
                               variant="destructive"
-                              onClick={() => handleRejectUser(approval.id, `${approval.first_name} ${approval.last_name}`)}
+                              onClick={() => handleRejectUser(approval, `${approval.first_name} ${approval.last_name}`)}
                             >
                               <XCircle className="w-4 h-4 mr-1" />
                               Reject
