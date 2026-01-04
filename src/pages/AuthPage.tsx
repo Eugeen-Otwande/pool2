@@ -75,15 +75,39 @@ const AuthPage = () => {
     e.preventDefault();
     setIsLoading(true);
 
+    // Trim and validate email
+    const email = formData.email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+    
+    if (!emailRegex.test(email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address (e.g., name@example.com)",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast({
+        title: "Weak Password",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signUp({
-        email: formData.email,
+        email: email,
         password: formData.password,
         options: {
           emailRedirectTo: `${window.location.origin}/dashboard`,
           data: {
-            first_name: formData.firstName,
-            last_name: formData.lastName,
+            first_name: formData.firstName.trim(),
+            last_name: formData.lastName.trim(),
             role: formData.role,
           },
         },
