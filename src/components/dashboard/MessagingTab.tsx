@@ -104,7 +104,7 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
       const { data: messagesData, error } = await supabase
         .from("messages")
         .select("*")
-        .or(`recipient_id.eq.${currentUser.user.id},and(recipient_id.eq.${currentUser.user.id},recipient_role.eq.${profile.role})`)
+        .or(`recipient_id.eq.${currentUser.user.id},recipient_role.eq.${profile.role}`)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
