@@ -54,6 +54,7 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
   const [currentCheckIn, setCurrentCheckIn] = useState<any>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [recentVisits, setRecentVisits] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [guestForm, setGuestForm] = useState({
     name: "",
     email: "",
@@ -93,7 +94,8 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
     await Promise.all([
       fetchCurrentCheckIn(),
       fetchSchedules(),
-      fetchRecentVisits()
+      fetchRecentVisits(),
+      fetchUnreadCount()
     ]);
     setLoading(false);
   };
@@ -156,6 +158,20 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
     }
   };
 
+  const fetchUnreadCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id", { count: 'exact' })
+        .or(`recipient_id.eq.${user.id},recipient_role.eq.resident`)
+        .is("read_at", null);
+      
+      if (error) throw error;
+      setUnreadCount(data?.length || 0);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
   const handleToggleCheckIn = async (scheduleId?: string) => {
     try {
       if (currentCheckIn) {
@@ -287,9 +303,14 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
             <History className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Visits</span>
           </TabsTrigger>
-          <TabsTrigger value="messages">
+          <TabsTrigger value="messages" className="relative">
             <MessageSquare className="w-4 h-4 sm:mr-2" />
             <span className="hidden sm:inline">Messages</span>
+            {unreadCount > 0 && (
+              <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="profile">
             <UserIcon className="w-4 h-4 sm:mr-2" />
@@ -590,7 +611,7 @@ const ResidentDashboard = ({ user, profile }: ResidentDashboardProps) => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <MessagingTab onRefreshStats={() => {}} />
+              <MessagingTab onRefreshStats={fetchUnreadCount} />
             </CardContent>
           </Card>
         </TabsContent>

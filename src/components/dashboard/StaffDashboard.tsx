@@ -144,6 +144,7 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
   const [internalActiveTab, setInternalActiveTab] = useState("overview");
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [unreadCount, setUnreadCount] = useState(0);
   const { toast } = useToast();
 
   // Use external tab if provided, otherwise use internal
@@ -249,7 +250,8 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
       await Promise.all([
         fetchActiveCheckIns(),
         fetchAvailableEquipment(),
-        fetchRecentActivities()
+        fetchRecentActivities(),
+        fetchUnreadCount()
       ]);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
@@ -314,6 +316,21 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
       setRecentActivities(data || []);
     } catch (error) {
       console.error("Error fetching recent activities:", error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id", { count: 'exact' })
+        .or(`recipient_id.eq.${user.id},recipient_role.eq.staff`)
+        .is("read_at", null);
+      
+      if (error) throw error;
+      setUnreadCount(data?.length || 0);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
     }
   };
 
@@ -707,7 +724,14 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
             <TabsTrigger value="inquiries" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Inquiries</TabsTrigger>
             <TabsTrigger value="residents" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Residents</TabsTrigger>
             <TabsTrigger value="schedules" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Schedules</TabsTrigger>
-            <TabsTrigger value="messaging" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Messages</TabsTrigger>
+            <TabsTrigger value="messaging" className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1">
+              Messages
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="reports" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Reports</TabsTrigger>
             <TabsTrigger value="payments" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Payments</TabsTrigger>
             <TabsTrigger value="equipment" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Equipment</TabsTrigger>
@@ -1043,7 +1067,7 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
         {/* Messaging Tab */}
         <TabsContent value="messaging" className="space-y-6">
-          <MessagingTab onRefreshStats={fetchDashboardData} />
+          <MessagingTab onRefreshStats={() => { fetchDashboardData(); fetchUnreadCount(); }} />
         </TabsContent>
 
         {/* Reports Tab */}

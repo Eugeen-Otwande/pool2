@@ -63,6 +63,7 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
   const [currentCheckIn, setCurrentCheckIn] = useState<any>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [recentVisits, setRecentVisits] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [monthlyStats, setMonthlyStats] = useState({
     visitsThisMonth: 0,
     totalDuration: 0,
@@ -99,7 +100,8 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
       fetchCurrentCheckIn(),
       fetchSchedules(),
       fetchRecentVisits(),
-      fetchMonthlyStats()
+      fetchMonthlyStats(),
+      fetchUnreadCount()
     ]);
     setLoading(false);
   };
@@ -196,6 +198,21 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
       });
     } catch (error) {
       console.error("Error fetching monthly stats:", error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id", { count: 'exact' })
+        .or(`recipient_id.eq.${user.id},recipient_role.eq.member`)
+        .is("read_at", null);
+      
+      if (error) throw error;
+      setUnreadCount(data?.length || 0);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
     }
   };
 
@@ -358,6 +375,11 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
             <TabsTrigger value="messages" className="flex items-center gap-2">
               <MessageSquare className="w-4 h-4" />
               Messages
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <UserIcon className="w-4 h-4" />
@@ -646,7 +668,7 @@ const MemberDashboard = ({ user, profile }: MemberDashboardProps) => {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <MessagingTab onRefreshStats={() => {}} />
+                <MessagingTab onRefreshStats={fetchUnreadCount} />
               </CardContent>
             </Card>
           </TabsContent>
