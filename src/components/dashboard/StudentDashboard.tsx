@@ -42,6 +42,7 @@ const StudentDashboard = ({
   const [currentCheckIn, setCurrentCheckIn] = useState<any>(null);
   const [schedules, setSchedules] = useState<any[]>([]);
   const [recentVisits, setRecentVisits] = useState<any[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
   const {
@@ -62,7 +63,7 @@ const StudentDashboard = ({
     };
   }, [user.id]);
   const fetchDashboardData = async () => {
-    await Promise.all([fetchCurrentCheckIn(), fetchSchedules(), fetchRecentVisits()]);
+    await Promise.all([fetchCurrentCheckIn(), fetchSchedules(), fetchRecentVisits(), fetchUnreadCount()]);
     setLoading(false);
   };
   const fetchCurrentCheckIn = async () => {
@@ -104,6 +105,21 @@ const StudentDashboard = ({
       setRecentVisits(data || []);
     } catch (error) {
       console.error("Error fetching recent visits:", error);
+    }
+  };
+
+  const fetchUnreadCount = async () => {
+    try {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("id", { count: 'exact' })
+        .or(`recipient_id.eq.${user.id},recipient_role.eq.student`)
+        .is("read_at", null);
+      
+      if (error) throw error;
+      setUnreadCount(data?.length || 0);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
     }
   };
   const handleToggleCheckIn = async (scheduleId?: string) => {
@@ -189,9 +205,14 @@ const StudentDashboard = ({
               <BarChart3 className="w-4 h-4" />
               <span>Activity</span>
             </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
+            <TabsTrigger value="messages" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm relative">
               <MessageSquare className="w-4 h-4" />
               <span>Messages</span>
+              {unreadCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </Badge>
+              )}
             </TabsTrigger>
             <TabsTrigger value="profile" className="flex items-center gap-2 data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <UserIcon className="w-4 h-4" />
@@ -316,8 +337,7 @@ const StudentDashboard = ({
           </TabsContent>
 
           <TabsContent value="messages" className="mt-0">
-
-            <MessagingTab onRefreshStats={() => {}} />
+            <MessagingTab onRefreshStats={fetchUnreadCount} />
           </TabsContent>
 
           <TabsContent value="profile" className="mt-0">
