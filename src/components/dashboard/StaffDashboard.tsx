@@ -145,6 +145,9 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [pendingApprovalsCount, setPendingApprovalsCount] = useState(0);
+  const [pendingVisitorsCount, setPendingVisitorsCount] = useState(0);
+  const [newInquiriesCount, setNewInquiriesCount] = useState(0);
   const { toast } = useToast();
 
   // Use external tab if provided, otherwise use internal
@@ -153,8 +156,9 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
   useEffect(() => {
     fetchDashboardData();
+    fetchNotificationCounts();
     
-    // Set up real-time subscription for check-ins
+    // Set up real-time subscription for check-ins and notifications
     const channel = supabase
       .channel('staff-realtime')
       .on(
@@ -178,6 +182,40 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         () => {
           fetchUsers();
           fetchDashboardData();
+          fetchNotificationCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'visitors'
+        },
+        () => {
+          fetchNotificationCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'inquiries'
+        },
+        () => {
+          fetchNotificationCounts();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'messages'
+        },
+        () => {
+          fetchNotificationCounts();
         }
       )
       .subscribe();
@@ -331,6 +369,47 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
       setUnreadCount(data?.length || 0);
     } catch (error) {
       console.error("Error fetching unread count:", error);
+    }
+  };
+
+  const fetchNotificationCounts = async () => {
+    try {
+      // Fetch pending approvals count
+      const { count: approvalsCount } = await supabase
+        .from("profiles")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending");
+      
+      setPendingApprovalsCount(approvalsCount || 0);
+
+      // Fetch today's pending visitors count
+      const today = new Date().toISOString().split('T')[0];
+      const { count: visitorsCount } = await supabase
+        .from("visitors")
+        .select("*", { count: "exact", head: true })
+        .eq("date_of_visit", today)
+        .eq("check_in_status", "Not Checked In");
+      
+      setPendingVisitorsCount(visitorsCount || 0);
+
+      // Fetch new inquiries count
+      const { count: inquiriesCount } = await supabase
+        .from("inquiries")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "new");
+      
+      setNewInquiriesCount(inquiriesCount || 0);
+
+      // Fetch unread messages count
+      const { data: messagesData } = await supabase
+        .from("messages")
+        .select("id")
+        .or(`recipient_id.eq.${user.id},recipient_role.eq.staff`)
+        .is("read_at", null);
+      
+      setUnreadCount(messagesData?.length || 0);
+    } catch (error) {
+      console.error("Error fetching notification counts:", error);
     }
   };
 
@@ -718,10 +797,31 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         <div className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
           <TabsList className="inline-flex h-auto w-full flex-wrap gap-1 bg-transparent p-2">
             <TabsTrigger value="overview" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Overview</TabsTrigger>
-            <TabsTrigger value="approvals" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Approvals</TabsTrigger>
+            <TabsTrigger value="approvals" className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1">
+              Approvals
+              {pendingApprovalsCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                  {pendingApprovalsCount > 9 ? '9+' : pendingApprovalsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="users" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Users</TabsTrigger>
-            <TabsTrigger value="visitors" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Visitors</TabsTrigger>
-            <TabsTrigger value="inquiries" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Inquiries</TabsTrigger>
+            <TabsTrigger value="visitors" className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1">
+              Visitors
+              {pendingVisitorsCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                  {pendingVisitorsCount > 9 ? '9+' : pendingVisitorsCount}
+                </Badge>
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="inquiries" className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1">
+              Inquiries
+              {newInquiriesCount > 0 && (
+                <Badge variant="destructive" className="ml-1 h-5 w-5 flex items-center justify-center p-0 text-xs rounded-full">
+                  {newInquiriesCount > 9 ? '9+' : newInquiriesCount}
+                </Badge>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="residents" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Residents</TabsTrigger>
             <TabsTrigger value="schedules" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Schedules</TabsTrigger>
             <TabsTrigger value="messaging" className="data-[state=active]:bg-background data-[state=active]:shadow-sm flex items-center gap-1">
