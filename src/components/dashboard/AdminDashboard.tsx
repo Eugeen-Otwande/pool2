@@ -30,7 +30,10 @@ import {
   FileText,
   ClipboardList,
   Dumbbell,
-  Info
+  Info,
+  Filter,
+  Download,
+  RefreshCw
 } from "lucide-react";
 import UserApprovalTab from "./UserApprovalTab";
 import TimetableManagement from "./TimetableManagement";
@@ -125,10 +128,16 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
   const [equipment, setEquipment] = useState<Equipment[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [checkIns, setCheckIns] = useState<CheckIn[]>([]);
+  const [filteredCheckIns, setFilteredCheckIns] = useState<CheckIn[]>([]);
   const [loading, setLoading] = useState(true);
   const [internalActiveTab, setInternalActiveTab] = useState("overview");
   const [showCreateUserDialog, setShowCreateUserDialog] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  
+  // Check-in filters
+  const [filterRole, setFilterRole] = useState<string>("all");
+  const [filterFromDate, setFilterFromDate] = useState<string>("");
+  const [filterToDate, setFilterToDate] = useState<string>("");
 
   // Use external tab if provided, otherwise use internal
   const activeTab = externalActiveTab !== undefined ? externalActiveTab : internalActiveTab;
@@ -337,6 +346,7 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
       }
 
       setCheckIns(checkInsWithProfiles);
+      setFilteredCheckIns(checkInsWithProfiles);
     } catch (error) {
       console.error("Error fetching check-ins:", error);
       toast({
@@ -345,6 +355,61 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         variant: "destructive",
       });
     }
+  };
+
+  // Filter check-ins when filters change
+  useEffect(() => {
+    let filtered = [...checkIns];
+    
+    // Filter by role
+    if (filterRole && filterRole !== "all") {
+      filtered = filtered.filter(c => c.profiles.role === filterRole);
+    }
+    
+    // Filter by from date
+    if (filterFromDate) {
+      const fromDate = new Date(filterFromDate);
+      fromDate.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(c => new Date(c.check_in_time) >= fromDate);
+    }
+    
+    // Filter by to date
+    if (filterToDate) {
+      const toDate = new Date(filterToDate);
+      toDate.setHours(23, 59, 59, 999);
+      filtered = filtered.filter(c => new Date(c.check_in_time) <= toDate);
+    }
+    
+    setFilteredCheckIns(filtered);
+  }, [checkIns, filterRole, filterFromDate, filterToDate]);
+
+  const clearFilters = () => {
+    setFilterRole("all");
+    setFilterFromDate("");
+    setFilterToDate("");
+  };
+
+  const downloadCheckInsCSV = () => {
+    const headers = ["User", "Email", "Role", "Check-in Time", "Check-out Time", "Duration", "Status", "Notes"];
+    const rows = filteredCheckIns.map(c => [
+      `${c.profiles.first_name} ${c.profiles.last_name}`,
+      c.profiles.email,
+      c.profiles.role,
+      new Date(c.check_in_time).toLocaleString(),
+      c.check_out_time ? new Date(c.check_out_time).toLocaleString() : "Still checked in",
+      formatDuration(c.check_in_time, c.check_out_time),
+      c.status,
+      c.notes || "N/A"
+    ]);
+    
+    const csvContent = [headers, ...rows].map(row => row.map(cell => `"${cell}"`).join(",")).join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `check-ins-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const formatDuration = (checkInTime: string, checkOutTime?: string) => {
@@ -680,21 +745,85 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
               <CardTitle className="flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <CheckCircle className="w-5 h-5" />
-                  Real-time Check-in History
+                  Check-in History
                 </span>
-                <Button 
-                  onClick={fetchCheckIns}
-                  onFocus={() => {
-                    if (activeTab === "checkins" && checkIns.length === 0) {
-                      fetchCheckIns();
-                    }
-                  }}
-                >
-                  Refresh
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={downloadCheckInsCSV}
+                    disabled={filteredCheckIns.length === 0}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Export CSV
+                  </Button>
+                  <Button 
+                    size="sm"
+                    onClick={fetchCheckIns}
+                  >
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Refresh
+                  </Button>
+                </div>
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              {/* Inline Filters */}
+              <div className="flex flex-wrap items-end gap-4 p-4 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Filter className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Filters:</span>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">Role</Label>
+                  <Select value={filterRole} onValueChange={setFilterRole}>
+                    <SelectTrigger className="w-[140px] h-9">
+                      <SelectValue placeholder="All Roles" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Roles</SelectItem>
+                      <SelectItem value="admin">Admin</SelectItem>
+                      <SelectItem value="staff">Staff</SelectItem>
+                      <SelectItem value="student">Student</SelectItem>
+                      <SelectItem value="resident">Resident</SelectItem>
+                      <SelectItem value="member">Member</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">From Date</Label>
+                  <Input
+                    type="date"
+                    value={filterFromDate}
+                    onChange={(e) => setFilterFromDate(e.target.value)}
+                    className="w-[150px] h-9"
+                  />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <Label className="text-xs text-muted-foreground">To Date</Label>
+                  <Input
+                    type="date"
+                    value={filterToDate}
+                    onChange={(e) => setFilterToDate(e.target.value)}
+                    className="w-[150px] h-9"
+                  />
+                </div>
+                
+                {(filterRole !== "all" || filterFromDate || filterToDate) && (
+                  <Button variant="ghost" size="sm" onClick={clearFilters}>
+                    Clear Filters
+                  </Button>
+                )}
+                
+                <div className="ml-auto text-sm text-muted-foreground">
+                  Showing {filteredCheckIns.length} of {checkIns.length} records
+                </div>
+              </div>
+
+              {/* Table */}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -709,37 +838,45 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {checkIns.map((checkIn) => (
-                    <TableRow key={checkIn.id}>
-                      <TableCell>
-                        {checkIn.profiles.first_name} {checkIn.profiles.last_name}
+                  {filteredCheckIns.length > 0 ? (
+                    filteredCheckIns.map((checkIn) => (
+                      <TableRow key={checkIn.id}>
+                        <TableCell>
+                          {checkIn.profiles.first_name} {checkIn.profiles.last_name}
+                        </TableCell>
+                        <TableCell>{checkIn.profiles.email}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{checkIn.profiles.role}</Badge>
+                        </TableCell>
+                        <TableCell>
+                          {new Date(checkIn.check_in_time).toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          {checkIn.check_out_time 
+                            ? new Date(checkIn.check_out_time).toLocaleString()
+                            : 'Still checked in'
+                          }
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {formatDuration(checkIn.check_in_time, checkIn.check_out_time)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant={checkIn.status === 'checked_in' ? 'default' : 'secondary'}
+                          >
+                            {checkIn.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{checkIn.notes || 'N/A'}</TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                        {checkIns.length === 0 ? "No check-ins found" : "No check-ins match the current filters"}
                       </TableCell>
-                      <TableCell>{checkIn.profiles.email}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline">{checkIn.profiles.role}</Badge>
-                      </TableCell>
-                      <TableCell>
-                        {new Date(checkIn.check_in_time).toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        {checkIn.check_out_time 
-                          ? new Date(checkIn.check_out_time).toLocaleString()
-                          : 'Still checked in'
-                        }
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        {formatDuration(checkIn.check_in_time, checkIn.check_out_time)}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant={checkIn.status === 'checked_in' ? 'default' : 'secondary'}
-                        >
-                          {checkIn.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>{checkIn.notes || 'N/A'}</TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
