@@ -190,21 +190,37 @@ export default function ComprehensiveOverview() {
         avgStayMinutes = Math.round(totalMinutes / completedCheckIns.length);
       }
 
-      // By role breakdown
-      const roles = ['student', 'staff', 'resident', 'member', 'rcmrd_team', 'rcmrd_official', 'visitor'];
-      const byRole: any = {};
+      // By role breakdown - fetch check-ins and profiles separately
+      const { data: checkedInData } = await supabase
+        .from('check_ins')
+        .select('user_id')
+        .eq('status', 'checked_in');
 
-      for (const role of roles) {
-        const { data: roleCheckIns } = await supabase
-          .from('check_ins')
-          .select(`
-            id,
-            profiles!inner(role)
-          `)
-          .eq('status', 'checked_in')
-          .eq('profiles.role', role);
+      const byRole: any = {
+        student: 0,
+        staff: 0,
+        resident: 0,
+        member: 0,
+        rcmrd_team: 0,
+        rcmrd_official: 0,
+        visitor: 0,
+      };
 
-        byRole[role] = roleCheckIns?.length || 0;
+      if (checkedInData && checkedInData.length > 0) {
+        const userIds = checkedInData.map(ci => ci.user_id);
+        const { data: profilesData } = await supabase
+          .from('profiles')
+          .select('user_id, role')
+          .in('user_id', userIds);
+
+        if (profilesData) {
+          for (const profile of profilesData) {
+            const role = profile.role?.toLowerCase();
+            if (role && byRole.hasOwnProperty(role)) {
+              byRole[role]++;
+            }
+          }
+        }
       }
 
       setAttendance({
