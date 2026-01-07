@@ -5,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import DashboardNav from "@/components/dashboard/DashboardNav";
-import AdminDashboard from "@/components/dashboard/AdminDashboard";
+import AdminReadOnlyDashboard from "@/components/dashboard/AdminReadOnlyDashboard";
 import StudentDashboard from "@/components/dashboard/StudentDashboard";
 import StaffDashboard from "@/components/dashboard/StaffDashboard";
 import MemberDashboard from "@/components/dashboard/MemberDashboard";
@@ -191,7 +191,8 @@ const Dashboard = () => {
       case "admin":
       case "system_admin":
       case "pool_admin":
-        return <AdminDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
+        // Admin uses read-only oversight dashboard with delete-only permissions
+        return <AdminReadOnlyDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
       case "staff":
         return <StaffDashboard user={user} profile={profile} activeTab={activeTab} onTabChange={setActiveTab} />;
       case "student":
