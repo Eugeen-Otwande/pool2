@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { 
@@ -58,6 +59,27 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{ open: boolean; type: string; id: string; name: string }>({
     open: false, type: "", id: "", name: ""
+  });
+  
+  // Bulk delete confirmation
+  const [bulkDeleteDialog, setBulkDeleteDialog] = useState<{ open: boolean; type: string; count: number }>({
+    open: false, type: "", count: 0
+  });
+  
+  // Selected items for bulk delete
+  const [selectedItems, setSelectedItems] = useState<Record<string, Set<string>>>({
+    approvals: new Set(),
+    users: new Set(),
+    visitors: new Set(),
+    residents: new Set(),
+    checkins: new Set(),
+    schedules: new Set(),
+    payments: new Set(),
+    equipment: new Set(),
+    poollogs: new Set(),
+    inquiries: new Set(),
+    messages: new Set(),
+    reports: new Set(),
   });
   
   // View detail modal
@@ -419,6 +441,116 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
     setViewDialog({ open: true, type, data });
   };
 
+  // Bulk selection handlers
+  const toggleSelectItem = (tabType: string, id: string) => {
+    setSelectedItems(prev => {
+      const newSet = new Set(prev[tabType]);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return { ...prev, [tabType]: newSet };
+    });
+  };
+
+  const toggleSelectAll = (tabType: string, items: any[]) => {
+    setSelectedItems(prev => {
+      const currentSet = prev[tabType];
+      const allIds = items.map(item => item.id);
+      const allSelected = allIds.every(id => currentSet.has(id));
+      
+      if (allSelected) {
+        return { ...prev, [tabType]: new Set() };
+      } else {
+        return { ...prev, [tabType]: new Set(allIds) };
+      }
+    });
+  };
+
+  const getSelectedCount = (tabType: string) => selectedItems[tabType]?.size || 0;
+
+  const isSelected = (tabType: string, id: string) => selectedItems[tabType]?.has(id) || false;
+
+  const isAllSelected = (tabType: string, items: any[]) => {
+    if (items.length === 0) return false;
+    return items.every(item => selectedItems[tabType]?.has(item.id));
+  };
+
+  const confirmBulkDelete = (tabType: string) => {
+    const count = getSelectedCount(tabType);
+    if (count > 0) {
+      setBulkDeleteDialog({ open: true, type: tabType, count });
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const { type } = bulkDeleteDialog;
+    const ids = Array.from(selectedItems[type] || []);
+    
+    if (ids.length === 0) return;
+    
+    try {
+      let error = null;
+      const tableMap: Record<string, string> = {
+        approvals: "profiles",
+        users: "profiles",
+        visitors: "visitors",
+        residents: "residents",
+        checkins: "check_ins",
+        schedules: "pool_schedules",
+        payments: "payments",
+        equipment: "equipment",
+        poollogs: "pool_logs",
+        inquiries: "inquiries",
+        messages: "messages",
+        reports: "reports_metadata",
+      };
+      
+      const tableName = tableMap[type] as "profiles" | "visitors" | "residents" | "check_ins" | "pool_schedules" | "payments" | "equipment" | "pool_logs" | "inquiries" | "messages" | "reports_metadata";
+      if (tableName) {
+        ({ error } = await supabase.from(tableName).delete().in("id", ids));
+      }
+      
+      if (error) throw error;
+      
+      // Clear selections for this tab
+      setSelectedItems(prev => ({ ...prev, [type]: new Set() }));
+      
+      // Refresh data
+      const refreshMap: Record<string, () => void> = {
+        approvals: () => { fetchApprovals(); fetchUsers(); },
+        users: fetchUsers,
+        visitors: fetchVisitors,
+        residents: fetchResidents,
+        checkins: fetchCheckIns,
+        schedules: fetchSchedules,
+        payments: fetchPayments,
+        equipment: fetchEquipment,
+        poollogs: fetchPoolLogs,
+        inquiries: fetchInquiries,
+        messages: fetchMessages,
+        reports: fetchReports,
+      };
+      
+      refreshMap[type]?.();
+      
+      toast({ 
+        title: "Bulk Delete Complete", 
+        description: `Successfully deleted ${ids.length} record(s).` 
+      });
+    } catch (error: any) {
+      console.error("Bulk delete error:", error);
+      toast({ 
+        title: "Error", 
+        description: error.message || "Failed to delete records", 
+        variant: "destructive" 
+      });
+    } finally {
+      setBulkDeleteDialog({ open: false, type: "", count: 0 });
+    }
+  };
+
   const filterData = (data: any[], fields: string[]) => {
     if (!searchTerm) return data;
     const term = searchTerm.toLowerCase();
@@ -570,16 +702,32 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Approvals Tab */}
         <TabsContent value="approvals" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <UserCheck className="w-5 h-5" />
                 User Signup & Approval Requests
               </CardTitle>
+              {getSelectedCount("approvals") > 0 && (
+                <Button 
+                  variant="destructive" 
+                  size="sm"
+                  onClick={() => confirmBulkDelete("approvals")}
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("approvals")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("approvals", filterData(approvals, ["first_name", "last_name", "email", "role"]))}
+                        onCheckedChange={() => toggleSelectAll("approvals", filterData(approvals, ["first_name", "last_name", "email", "role"]))}
+                      />
+                    </TableHead>
                     <TableHead>User Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
@@ -590,7 +738,13 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(approvals, ["first_name", "last_name", "email", "role"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("approvals", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox 
+                          checked={isSelected("approvals", item.id)}
+                          onCheckedChange={() => toggleSelectItem("approvals", item.id)}
+                        />
+                      </TableCell>
                       <TableCell>{item.first_name} {item.last_name}</TableCell>
                       <TableCell>{item.email}</TableCell>
                       <TableCell><Badge variant="outline">{item.role}</Badge></TableCell>
@@ -607,7 +761,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {approvals.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No approval requests found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No approval requests found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -618,16 +772,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Users Tab */}
         <TabsContent value="users" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 All Users
               </CardTitle>
+              {getSelectedCount("users") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("users")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("users")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("users", filterData(users, ["first_name", "last_name", "email", "role"]))}
+                        onCheckedChange={() => toggleSelectAll("users", filterData(users, ["first_name", "last_name", "email", "role"]))}
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
@@ -638,7 +804,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(users, ["first_name", "last_name", "email", "role"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("users", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("users", item.id)} onCheckedChange={() => toggleSelectItem("users", item.id)} />
+                      </TableCell>
                       <TableCell>{item.first_name} {item.last_name}</TableCell>
                       <TableCell>{item.email}</TableCell>
                       <TableCell><Badge variant="outline">{item.role}</Badge></TableCell>
@@ -655,7 +824,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {users.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No users found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No users found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -666,16 +835,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Visitors Tab */}
         <TabsContent value="visitors" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Users className="w-5 h-5" />
                 All Visitors
               </CardTitle>
+              {getSelectedCount("visitors") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("visitors")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("visitors")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("visitors", filterData(visitors, ["first_name", "last_name", "email"]))}
+                        onCheckedChange={() => toggleSelectAll("visitors", filterData(visitors, ["first_name", "last_name", "email"]))}
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Visit Date</TableHead>
                     <TableHead>Check-in Status</TableHead>
@@ -686,7 +867,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(visitors, ["first_name", "last_name", "email"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("visitors", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("visitors", item.id)} onCheckedChange={() => toggleSelectItem("visitors", item.id)} />
+                      </TableCell>
                       <TableCell>{item.first_name} {item.last_name}</TableCell>
                       <TableCell>{format(new Date(item.date_of_visit), "PP")}</TableCell>
                       <TableCell>{getStatusBadge(item.check_in_status)}</TableCell>
@@ -703,7 +887,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {visitors.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No visitors found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No visitors found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -714,16 +898,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Residents Tab */}
         <TabsContent value="residents" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Home className="w-5 h-5" />
                 All Residents
               </CardTitle>
+              {getSelectedCount("residents") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("residents")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("residents")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("residents", filterData(residents, ["name", "email", "hostel_admission"]))}
+                        onCheckedChange={() => toggleSelectAll("residents", filterData(residents, ["name", "email", "hostel_admission"]))}
+                      />
+                    </TableHead>
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Hostel/Admission</TableHead>
@@ -734,7 +930,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(residents, ["name", "email", "hostel_admission"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("residents", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("residents", item.id)} onCheckedChange={() => toggleSelectItem("residents", item.id)} />
+                      </TableCell>
                       <TableCell>{item.name || item.full_name}</TableCell>
                       <TableCell>{item.email}</TableCell>
                       <TableCell>{item.hostel_admission || "N/A"}</TableCell>
@@ -751,7 +950,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {residents.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No residents found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No residents found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -762,16 +961,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Check-ins Tab */}
         <TabsContent value="checkins" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <ClipboardCheck className="w-5 h-5" />
                 Check-in Records
               </CardTitle>
+              {getSelectedCount("checkins") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("checkins")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("checkins")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("checkins", filterData(checkIns, ["profile.first_name", "profile.last_name", "profile.email"]))}
+                        onCheckedChange={() => toggleSelectAll("checkins", filterData(checkIns, ["profile.first_name", "profile.last_name", "profile.email"]))}
+                      />
+                    </TableHead>
                     <TableHead>User</TableHead>
                     <TableHead>Role</TableHead>
                     <TableHead>Check-in Time</TableHead>
@@ -782,7 +993,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(checkIns, ["profile.first_name", "profile.last_name", "profile.email"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("checkins", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("checkins", item.id)} onCheckedChange={() => toggleSelectItem("checkins", item.id)} />
+                      </TableCell>
                       <TableCell>{item.profile?.first_name} {item.profile?.last_name}</TableCell>
                       <TableCell><Badge variant="outline">{item.profile?.role || "N/A"}</Badge></TableCell>
                       <TableCell>{format(new Date(item.check_in_time), "PPp")}</TableCell>
@@ -799,7 +1013,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {checkIns.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No check-in records found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No check-in records found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -810,16 +1024,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Schedules Tab */}
         <TabsContent value="schedules" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="w-5 h-5" />
                 Pool Schedules
               </CardTitle>
+              {getSelectedCount("schedules") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("schedules")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("schedules")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("schedules", filterData(schedules, ["title", "session_name"]))}
+                        onCheckedChange={() => toggleSelectAll("schedules", filterData(schedules, ["title", "session_name"]))}
+                      />
+                    </TableHead>
                     <TableHead>Session Name</TableHead>
                     <TableHead>Time Range</TableHead>
                     <TableHead>Allowed Roles</TableHead>
@@ -830,7 +1056,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(schedules, ["title", "session_name"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("schedules", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("schedules", item.id)} onCheckedChange={() => toggleSelectItem("schedules", item.id)} />
+                      </TableCell>
                       <TableCell>{item.session_name || item.title}</TableCell>
                       <TableCell>{item.start_time} - {item.end_time}</TableCell>
                       <TableCell>
@@ -854,7 +1083,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {schedules.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No schedules found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No schedules found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -865,16 +1094,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Payments Tab */}
         <TabsContent value="payments" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <CreditCard className="w-5 h-5" />
                 Payment Records
               </CardTitle>
+              {getSelectedCount("payments") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("payments")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("payments")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("payments", payments)}
+                        onCheckedChange={() => toggleSelectAll("payments", payments)}
+                      />
+                    </TableHead>
                     <TableHead>User/Visitor</TableHead>
                     <TableHead>Amount</TableHead>
                     <TableHead>Status</TableHead>
@@ -884,7 +1125,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {payments.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("payments", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("payments", item.id)} onCheckedChange={() => toggleSelectItem("payments", item.id)} />
+                      </TableCell>
                       <TableCell>{item.visitor?.first_name} {item.visitor?.last_name}</TableCell>
                       <TableCell>KES {item.amount}</TableCell>
                       <TableCell>{getStatusBadge(item.payment_status)}</TableCell>
@@ -900,7 +1144,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {payments.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No payment records found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No payment records found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -911,16 +1155,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Equipment Tab */}
         <TabsContent value="equipment" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Package className="w-5 h-5" />
                 Equipment Inventory
               </CardTitle>
+              {getSelectedCount("equipment") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("equipment")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("equipment")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("equipment", filterData(equipment, ["name", "category"]))}
+                        onCheckedChange={() => toggleSelectAll("equipment", filterData(equipment, ["name", "category"]))}
+                      />
+                    </TableHead>
                     <TableHead>Equipment Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Status</TableHead>
@@ -930,7 +1186,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {filterData(equipment, ["name", "category"]).map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("equipment", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("equipment", item.id)} onCheckedChange={() => toggleSelectItem("equipment", item.id)} />
+                      </TableCell>
                       <TableCell>{item.name}</TableCell>
                       <TableCell><Badge variant="outline">{item.category}</Badge></TableCell>
                       <TableCell>{getStatusBadge(item.status)}</TableCell>
@@ -946,7 +1205,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {equipment.length === 0 && (
-                    <TableRow><TableCell colSpan={5} className="text-center text-muted-foreground py-8">No equipment found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No equipment found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
@@ -957,16 +1216,28 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         {/* Pool Logs Tab */}
         <TabsContent value="poollogs" className="space-y-4">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Waves className="w-5 h-5" />
                 Pool Operational Logs
               </CardTitle>
+              {getSelectedCount("poollogs") > 0 && (
+                <Button variant="destructive" size="sm" onClick={() => confirmBulkDelete("poollogs")}>
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Selected ({getSelectedCount("poollogs")})
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead className="w-12">
+                      <Checkbox 
+                        checked={isAllSelected("poollogs", poolLogs)}
+                        onCheckedChange={() => toggleSelectAll("poollogs", poolLogs)}
+                      />
+                    </TableHead>
                     <TableHead>Date</TableHead>
                     <TableHead>Session</TableHead>
                     <TableHead>Total Swimmers</TableHead>
@@ -977,7 +1248,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                 </TableHeader>
                 <TableBody>
                   {poolLogs.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={item.id} className={isSelected("poollogs", item.id) ? "bg-muted/50" : ""}>
+                      <TableCell>
+                        <Checkbox checked={isSelected("poollogs", item.id)} onCheckedChange={() => toggleSelectItem("poollogs", item.id)} />
+                      </TableCell>
                       <TableCell>{format(new Date(item.date), "PP")}</TableCell>
                       <TableCell>{item.session}</TableCell>
                       <TableCell>{item.total_swimmers || 0}</TableCell>
@@ -994,7 +1268,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
                     </TableRow>
                   ))}
                   {poolLogs.length === 0 && (
-                    <TableRow><TableCell colSpan={6} className="text-center text-muted-foreground py-8">No pool logs found</TableCell></TableRow>
+                    <TableRow><TableCell colSpan={7} className="text-center text-muted-foreground py-8">No pool logs found</TableCell></TableRow>
                   )}
                 </TableBody>
               </Table>
