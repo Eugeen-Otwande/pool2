@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
+import { useIsMobile } from "@/hooks/use-mobile";
 import DashboardNav from "@/components/dashboard/DashboardNav";
 import AdminReadOnlyDashboard from "@/components/dashboard/AdminReadOnlyDashboard";
 import StudentDashboard from "@/components/dashboard/StudentDashboard";
@@ -11,6 +12,7 @@ import StaffDashboard from "@/components/dashboard/StaffDashboard";
 import MemberDashboard from "@/components/dashboard/MemberDashboard";
 import ResidentDashboard from "@/components/dashboard/ResidentDashboard";
 import VisitorDashboard from "@/components/dashboard/VisitorDashboard";
+import MobileDashboardWrapper from "@/components/mobile/MobileDashboardWrapper";
 
 interface UserProfile {
   id: string;
@@ -38,6 +40,9 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("overview");
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [pendingApprovals, setPendingApprovals] = useState(0);
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -73,6 +78,50 @@ const Dashboard = () => {
 
     return () => subscription.unsubscribe();
   }, [navigate]);
+
+  // Fetch notification counts for mobile
+  useEffect(() => {
+    if (!user || !profile) return;
+
+    const fetchCounts = async () => {
+      try {
+        // Fetch unread messages
+        const { data: messages } = await supabase
+          .from("messages")
+          .select("id", { count: 'exact' })
+          .or(`recipient_id.eq.${user.id},recipient_role.eq.${profile.role}`)
+          .is("read_at", null);
+        
+        setUnreadMessages(messages?.length || 0);
+
+        // Fetch pending approvals for admin/staff
+        const isAdminOrStaff = ['admin', 'staff', 'system_admin', 'pool_admin'].includes(profile.role);
+        if (isAdminOrStaff) {
+          const { count } = await supabase
+            .from("user_approvals")
+            .select("*", { count: 'exact', head: true })
+            .eq("status", "pending");
+          
+          setPendingApprovals(count || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching counts:", error);
+      }
+    };
+
+    fetchCounts();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('dashboard-counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, fetchCounts)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'user_approvals' }, fetchCounts)
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, profile]);
 
   const fetchUserProfile = async (userId: string) => {
     try {
@@ -216,6 +265,25 @@ const Dashboard = () => {
     }
   };
 
+  // Mobile view with wrapper
+  if (isMobile) {
+    return (
+      <MobileDashboardWrapper
+        user={user}
+        profile={profile}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        onSignOut={handleSignOut}
+        unreadMessages={unreadMessages}
+        notificationCount={unreadMessages + pendingApprovals}
+        pendingApprovals={pendingApprovals}
+      >
+        {renderDashboard()}
+      </MobileDashboardWrapper>
+    );
+  }
+
+  // Desktop/tablet view
   return (
     <div className="min-h-screen bg-background">
       <DashboardNav 
