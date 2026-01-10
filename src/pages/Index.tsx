@@ -2,6 +2,7 @@ import PreHeader from "@/components/PreHeader";
 import Navigation from "@/components/Navigation";
 import RcmrdHero from "@/components/RcmrdHero";
 import RcmrdAbout from "@/components/RcmrdAbout";
+import RcmrdTimetable from "@/components/RcmrdTimetable";
 import RcmrdServices from "@/components/RcmrdServices";
 import RcmrdLocation from "@/components/RcmrdLocation";
 import RcmrdGallery from "@/components/RcmrdGallery";
@@ -16,6 +17,7 @@ const Index = () => {
       <Navigation />
       <RcmrdHero />
       <RcmrdAbout />
+      <RcmrdTimetable />
       <RcmrdServices />
       <RcmrdLocation />
       <RcmrdGallery />
