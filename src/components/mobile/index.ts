@@ -6,6 +6,7 @@ export { default as MobileAppHeader } from "./MobileAppHeader";
 export { default as MobileMoreMenu } from "./MobileMoreMenu";
 export { default as MobileDashboardWrapper } from "./MobileDashboardWrapper";
 export { default as MobileNotificationPanel } from "./MobileNotificationPanel";
+export { default as MobileSearch } from "./MobileSearch";
 export { 
   MobileCard, 
   FeedItemCard, 

@@ -1,4 +1,4 @@
-import { Bell, ChevronLeft, Settings, LogOut, User } from "lucide-react";
+import { Bell, ChevronLeft, Settings, LogOut, User, Search } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,7 @@ interface MobileAppHeaderProps {
   onSignOut?: () => void;
   notificationCount?: number;
   onNotificationClick?: () => void;
+  onSearchClick?: () => void;
   showLogo?: boolean;
 }
 
@@ -37,6 +38,7 @@ const MobileAppHeader = ({
   onSignOut,
   notificationCount = 0,
   onNotificationClick,
+  onSearchClick,
   showLogo = false,
 }: MobileAppHeaderProps) => {
   const getInitials = (firstName?: string | null, lastName?: string | null) => {
@@ -84,7 +86,17 @@ const MobileAppHeader = ({
         </div>
 
         {/* Right Section */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
+          {/* Search */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={onSearchClick}
+            className="h-9 w-9 rounded-full"
+          >
+            <Search className="w-5 h-5" />
+          </Button>
+
           {/* Notifications */}
           <Button
             variant="ghost"
@@ -94,9 +106,12 @@ const MobileAppHeader = ({
           >
             <Bell className="w-5 h-5" />
             {notificationCount > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground animate-pulse">
-                {notificationCount > 9 ? "9+" : notificationCount}
-              </span>
+              <>
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-bold text-destructive-foreground">
+                  {notificationCount > 9 ? "9+" : notificationCount}
+                </span>
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 w-4 rounded-full bg-destructive animate-ping opacity-75" />
+              </>
             )}
           </Button>
 
