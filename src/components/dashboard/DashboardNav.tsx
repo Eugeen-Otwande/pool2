@@ -42,6 +42,7 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { User as SupabaseUser } from "@supabase/supabase-js";
 import rcmrdLogo from "@/assets/rcmrd-logo.png";
+import GlobalSearch from "./GlobalSearch";
 
 interface UserProfile {
   id: string;
@@ -695,8 +696,14 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
           <img src={rcmrdLogo} alt="RCMRD Logo" className="h-7 md:h-8 w-auto hover:opacity-90 transition-opacity" />
         </div>
 
-        {/* Desktop: User Info & Actions */}
+        {/* Desktop: Search, User Info & Actions */}
         <div className="hidden md:flex items-center space-x-2 lg:space-x-4">
+          <GlobalSearch 
+            userRole={profile.role} 
+            onNavigate={(tab) => {
+              onNavigateToTab?.(tab);
+            }} 
+          />
           <NotificationsPopover />
           <UserDropdown />
         </div>

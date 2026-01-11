@@ -4,6 +4,7 @@ import MobileBottomNav from "./MobileBottomNav";
 import MobileAppHeader from "./MobileAppHeader";
 import MobileMoreMenu from "./MobileMoreMenu";
 import MobileNotificationPanel from "./MobileNotificationPanel";
+import MobileSearch from "./MobileSearch";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface UserProfile {
@@ -44,6 +45,7 @@ const MobileDashboardWrapper = ({
   const isMobile = useIsMobile();
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
 
   const getPageTitle = () => {
     if (title) return title;
@@ -100,6 +102,18 @@ const MobileDashboardWrapper = ({
         onSignOut={onSignOut}
         notificationCount={notificationCount}
         onNotificationClick={() => setNotificationsOpen(true)}
+        onSearchClick={() => setSearchOpen(true)}
+      />
+
+      {/* Mobile Search */}
+      <MobileSearch
+        open={searchOpen}
+        onOpenChange={setSearchOpen}
+        userRole={profile.role}
+        onNavigate={(tab) => {
+          setSearchOpen(false);
+          onTabChange(tab);
+        }}
       />
 
       {/* Main Content with padding for header and bottom nav */}
