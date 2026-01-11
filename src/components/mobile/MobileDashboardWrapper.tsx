@@ -3,6 +3,7 @@ import { User } from "@supabase/supabase-js";
 import MobileBottomNav from "./MobileBottomNav";
 import MobileAppHeader from "./MobileAppHeader";
 import MobileMoreMenu from "./MobileMoreMenu";
+import MobileNotificationPanel from "./MobileNotificationPanel";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface UserProfile {
@@ -122,6 +123,18 @@ const MobileDashboardWrapper = ({
         role={profile.role}
         pendingApprovals={pendingApprovals}
         onSignOut={onSignOut}
+      />
+
+      {/* Notifications Panel */}
+      <MobileNotificationPanel
+        open={notificationsOpen}
+        onOpenChange={setNotificationsOpen}
+        userId={user.id}
+        userRole={profile.role}
+        onNavigate={(tab) => {
+          setNotificationsOpen(false);
+          onTabChange(tab);
+        }}
       />
     </div>
   );
