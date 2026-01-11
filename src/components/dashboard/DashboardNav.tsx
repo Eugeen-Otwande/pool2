@@ -96,48 +96,77 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
   useEffect(() => {
     fetchNotifications();
     
-    // Set up real-time subscriptions
-    const messagesChannel = supabase
-      .channel('user-messages-notif')
+    // Set up unified real-time channel for all notification sources
+    const notificationsChannel = supabase
+      .channel('dashboard-notifications-realtime')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'messages' },
-        () => fetchNotifications()
+        (payload) => {
+          console.log('📩 Message update:', payload.eventType);
+          fetchNotifications();
+        }
       )
-      .subscribe();
-
-    const checkInsChannel = supabase
-      .channel('user-checkins-notif')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'check_ins' },
-        () => fetchNotifications()
+        (payload) => {
+          console.log('✅ Check-in update:', payload.eventType);
+          fetchNotifications();
+        }
       )
-      .subscribe();
-
-    const approvalsChannel = supabase
-      .channel('user-approvals-notif')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'user_approvals' },
-        () => fetchNotifications()
+        (payload) => {
+          console.log('👤 Approval update:', payload.eventType);
+          fetchNotifications();
+        }
       )
-      .subscribe();
-
-    const visitorsChannel = supabase
-      .channel('visitors-notif')
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'visitors' },
-        () => fetchNotifications()
+        (payload) => {
+          console.log('🎫 Visitor update:', payload.eventType);
+          fetchNotifications();
+        }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'equipment_loans' },
+        (payload) => {
+          console.log('🏋️ Equipment loan update:', payload.eventType);
+          fetchNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'inquiries' },
+        (payload) => {
+          console.log('📧 Inquiry update:', payload.eventType);
+          fetchNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'pool_logs' },
+        (payload) => {
+          console.log('🏊 Pool log update:', payload.eventType);
+          fetchNotifications();
+        }
+      )
+      .subscribe((status) => {
+        console.log('Notifications channel status:', status);
+      });
+
+    // Refresh every 30 seconds for any missed updates
+    const refreshInterval = setInterval(() => {
+      fetchNotifications();
+    }, 30000);
 
     return () => {
-      supabase.removeChannel(messagesChannel);
-      supabase.removeChannel(checkInsChannel);
-      supabase.removeChannel(approvalsChannel);
-      supabase.removeChannel(visitorsChannel);
+      supabase.removeChannel(notificationsChannel);
+      clearInterval(refreshInterval);
     };
   }, [user.id, profile.role]);
 
@@ -453,14 +482,19 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
   const NotificationsPopover = () => (
     <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
       <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative h-9 w-9">
-          <Bell className="w-5 h-5" />
+        <Button variant="ghost" size="icon" className="relative h-9 w-9 group">
+          <Bell className="w-5 h-5 transition-transform group-hover:scale-110" />
           {totalNotifications > 0 && (
-            <span className={`absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white ${
-              highPriorityCount > 0 ? 'bg-red-500 animate-pulse' : 'bg-primary'
-            }`}>
-              {totalNotifications > 9 ? '9+' : totalNotifications}
-            </span>
+            <>
+              <span className={`absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold text-white transition-all ${
+                highPriorityCount > 0 ? 'bg-red-500' : 'bg-primary'
+              }`}>
+                {totalNotifications > 9 ? '9+' : totalNotifications}
+              </span>
+              {highPriorityCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 rounded-full bg-red-500 animate-ping opacity-75" />
+              )}
+            </>
           )}
         </Button>
       </PopoverTrigger>
