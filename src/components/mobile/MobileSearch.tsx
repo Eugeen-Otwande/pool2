@@ -11,7 +11,9 @@ import {
   Clock,
   Loader2,
   ArrowRight,
-  X
+  X,
+  Home,
+  Filter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,13 +24,15 @@ import { MobileSheet } from "./MobileSheet";
 
 interface SearchResult {
   id: string;
-  type: "user" | "message" | "visitor" | "equipment" | "inquiry" | "schedule";
+  type: "user" | "message" | "visitor" | "equipment" | "inquiry" | "schedule" | "resident";
   title: string;
   subtitle: string;
   meta?: string;
   status?: string;
   targetTab?: string;
 }
+
+type SearchFilter = "all" | "users" | "messages" | "visitors" | "equipment" | "schedules" | "residents";
 
 interface MobileSearchProps {
   open: boolean;
@@ -42,6 +46,8 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<SearchFilter>("all");
+  const [totalCount, setTotalCount] = useState(0);
 
   const isAdminOrStaff = ['admin', 'staff', 'system_admin', 'pool_admin'].includes(userRole);
 
@@ -63,9 +69,10 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
     localStorage.setItem('rcmrd-recent-searches', JSON.stringify(updated));
   };
 
-  const performSearch = useCallback(async (searchQuery: string) => {
+  const performSearch = useCallback(async (searchQuery: string, filter: SearchFilter = "all") => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setResults([]);
+      setTotalCount(0);
       return;
     }
 
@@ -75,12 +82,12 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
 
     try {
       // Search users/profiles (admin/staff only)
-      if (isAdminOrStaff) {
+      if (isAdminOrStaff && (filter === "all" || filter === "users")) {
         const { data: users } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, email, role, status")
           .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
-          .limit(5);
+          .limit(filter === "users" ? 20 : 5);
 
         if (users) {
           users.forEach(user => {
@@ -98,34 +105,36 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
       }
 
       // Search messages
-      const { data: messages } = await supabase
-        .from("messages")
-        .select("id, title, content, message_type")
-        .or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`)
-        .order("created_at", { ascending: false })
-        .limit(5);
+      if (filter === "all" || filter === "messages") {
+        const { data: messages } = await supabase
+          .from("messages")
+          .select("id, title, content, message_type")
+          .or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`)
+          .order("created_at", { ascending: false })
+          .limit(filter === "messages" ? 20 : 5);
 
-      if (messages) {
-        messages.forEach(msg => {
-          allResults.push({
-            id: msg.id,
-            type: "message",
-            title: msg.title,
-            subtitle: msg.content.substring(0, 50) + "...",
-            meta: msg.message_type,
-            targetTab: "messaging"
+        if (messages) {
+          messages.forEach(msg => {
+            allResults.push({
+              id: msg.id,
+              type: "message",
+              title: msg.title,
+              subtitle: msg.content.substring(0, 50) + "...",
+              meta: msg.message_type,
+              targetTab: "messaging"
+            });
           });
-        });
+        }
       }
 
       // Search visitors (admin/staff only)
-      if (isAdminOrStaff) {
+      if (isAdminOrStaff && (filter === "all" || filter === "visitors")) {
         const { data: visitors } = await supabase
           .from("visitors")
           .select("id, first_name, last_name, email, date_of_visit, check_in_status")
           .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(filter === "visitors" ? 20 : 5);
 
         if (visitors) {
           visitors.forEach(visitor => {
@@ -141,48 +150,76 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
         }
       }
 
-      // Search equipment
-      const { data: equipment } = await supabase
-        .from("equipment")
-        .select("id, name, category, status")
-        .or(`name.ilike.${searchTerm},category.ilike.${searchTerm}`)
-        .limit(5);
+      // Search residents (admin/staff only)
+      if (isAdminOrStaff && (filter === "all" || filter === "residents")) {
+        const { data: residents } = await supabase
+          .from("residents")
+          .select("id, name, email, phone, hostel_admission, school, status")
+          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm},hostel_admission.ilike.${searchTerm}`)
+          .limit(filter === "residents" ? 20 : 5);
 
-      if (equipment) {
-        equipment.forEach(item => {
-          allResults.push({
-            id: item.id,
-            type: "equipment",
-            title: item.name,
-            subtitle: item.category,
-            status: item.status,
-            targetTab: "equipment"
+        if (residents) {
+          residents.forEach(resident => {
+            allResults.push({
+              id: resident.id,
+              type: "resident",
+              title: resident.name,
+              subtitle: `${resident.email} ${resident.hostel_admission ? `• ${resident.hostel_admission}` : ''}`,
+              meta: resident.school || undefined,
+              status: resident.status || undefined,
+              targetTab: "residents"
+            });
           });
-        });
+        }
+      }
+
+      // Search equipment
+      if (filter === "all" || filter === "equipment") {
+        const { data: equipment } = await supabase
+          .from("equipment")
+          .select("id, name, category, status")
+          .or(`name.ilike.${searchTerm},category.ilike.${searchTerm}`)
+          .limit(filter === "equipment" ? 20 : 5);
+
+        if (equipment) {
+          equipment.forEach(item => {
+            allResults.push({
+              id: item.id,
+              type: "equipment",
+              title: item.name,
+              subtitle: item.category,
+              status: item.status,
+              targetTab: "equipment"
+            });
+          });
+        }
       }
 
       // Search schedules
-      const { data: schedules } = await supabase
-        .from("pool_schedules")
-        .select("id, title, session_name, start_time, end_time")
-        .or(`title.ilike.${searchTerm},session_name.ilike.${searchTerm}`)
-        .eq("is_active", true)
-        .limit(5);
+      if (filter === "all" || filter === "schedules") {
+        const { data: schedules } = await supabase
+          .from("pool_schedules")
+          .select("id, title, session_name, start_time, end_time")
+          .or(`title.ilike.${searchTerm},session_name.ilike.${searchTerm}`)
+          .eq("is_active", true)
+          .limit(filter === "schedules" ? 20 : 5);
 
-      if (schedules) {
-        schedules.forEach(schedule => {
-          allResults.push({
-            id: schedule.id,
-            type: "schedule",
-            title: schedule.title,
-            subtitle: `${schedule.start_time} - ${schedule.end_time}`,
-            meta: schedule.session_name || undefined,
-            targetTab: "schedules"
+        if (schedules) {
+          schedules.forEach(schedule => {
+            allResults.push({
+              id: schedule.id,
+              type: "schedule",
+              title: schedule.title,
+              subtitle: `${schedule.start_time} - ${schedule.end_time}`,
+              meta: schedule.session_name || undefined,
+              targetTab: "schedules"
+            });
           });
-        });
+        }
       }
 
       setResults(allResults);
+      setTotalCount(allResults.length);
     } catch (error) {
       console.error("Search error:", error);
     } finally {
@@ -192,10 +229,17 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      performSearch(query);
+      performSearch(query, activeFilter);
     }, 300);
     return () => clearTimeout(timer);
-  }, [query, performSearch]);
+  }, [query, activeFilter, performSearch]);
+
+  const handleFilterChange = (filter: SearchFilter) => {
+    setActiveFilter(filter);
+    if (query.length >= 2) {
+      performSearch(query, filter);
+    }
+  };
 
   const handleSelect = (result: SearchResult) => {
     saveRecentSearch(query);
@@ -214,6 +258,7 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
       equipment: <Dumbbell className="w-4 h-4" />,
       inquiry: <Mail className="w-4 h-4" />,
       schedule: <Calendar className="w-4 h-4" />,
+      resident: <Home className="w-4 h-4" />,
     };
     return icons[type] || <Search className="w-4 h-4" />;
   };
@@ -226,6 +271,7 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
       equipment: "bg-cyan-500",
       inquiry: "bg-pink-500",
       schedule: "bg-indigo-500",
+      resident: "bg-orange-500",
     };
     return colors[type] || "bg-gray-500";
   };
@@ -237,7 +283,18 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
     equipment: "Equipment",
     inquiry: "Inquiries",
     schedule: "Schedules",
+    resident: "Residents",
   };
+
+  const filterOptions: { key: SearchFilter; label: string; icon: React.ReactNode }[] = [
+    { key: "all", label: "All", icon: <Search className="w-3 h-3" /> },
+    { key: "users", label: "Users", icon: <User className="w-3 h-3" /> },
+    { key: "messages", label: "Messages", icon: <MessageSquare className="w-3 h-3" /> },
+    { key: "visitors", label: "Visitors", icon: <Users className="w-3 h-3" /> },
+    { key: "residents", label: "Residents", icon: <Home className="w-3 h-3" /> },
+    { key: "equipment", label: "Equipment", icon: <Dumbbell className="w-3 h-3" /> },
+    { key: "schedules", label: "Schedules", icon: <Calendar className="w-3 h-3" /> },
+  ];
 
   const groupedResults = results.reduce((acc, result) => {
     if (!acc[result.type]) acc[result.type] = [];
@@ -258,7 +315,7 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Search users, messages, equipment..."
+              placeholder="Search users, messages, residents..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="pl-10 pr-10"
@@ -269,13 +326,39 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
                 variant="ghost"
                 size="icon"
                 className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7"
-                onClick={() => setQuery("")}
+                onClick={() => { setQuery(""); setActiveFilter("all"); }}
               >
                 <X className="w-4 h-4" />
               </Button>
             )}
           </div>
         </div>
+
+        {/* Filter Buttons */}
+        {isAdminOrStaff && query.length >= 2 && (
+          <div className="flex items-center gap-1 px-4 py-2 border-b border-border/50 overflow-x-auto">
+            <Filter className="h-3 w-3 text-muted-foreground shrink-0 mr-1" />
+            {filterOptions.map((filter) => (
+              <Button
+                key={filter.key}
+                variant={activeFilter === filter.key ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs gap-1 shrink-0"
+                onClick={() => handleFilterChange(filter.key)}
+              >
+                {filter.icon}
+                {filter.label}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {/* Result Count */}
+        {query.length >= 2 && !loading && totalCount > 0 && (
+          <div className="px-4 py-1.5 text-xs text-muted-foreground border-b bg-muted/30">
+            Found {totalCount} result{totalCount !== 1 ? 's' : ''}
+          </div>
+        )}
 
         {/* Results */}
         <ScrollArea className="flex-1">

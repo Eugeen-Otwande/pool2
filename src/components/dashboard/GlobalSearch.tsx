@@ -20,20 +20,20 @@ import {
   Users, 
   Calendar, 
   Dumbbell,
-  ClipboardList,
   Clock,
   Mail,
   CheckCircle,
-  XCircle,
   Loader2,
   ArrowRight,
-  Command as CommandIcon
+  Home,
+  Filter,
+  X
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface SearchResult {
   id: string;
-  type: "user" | "message" | "visitor" | "checkin" | "equipment" | "inquiry" | "schedule";
+  type: "user" | "message" | "visitor" | "checkin" | "equipment" | "inquiry" | "schedule" | "resident";
   title: string;
   subtitle: string;
   meta?: string;
@@ -42,6 +42,8 @@ interface SearchResult {
   targetTab?: string;
   data?: Record<string, unknown>;
 }
+
+type SearchFilter = "all" | "users" | "messages" | "visitors" | "equipment" | "schedules" | "residents";
 
 interface GlobalSearchProps {
   userRole: string;
@@ -55,6 +57,8 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [activeFilter, setActiveFilter] = useState<SearchFilter>("all");
+  const [totalCount, setTotalCount] = useState(0);
   const debounceRef = useRef<NodeJS.Timeout>();
 
   const isAdminOrStaff = ['admin', 'staff', 'system_admin', 'pool_admin'].includes(userRole);
@@ -91,9 +95,10 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
     localStorage.setItem('rcmrd-recent-searches', JSON.stringify(updated));
   };
 
-  const performSearch = useCallback(async (searchQuery: string) => {
+  const performSearch = useCallback(async (searchQuery: string, filter: SearchFilter = "all") => {
     if (!searchQuery.trim() || searchQuery.length < 2) {
       setResults([]);
+      setTotalCount(0);
       return;
     }
 
@@ -103,12 +108,12 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
 
     try {
       // Search users/profiles (admin/staff only)
-      if (isAdminOrStaff) {
+      if (isAdminOrStaff && (filter === "all" || filter === "users")) {
         const { data: users } = await supabase
           .from("profiles")
           .select("user_id, first_name, last_name, email, role, status")
           .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm}`)
-          .limit(5);
+          .limit(filter === "users" ? 20 : 5);
 
         if (users) {
           users.forEach(user => {
@@ -128,35 +133,37 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
       }
 
       // Search messages
-      const { data: messages } = await supabase
-        .from("messages")
-        .select("id, title, content, created_at, message_type")
-        .or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`)
-        .order("created_at", { ascending: false })
-        .limit(5);
+      if (filter === "all" || filter === "messages") {
+        const { data: messages } = await supabase
+          .from("messages")
+          .select("id, title, content, created_at, message_type")
+          .or(`title.ilike.${searchTerm},content.ilike.${searchTerm}`)
+          .order("created_at", { ascending: false })
+          .limit(filter === "messages" ? 20 : 5);
 
-      if (messages) {
-        messages.forEach(msg => {
-          allResults.push({
-            id: msg.id,
-            type: "message",
-            title: msg.title,
-            subtitle: msg.content.substring(0, 60) + (msg.content.length > 60 ? "..." : ""),
-            meta: msg.message_type,
-            icon: <MessageSquare className="w-4 h-4" />,
-            targetTab: "messaging"
+        if (messages) {
+          messages.forEach(msg => {
+            allResults.push({
+              id: msg.id,
+              type: "message",
+              title: msg.title,
+              subtitle: msg.content.substring(0, 60) + (msg.content.length > 60 ? "..." : ""),
+              meta: msg.message_type,
+              icon: <MessageSquare className="w-4 h-4" />,
+              targetTab: "messaging"
+            });
           });
-        });
+        }
       }
 
       // Search visitors (admin/staff only)
-      if (isAdminOrStaff) {
+      if (isAdminOrStaff && (filter === "all" || filter === "visitors")) {
         const { data: visitors } = await supabase
           .from("visitors")
           .select("id, first_name, last_name, email, phone, date_of_visit, check_in_status")
           .or(`first_name.ilike.${searchTerm},last_name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm}`)
           .order("created_at", { ascending: false })
-          .limit(5);
+          .limit(filter === "visitors" ? 20 : 5);
 
         if (visitors) {
           visitors.forEach(visitor => {
@@ -173,51 +180,79 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
         }
       }
 
-      // Search equipment
-      const { data: equipment } = await supabase
-        .from("equipment")
-        .select("id, name, category, status, quantity_available, quantity_total")
-        .or(`name.ilike.${searchTerm},category.ilike.${searchTerm},barcode.ilike.${searchTerm}`)
-        .limit(5);
+      // Search residents (admin/staff only)
+      if (isAdminOrStaff && (filter === "all" || filter === "residents")) {
+        const { data: residents } = await supabase
+          .from("residents")
+          .select("id, name, email, phone, hostel_admission, school, status")
+          .or(`name.ilike.${searchTerm},email.ilike.${searchTerm},phone.ilike.${searchTerm},hostel_admission.ilike.${searchTerm}`)
+          .limit(filter === "residents" ? 20 : 5);
 
-      if (equipment) {
-        equipment.forEach(item => {
-          allResults.push({
-            id: item.id,
-            type: "equipment",
-            title: item.name,
-            subtitle: `${item.category} • ${item.quantity_available}/${item.quantity_total} available`,
-            status: item.status,
-            icon: <Dumbbell className="w-4 h-4" />,
-            targetTab: "equipment"
+        if (residents) {
+          residents.forEach(resident => {
+            allResults.push({
+              id: resident.id,
+              type: "resident",
+              title: resident.name,
+              subtitle: `${resident.email} ${resident.hostel_admission ? `• ${resident.hostel_admission}` : ''}`,
+              meta: resident.school || undefined,
+              status: resident.status || undefined,
+              icon: <Home className="w-4 h-4" />,
+              targetTab: "residents"
+            });
           });
-        });
+        }
+      }
+
+      // Search equipment
+      if (filter === "all" || filter === "equipment") {
+        const { data: equipment } = await supabase
+          .from("equipment")
+          .select("id, name, category, status, quantity_available, quantity_total")
+          .or(`name.ilike.${searchTerm},category.ilike.${searchTerm},barcode.ilike.${searchTerm}`)
+          .limit(filter === "equipment" ? 20 : 5);
+
+        if (equipment) {
+          equipment.forEach(item => {
+            allResults.push({
+              id: item.id,
+              type: "equipment",
+              title: item.name,
+              subtitle: `${item.category} • ${item.quantity_available}/${item.quantity_total} available`,
+              status: item.status,
+              icon: <Dumbbell className="w-4 h-4" />,
+              targetTab: "equipment"
+            });
+          });
+        }
       }
 
       // Search pool schedules
-      const { data: schedules } = await supabase
-        .from("pool_schedules")
-        .select("id, title, session_name, start_time, end_time, allowed_roles")
-        .or(`title.ilike.${searchTerm},session_name.ilike.${searchTerm}`)
-        .eq("is_active", true)
-        .limit(5);
+      if (filter === "all" || filter === "schedules") {
+        const { data: schedules } = await supabase
+          .from("pool_schedules")
+          .select("id, title, session_name, start_time, end_time, allowed_roles")
+          .or(`title.ilike.${searchTerm},session_name.ilike.${searchTerm}`)
+          .eq("is_active", true)
+          .limit(filter === "schedules" ? 20 : 5);
 
-      if (schedules) {
-        schedules.forEach(schedule => {
-          allResults.push({
-            id: schedule.id,
-            type: "schedule",
-            title: schedule.title,
-            subtitle: `${schedule.start_time} - ${schedule.end_time}`,
-            meta: schedule.session_name || undefined,
-            icon: <Calendar className="w-4 h-4" />,
-            targetTab: "schedules"
+        if (schedules) {
+          schedules.forEach(schedule => {
+            allResults.push({
+              id: schedule.id,
+              type: "schedule",
+              title: schedule.title,
+              subtitle: `${schedule.start_time} - ${schedule.end_time}`,
+              meta: schedule.session_name || undefined,
+              icon: <Calendar className="w-4 h-4" />,
+              targetTab: "schedules"
+            });
           });
-        });
+        }
       }
 
       // Search inquiries (admin/staff only)
-      if (isAdminOrStaff) {
+      if (isAdminOrStaff && filter === "all") {
         const { data: inquiries } = await supabase
           .from("inquiries")
           .select("id, first_name, last_name, subject, email, status")
@@ -241,6 +276,7 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
       }
 
       setResults(allResults);
+      setTotalCount(allResults.length);
     } catch (error) {
       console.error("Search error:", error);
     } finally {
@@ -255,7 +291,7 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
     }
 
     debounceRef.current = setTimeout(() => {
-      performSearch(query);
+      performSearch(query, activeFilter);
     }, 300);
 
     return () => {
@@ -263,7 +299,20 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query, performSearch]);
+  }, [query, activeFilter, performSearch]);
+
+  const handleFilterChange = (filter: SearchFilter) => {
+    setActiveFilter(filter);
+    if (query.length >= 2) {
+      performSearch(query, filter);
+    }
+  };
+
+  const clearSearch = () => {
+    setQuery("");
+    setResults([]);
+    setActiveFilter("all");
+  };
 
   const handleSelect = (result: SearchResult) => {
     saveRecentSearch(query);
@@ -308,9 +357,20 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
       equipment: "bg-cyan-500",
       inquiry: "bg-pink-500",
       schedule: "bg-indigo-500",
+      resident: "bg-orange-500",
     };
     return colors[type] || "bg-gray-500";
   };
+
+  const filterOptions: { key: SearchFilter; label: string; icon: React.ReactNode }[] = [
+    { key: "all", label: "All", icon: <Search className="w-3 h-3" /> },
+    { key: "users", label: "Users", icon: <User className="w-3 h-3" /> },
+    { key: "messages", label: "Messages", icon: <MessageSquare className="w-3 h-3" /> },
+    { key: "visitors", label: "Visitors", icon: <Users className="w-3 h-3" /> },
+    { key: "residents", label: "Residents", icon: <Home className="w-3 h-3" /> },
+    { key: "equipment", label: "Equipment", icon: <Dumbbell className="w-3 h-3" /> },
+    { key: "schedules", label: "Schedules", icon: <Calendar className="w-3 h-3" /> },
+  ];
 
   const groupedResults = results.reduce((acc, result) => {
     if (!acc[result.type]) {
@@ -328,6 +388,7 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
     equipment: "Equipment",
     inquiry: "Inquiries",
     schedule: "Schedules",
+    resident: "Residents",
   };
 
   return (
@@ -352,11 +413,52 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
 
       {/* Search Dialog */}
       <CommandDialog open={open} onOpenChange={setOpen}>
-        <CommandInput
-          placeholder="Search users, messages, visitors, equipment..."
-          value={query}
-          onValueChange={setQuery}
-        />
+        <div className="flex items-center border-b">
+          <CommandInput
+            placeholder="Search users, messages, visitors, equipment, residents..."
+            value={query}
+            onValueChange={setQuery}
+            className="border-0"
+          />
+          {query && (
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 mr-2"
+              onClick={clearSearch}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+        
+        {/* Filter Buttons */}
+        {isAdminOrStaff && query.length >= 2 && (
+          <div className="flex items-center gap-1 px-3 py-2 border-b overflow-x-auto">
+            <Filter className="h-3 w-3 text-muted-foreground shrink-0 mr-1" />
+            {filterOptions.map((filter) => (
+              <Button
+                key={filter.key}
+                variant={activeFilter === filter.key ? "default" : "outline"}
+                size="sm"
+                className="h-7 text-xs gap-1 shrink-0"
+                onClick={() => handleFilterChange(filter.key)}
+              >
+                {filter.icon}
+                {filter.label}
+              </Button>
+            ))}
+          </div>
+        )}
+
+        {/* Result Count */}
+        {query.length >= 2 && !loading && totalCount > 0 && (
+          <div className="px-3 py-1.5 text-xs text-muted-foreground border-b bg-muted/30">
+            Found {totalCount} result{totalCount !== 1 ? 's' : ''} 
+            {activeFilter !== "all" && ` in ${activeFilter}`}
+          </div>
+        )}
+
         <CommandList>
           {loading && (
             <div className="flex items-center justify-center py-6">
