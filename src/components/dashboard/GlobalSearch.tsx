@@ -150,7 +150,7 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
               subtitle: msg.content.substring(0, 60) + (msg.content.length > 60 ? "..." : ""),
               meta: msg.message_type,
               icon: <MessageSquare className="w-4 h-4" />,
-              targetTab: "messaging"
+              targetTab: "messages"
             });
           });
         }
@@ -500,7 +500,7 @@ const GlobalSearch = ({ userRole, onNavigate, className }: GlobalSearchProps) =>
                 <CommandItem
                   onSelect={() => {
                     setOpen(false);
-                    onNavigate?.("messaging");
+                    onNavigate?.("messages");
                   }}
                   className="cursor-pointer"
                 >
