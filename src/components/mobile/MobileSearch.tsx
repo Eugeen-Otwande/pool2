@@ -121,7 +121,7 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
               title: msg.title,
               subtitle: msg.content.substring(0, 50) + "...",
               meta: msg.message_type,
-              targetTab: "messaging"
+              targetTab: "messages"
             });
           });
         }
@@ -407,7 +407,7 @@ const MobileSearch = ({ open, onOpenChange, userRole, onNavigate }: MobileSearch
                     className="justify-start h-auto py-3"
                     onClick={() => {
                       onOpenChange(false);
-                      onNavigate?.("messaging");
+                      onNavigate?.("messages");
                     }}
                   >
                     <MessageSquare className="w-4 h-4 mr-2 text-purple-500" />
