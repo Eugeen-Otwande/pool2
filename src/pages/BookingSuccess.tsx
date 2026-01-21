@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useLocation, useNavigate, Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Download, Home, Calendar, Clock, Users, Mail, Phone, ArrowLeft, Loader2 } from 'lucide-react';
+import { CheckCircle2, Download, Home, Calendar, Clock, Users, Mail, Phone, ArrowLeft, Loader2, CheckCircle, XCircle } from 'lucide-react';
 import { downloadGatePassPDF, GatePassData } from '@/utils/generateGatePassPDF';
 import { toast } from 'sonner';
 
@@ -16,6 +16,8 @@ interface BookingDetails {
   dateOfVisit: string;
   timeOfVisit: string;
   numGuests: number;
+  emailSent?: boolean;
+  emailError?: string;
 }
 
 const BookingSuccess = () => {
@@ -116,6 +118,31 @@ const BookingSuccess = () => {
               {bookingDetails.bookingReference}
             </CardTitle>
           </CardHeader>
+
+            {/* Email Status */}
+            {bookingDetails.emailSent !== undefined && (
+              <div className={`mx-6 mb-4 p-3 rounded-lg flex items-center gap-2 ${
+                bookingDetails.emailSent 
+                  ? 'bg-green-50 dark:bg-green-950/30 border border-green-200 dark:border-green-900' 
+                  : 'bg-yellow-50 dark:bg-yellow-950/30 border border-yellow-200 dark:border-yellow-900'
+              }`}>
+                {bookingDetails.emailSent ? (
+                  <>
+                    <CheckCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    <span className="text-sm text-green-800 dark:text-green-200">
+                      Gate pass sent to <strong>{bookingDetails.email}</strong>
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-5 h-5 text-yellow-600 dark:text-yellow-400" />
+                    <span className="text-sm text-yellow-800 dark:text-yellow-200">
+                      Email could not be sent. Please download your gate pass below.
+                    </span>
+                  </>
+                )}
+              </div>
+            )}
 
           <CardContent className="space-y-6">
             {/* Booking Details */}

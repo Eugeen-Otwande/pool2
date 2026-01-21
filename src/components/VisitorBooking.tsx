@@ -7,13 +7,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Home, Loader2 } from 'lucide-react';
+import { CalendarIcon, ArrowLeft, Loader2 } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateBookingReference } from '@/utils/generateGatePassPDF';
+import { generateBookingReference, generateGatePassPDFBase64, GatePassData } from '@/utils/generateGatePassPDF';
 
 const VisitorBooking = () => {
   const navigate = useNavigate();
@@ -86,6 +86,59 @@ const VisitorBooking = () => {
 
       // Generate booking reference from the created booking ID
       const bookingReference = generateBookingReference(insertedData.id);
+      const dateOfVisit = date.toISOString().split('T')[0];
+      
+      // Prepare gate pass data
+      const gatePassData: GatePassData = {
+        bookingReference: bookingReference,
+        fullName: `${formData.first_name} ${formData.last_name}`,
+        email: formData.email,
+        phone: formData.phone,
+        bookingDate: new Date(dateOfVisit).toLocaleDateString('en-US', {
+          weekday: 'long',
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric'
+        }),
+        preferredTime: formData.time,
+        numberOfGuests: formData.num_guests,
+        expectedEntryTime: formData.time
+      };
+
+      // Generate PDF as base64 for email attachment
+      let emailSent = false;
+      let emailError: string | undefined;
+      
+      try {
+        const pdfBase64 = await generateGatePassPDFBase64(gatePassData);
+        
+        // Send email with gate pass attachment
+        const { data: emailData, error: emailSendError } = await supabase.functions.invoke('send-gate-pass-email', {
+          body: {
+            email: formData.email,
+            firstName: formData.first_name,
+            lastName: formData.last_name,
+            phone: formData.phone,
+            dateOfVisit: dateOfVisit,
+            timeOfVisit: formData.time,
+            numGuests: formData.num_guests,
+            bookingReference: bookingReference,
+            pdfBase64: pdfBase64
+          }
+        });
+
+        if (emailSendError) {
+          console.error('Email send error:', emailSendError);
+          emailError = emailSendError.message;
+        } else if (emailData?.success) {
+          emailSent = true;
+        } else {
+          emailError = emailData?.error || 'Unknown email error';
+        }
+      } catch (emailErr) {
+        console.error('Error sending email:', emailErr);
+        emailError = emailErr instanceof Error ? emailErr.message : 'Failed to send email';
+      }
 
       // Navigate to success page with booking details
       navigate('/booking-success', {
@@ -96,9 +149,11 @@ const VisitorBooking = () => {
           lastName: formData.last_name,
           email: formData.email,
           phone: formData.phone,
-          dateOfVisit: date.toISOString().split('T')[0],
+          dateOfVisit: dateOfVisit,
           timeOfVisit: formData.time,
-          numGuests: formData.num_guests
+          numGuests: formData.num_guests,
+          emailSent: emailSent,
+          emailError: emailError
         }
       });
 
