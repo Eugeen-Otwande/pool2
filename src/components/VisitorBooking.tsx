@@ -7,15 +7,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, ArrowLeft, Home } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import heroImage from '@/assets/pool-hero.jpg';
+import { CalendarIcon, ArrowLeft, Home, Loader2 } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { generateBookingReference } from '@/utils/generateGatePassPDF';
 
 const VisitorBooking = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -35,14 +36,37 @@ const VisitorBooking = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validation
     if (!date) {
       toast.error('Please select a date');
+      return;
+    }
+    
+    if (!formData.time) {
+      toast.error('Please select a time');
+      return;
+    }
+
+    if (!formData.first_name || !formData.last_name) {
+      toast.error('Please enter your full name');
+      return;
+    }
+
+    if (!formData.email) {
+      toast.error('Please enter your email');
+      return;
+    }
+
+    if (!formData.phone) {
+      toast.error('Please enter your phone number');
       return;
     }
 
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Insert booking into database
+      const { data: insertedData, error } = await supabase
         .from('visitors')
         .insert([{
           first_name: formData.first_name,
@@ -52,26 +76,35 @@ const VisitorBooking = () => {
           date_of_visit: date.toISOString().split('T')[0],
           time_of_visit: formData.time,
           num_guests: formData.num_guests,
-          payment_status: 'Pending'
-        }]);
+          payment_status: 'Pending',
+          check_in_status: 'Not Checked In'
+        }])
+        .select()
+        .single();
 
       if (error) throw error;
 
-      toast.success('Booking request submitted successfully!');
-      setFormData({
-        first_name: '',
-        last_name: '',
-        email: '',
-        phone: '',
-        date: undefined,
-        time: '',
-        num_guests: 1,
-        special_requests: ''
+      // Generate booking reference from the created booking ID
+      const bookingReference = generateBookingReference(insertedData.id);
+
+      // Navigate to success page with booking details
+      navigate('/booking-success', {
+        state: {
+          id: insertedData.id,
+          bookingReference: bookingReference,
+          firstName: formData.first_name,
+          lastName: formData.last_name,
+          email: formData.email,
+          phone: formData.phone,
+          dateOfVisit: date.toISOString().split('T')[0],
+          timeOfVisit: formData.time,
+          numGuests: formData.num_guests
+        }
       });
-      setDate(undefined);
+
     } catch (error) {
-      toast.error('Error submitting booking request');
-      console.error('Error:', error);
+      console.error('Error submitting booking:', error);
+      toast.error('Error submitting booking request. Please try again.');
     } finally {
       setIsLoading(false);
     }
@@ -116,6 +149,7 @@ const VisitorBooking = () => {
                     value={formData.first_name}
                     onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
                     required
+                    placeholder="Enter your first name"
                   />
                 </div>
                 <div className="space-y-2">
@@ -125,6 +159,7 @@ const VisitorBooking = () => {
                     value={formData.last_name}
                     onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
                     required
+                    placeholder="Enter your last name"
                   />
                 </div>
               </div>
@@ -138,6 +173,7 @@ const VisitorBooking = () => {
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                     required
+                    placeholder="your@email.com"
                   />
                 </div>
                 <div className="space-y-2">
@@ -148,6 +184,7 @@ const VisitorBooking = () => {
                     value={formData.phone}
                     onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                     required
+                    placeholder="+254 700 000 000"
                   />
                 </div>
               </div>
@@ -214,7 +251,7 @@ const VisitorBooking = () => {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="requests">Special Requests</Label>
+                <Label htmlFor="requests">Special Requests (Optional)</Label>
                 <Textarea
                   id="requests"
                   value={formData.special_requests}
@@ -223,9 +260,21 @@ const VisitorBooking = () => {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Submitting...' : 'Submit Booking Request'}
+              <Button type="submit" className="w-full h-12 text-lg" disabled={isLoading}>
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                    Submitting Booking...
+                  </>
+                ) : (
+                  'Book Now'
+                )}
               </Button>
+
+              <p className="text-xs text-center text-muted-foreground">
+                By booking, you agree to our pool rules and regulations. 
+                Payment will be collected at the facility.
+              </p>
             </form>
           </CardContent>
         </Card>
