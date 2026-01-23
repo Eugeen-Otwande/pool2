@@ -5,9 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Search, Calendar, Users, CreditCard } from 'lucide-react';
+import { Search, Calendar as CalendarIcon, Users, CreditCard, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { format } from 'date-fns';
+import { cn } from '@/lib/utils';
+import jsPDF from 'jspdf';
 
 interface Visitor {
   id: string;
@@ -25,11 +30,17 @@ interface Visitor {
   created_at: string;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 const VisitorManagementTab = () => {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [paymentFilter, setPaymentFilter] = useState('all');
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     fetchVisitors();
@@ -55,8 +66,8 @@ const VisitorManagementTab = () => {
   const updateCheckInStatus = async (id: string, action: 'check_in' | 'check_out') => {
     try {
       const updates = action === 'check_in' 
-        ? { check_in_time: new Date().toISOString() }
-        : { check_out_time: new Date().toISOString() };
+        ? { check_in_time: new Date().toISOString(), check_in_status: 'Checked In' }
+        : { check_out_time: new Date().toISOString(), check_in_status: 'Checked Out' };
 
       const { error } = await supabase
         .from('visitors')
@@ -82,28 +93,174 @@ const VisitorManagementTab = () => {
   const filteredVisitors = visitors.filter(visitor => {
     const fullName = `${visitor.first_name} ${visitor.last_name}`.toLowerCase();
     const matchesSearch = fullName.includes(searchTerm.toLowerCase()) ||
-                         visitor.email.toLowerCase().includes(searchTerm.toLowerCase());
+                         visitor.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         visitor.phone.includes(searchTerm);
+    
     const status = getVisitorStatus(visitor);
     const matchesStatus = statusFilter === 'all' || status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesPayment = paymentFilter === 'all' || visitor.payment_status === paymentFilter;
+
+    const visitDate = new Date(visitor.date_of_visit);
+    const matchesDateFrom = !dateFrom || visitDate >= dateFrom;
+    const matchesDateTo = !dateTo || visitDate <= dateTo;
+
+    return matchesSearch && matchesStatus && matchesPayment && matchesDateFrom && matchesDateTo;
   });
+
+  // Pagination
+  const totalPages = Math.ceil(filteredVisitors.length / ITEMS_PER_PAGE);
+  const paginatedVisitors = filteredVisitors.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter, paymentFilter, dateFrom, dateTo]);
 
   const getStatusBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      pending: "outline",
+      not_checked_in: "outline",
       checked_in: "default",
       checked_out: "secondary"
     };
-    return <Badge variant={variants[status] || "outline"}>{status.replace('_', ' ')}</Badge>;
+    const labels: Record<string, string> = {
+      not_checked_in: "Not Checked In",
+      checked_in: "Checked In",
+      checked_out: "Checked Out"
+    };
+    return <Badge variant={variants[status] || "outline"}>{labels[status] || status}</Badge>;
   };
 
   const getPaymentBadge = (status: string) => {
     const variants: Record<string, "default" | "secondary" | "destructive" | "outline"> = {
-      pending: "outline",
-      paid: "default",
-      failed: "destructive"
+      Pending: "outline",
+      Paid: "default",
+      Failed: "destructive"
     };
     return <Badge variant={variants[status] || "outline"}>{status}</Badge>;
+  };
+
+  const downloadCSV = () => {
+    const headers = ['Name', 'Email', 'Phone', 'Visit Date', 'Time', 'Guests', 'Payment Status', 'Check-in Status', 'Created At'];
+    const csvData = filteredVisitors.map(v => [
+      `${v.first_name} ${v.last_name}`,
+      v.email,
+      v.phone,
+      v.date_of_visit,
+      v.time_of_visit,
+      v.num_guests.toString(),
+      v.payment_status,
+      v.check_in_status,
+      new Date(v.created_at).toLocaleString()
+    ]);
+
+    const csvContent = [headers, ...csvData]
+      .map(row => row.map(cell => `"${cell}"`).join(','))
+      .join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `visitor-report-${format(new Date(), 'yyyy-MM-dd')}.csv`;
+    link.click();
+
+    toast.success('CSV report downloaded successfully');
+  };
+
+  const downloadPDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+    
+    // Header
+    doc.setFillColor(30, 64, 175);
+    doc.rect(0, 0, pageWidth, 35, 'F');
+    
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(20);
+    doc.text('RCMRD Aquatic Center', pageWidth / 2, 15, { align: 'center' });
+    doc.setFontSize(14);
+    doc.text('Visitor Records Report', pageWidth / 2, 25, { align: 'center' });
+
+    // Report info
+    doc.setTextColor(0, 0, 0);
+    doc.setFontSize(10);
+    doc.text(`Generated: ${format(new Date(), 'PPP p')}`, 14, 45);
+    doc.text(`Total Records: ${filteredVisitors.length}`, 14, 52);
+    
+    if (dateFrom || dateTo) {
+      const dateRange = `Date Range: ${dateFrom ? format(dateFrom, 'PP') : 'Start'} - ${dateTo ? format(dateTo, 'PP') : 'End'}`;
+      doc.text(dateRange, 14, 59);
+    }
+
+    // Table
+    let yPos = 70;
+    const colWidths = [35, 45, 25, 20, 25, 25, 20];
+    const headers = ['Name', 'Email', 'Phone', 'Date', 'Payment', 'Status', 'Guests'];
+
+    // Table header
+    doc.setFillColor(240, 240, 240);
+    doc.rect(10, yPos - 5, pageWidth - 20, 8, 'F');
+    doc.setFontSize(8);
+    doc.setFont('helvetica', 'bold');
+    
+    let xPos = 12;
+    headers.forEach((header, i) => {
+      doc.text(header, xPos, yPos);
+      xPos += colWidths[i];
+    });
+
+    yPos += 8;
+    doc.setFont('helvetica', 'normal');
+
+    // Table rows
+    filteredVisitors.forEach((visitor, index) => {
+      if (yPos > 270) {
+        doc.addPage();
+        yPos = 20;
+      }
+
+      if (index % 2 === 0) {
+        doc.setFillColor(248, 248, 248);
+        doc.rect(10, yPos - 4, pageWidth - 20, 7, 'F');
+      }
+
+      xPos = 12;
+      const rowData = [
+        `${visitor.first_name} ${visitor.last_name}`.substring(0, 18),
+        visitor.email.substring(0, 22),
+        visitor.phone.substring(0, 12),
+        visitor.date_of_visit,
+        visitor.payment_status,
+        visitor.check_in_status.substring(0, 12),
+        visitor.num_guests.toString()
+      ];
+
+      rowData.forEach((cell, i) => {
+        doc.text(cell, xPos, yPos);
+        xPos += colWidths[i];
+      });
+
+      yPos += 7;
+    });
+
+    // Footer
+    doc.setFontSize(8);
+    doc.setTextColor(128, 128, 128);
+    doc.text('© RCMRD Aquatic Center - Confidential', pageWidth / 2, 290, { align: 'center' });
+
+    doc.save(`visitor-report-${format(new Date(), 'yyyy-MM-dd')}.pdf`);
+
+    toast.success('PDF report downloaded successfully');
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setPaymentFilter('all');
+    setDateFrom(undefined);
+    setDateTo(undefined);
   };
 
   if (loading) {
@@ -115,7 +272,7 @@ const VisitorManagementTab = () => {
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold">Visitor Management</h2>
-          <p className="text-gray-600">Manage pool visitor bookings and check-ins</p>
+          <p className="text-muted-foreground">Manage pool visitor bookings and check-ins</p>
         </div>
       </div>
 
@@ -126,7 +283,7 @@ const VisitorManagementTab = () => {
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-blue-600" />
               <div>
-                <p className="text-sm text-gray-600">Total Visitors</p>
+                <p className="text-sm text-muted-foreground">Total Visitors</p>
                 <p className="text-2xl font-bold">{visitors.length}</p>
               </div>
             </div>
@@ -135,9 +292,9 @@ const VisitorManagementTab = () => {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
-              <Calendar className="h-4 w-4 text-green-600" />
+              <CalendarIcon className="h-4 w-4 text-green-600" />
               <div>
-                <p className="text-sm text-gray-600">Today's Bookings</p>
+                <p className="text-sm text-muted-foreground">Today's Bookings</p>
                 <p className="text-2xl font-bold">
                   {visitors.filter(v => v.date_of_visit === new Date().toISOString().split('T')[0]).length}
                 </p>
@@ -145,12 +302,12 @@ const VisitorManagementTab = () => {
             </div>
           </CardContent>
         </Card>
-                <Card>
+        <Card>
           <CardContent className="p-4">
             <div className="flex items-center space-x-2">
               <Users className="h-4 w-4 text-orange-600" />
               <div>
-                <p className="text-sm text-gray-600">Checked In</p>
+                <p className="text-sm text-muted-foreground">Checked In</p>
                 <p className="text-2xl font-bold">
                   {visitors.filter(v => getVisitorStatus(v) === 'checked_in').length}
                 </p>
@@ -163,7 +320,7 @@ const VisitorManagementTab = () => {
             <div className="flex items-center space-x-2">
               <CreditCard className="h-4 w-4 text-purple-600" />
               <div>
-                <p className="text-sm text-gray-600">Paid</p>
+                <p className="text-sm text-muted-foreground">Paid</p>
                 <p className="text-2xl font-bold">
                   {visitors.filter(v => v.payment_status === 'Paid').length}
                 </p>
@@ -174,36 +331,100 @@ const VisitorManagementTab = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-4 items-center">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-          <Input
-            placeholder="Search visitors..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-48">
-            <SelectValue placeholder="Filter by status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Statuses</SelectItem>
-            <SelectItem value="pending">Pending</SelectItem>
-            <SelectItem value="checked_in">Checked In</SelectItem>
-            <SelectItem value="checked_out">Checked Out</SelectItem>
-          </SelectContent>
-        </Select>
-      </div>
+      <Card>
+        <CardContent className="p-4">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                <Input
+                  placeholder="Search by name, email, phone..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10"
+                />
+              </div>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Check-in Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="not_checked_in">Not Checked In</SelectItem>
+                  <SelectItem value="checked_in">Checked In</SelectItem>
+                  <SelectItem value="checked_out">Checked Out</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={paymentFilter} onValueChange={setPaymentFilter}>
+                <SelectTrigger className="w-full md:w-48">
+                  <SelectValue placeholder="Payment Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Payments</SelectItem>
+                  <SelectItem value="Paid">Paid</SelectItem>
+                  <SelectItem value="Pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-4 items-start md:items-center">
+              <div className="flex gap-2 items-center">
+                <span className="text-sm text-muted-foreground whitespace-nowrap">Date Range:</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateFrom && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateFrom ? format(dateFrom, "PP") : "From"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={dateFrom} onSelect={setDateFrom} initialFocus />
+                  </PopoverContent>
+                </Popover>
+                <span className="text-muted-foreground">-</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className={cn("justify-start text-left font-normal", !dateTo && "text-muted-foreground")}>
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateTo ? format(dateTo, "PP") : "To"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={dateTo} onSelect={setDateTo} initialFocus />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              
+              <div className="flex gap-2 ml-auto">
+                <Button variant="ghost" size="sm" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadCSV}>
+                  <Download className="w-4 h-4 mr-2" />
+                  CSV
+                </Button>
+                <Button variant="outline" size="sm" onClick={downloadPDF}>
+                  <FileText className="w-4 h-4 mr-2" />
+                  PDF
+                </Button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Visitors Table */}
       <Card>
-        <CardHeader>
-          <CardTitle>Visitor Records</CardTitle>
-          <CardDescription>
-            View and manage all visitor bookings and check-in status
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Visitor Records</CardTitle>
+            <CardDescription>
+              View and manage all visitor bookings and check-in status
+            </CardDescription>
+          </div>
+          <span className="text-sm text-muted-foreground">
+            Showing {paginatedVisitors.length} of {filteredVisitors.length} records
+          </span>
         </CardHeader>
         <CardContent>
           <Table>
@@ -220,45 +441,107 @@ const VisitorManagementTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredVisitors.map((visitor) => (
-                <TableRow key={visitor.id}>
-                  <TableCell className="font-medium">{visitor.first_name} {visitor.last_name}</TableCell>
-                  <TableCell>
-                    <div className="text-sm">
-                      <div>{visitor.email}</div>
-                      <div className="text-gray-500">{visitor.phone}</div>
-                    </div>
-                  </TableCell>
-                  <TableCell>{visitor.date_of_visit}</TableCell>
-                  <TableCell>{visitor.time_of_visit}</TableCell>
-                  <TableCell>{visitor.num_guests}</TableCell>
-                  <TableCell>{getPaymentBadge(visitor.payment_status)}</TableCell>
-                  <TableCell>{getStatusBadge(getVisitorStatus(visitor))}</TableCell>
-                  <TableCell>
-                    <div className="flex gap-2">
-                      {!visitor.check_in_time && (
-                        <Button
-                          size="sm"
-                          onClick={() => updateCheckInStatus(visitor.id, 'check_in')}
-                        >
-                          Check In
-                        </Button>
-                      )}
-                      {visitor.check_in_time && !visitor.check_out_time && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => updateCheckInStatus(visitor.id, 'check_out')}
-                        >
-                          Check Out
-                        </Button>
-                      )}
-                    </div>
+              {paginatedVisitors.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                    No visitors found matching your filters
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                paginatedVisitors.map((visitor) => (
+                  <TableRow key={visitor.id}>
+                    <TableCell className="font-medium">{visitor.first_name} {visitor.last_name}</TableCell>
+                    <TableCell>
+                      <div className="text-sm">
+                        <div>{visitor.email}</div>
+                        <div className="text-muted-foreground">{visitor.phone}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{visitor.date_of_visit}</TableCell>
+                    <TableCell>{visitor.time_of_visit}</TableCell>
+                    <TableCell>{visitor.num_guests}</TableCell>
+                    <TableCell>{getPaymentBadge(visitor.payment_status)}</TableCell>
+                    <TableCell>{getStatusBadge(getVisitorStatus(visitor))}</TableCell>
+                    <TableCell>
+                      <div className="flex gap-2">
+                        {!visitor.check_in_time && (
+                          <Button
+                            size="sm"
+                            onClick={() => updateCheckInStatus(visitor.id, 'check_in')}
+                          >
+                            Check In
+                          </Button>
+                        )}
+                        {visitor.check_in_time && !visitor.check_out_time && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => updateCheckInStatus(visitor.id, 'check_out')}
+                          >
+                            Check Out
+                          </Button>
+                        )}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4 pt-4 border-t">
+              <div className="text-sm text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </Button>
+                <div className="flex gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    return (
+                      <Button
+                        key={pageNum}
+                        variant={currentPage === pageNum ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setCurrentPage(pageNum)}
+                        className="w-8"
+                      >
+                        {pageNum}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
