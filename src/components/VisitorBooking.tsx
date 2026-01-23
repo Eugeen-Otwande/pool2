@@ -13,7 +13,7 @@ import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { generateBookingReference, generateGatePassPDFBase64, GatePassData } from '@/utils/generateGatePassPDF';
+import { generateBookingReference } from '@/utils/generateGatePassPDF';
 
 const VisitorBooking = () => {
   const navigate = useNavigate();
@@ -87,58 +87,6 @@ const VisitorBooking = () => {
       // Generate booking reference from the created booking ID
       const bookingReference = generateBookingReference(insertedData.id);
       const dateOfVisit = date.toISOString().split('T')[0];
-      
-      // Prepare gate pass data
-      const gatePassData: GatePassData = {
-        bookingReference: bookingReference,
-        fullName: `${formData.first_name} ${formData.last_name}`,
-        email: formData.email,
-        phone: formData.phone,
-        bookingDate: new Date(dateOfVisit).toLocaleDateString('en-US', {
-          weekday: 'long',
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric'
-        }),
-        preferredTime: formData.time,
-        numberOfGuests: formData.num_guests,
-        expectedEntryTime: formData.time
-      };
-
-      // Generate PDF as base64 for email attachment
-      let emailSent = false;
-      let emailError: string | undefined;
-      
-      try {
-        const pdfBase64 = await generateGatePassPDFBase64(gatePassData);
-        
-        // Send email with gate pass attachment
-        const { data: emailData, error: emailSendError } = await supabase.functions.invoke('send-gate-pass-email', {
-          body: {
-            email: formData.email,
-            firstName: formData.first_name,
-            lastName: formData.last_name,
-            phone: formData.phone,
-            dateOfVisit: dateOfVisit,
-            timeOfVisit: formData.time,
-            numGuests: formData.num_guests,
-            bookingReference: bookingReference,
-            pdfBase64: pdfBase64
-          }
-        });
-
-        if (emailSendError) {
-          console.error('Email send error:', emailSendError);
-          emailError = emailSendError.message;
-        } else if (emailData?.success) {
-          emailSent = true;
-        } else {
-          emailError = emailData?.error || 'Unknown email error';
-        }
-      } catch (emailErr) {
-        console.error('Error sending email:', emailErr);
-        emailError = emailErr instanceof Error ? emailErr.message : 'Failed to send email';
-      }
 
       // Navigate to success page with booking details
       navigate('/booking-success', {
@@ -151,9 +99,7 @@ const VisitorBooking = () => {
           phone: formData.phone,
           dateOfVisit: dateOfVisit,
           timeOfVisit: formData.time,
-          numGuests: formData.num_guests,
-          emailSent: emailSent,
-          emailError: emailError
+          numGuests: formData.num_guests
         }
       });
 
