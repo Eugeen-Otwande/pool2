@@ -45,7 +45,7 @@ import InquiriesTab from "./InquiriesTab";
 import VisitorManagementTab from "./VisitorManagementTab";
 import CreateUserDialog from "./CreateUserDialog";
 import ApprovalsTab from "./ApprovalsTab";
-import PoolLogsTab from "./PoolLogsTab";
+import PoolLogsReadOnlyTab from "./PoolLogsReadOnlyTab";
 import PaymentsTab from "./PaymentsTab";
 import VisitorsTab from "./VisitorsTab";
 import EnhancedCheckInsTab from "./EnhancedCheckInsTab";
@@ -1241,7 +1241,7 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
         {/* Pool Logs Tab */}
         <TabsContent value="poollogs">
-          <PoolLogsTab user={user} />
+          <PoolLogsReadOnlyTab />
         </TabsContent>
 
         {/* System Info Tab */}
