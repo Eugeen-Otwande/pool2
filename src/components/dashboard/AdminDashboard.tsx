@@ -43,7 +43,7 @@ import CreateUserDialog from "./CreateUserDialog";
 import SystemInfoTab from "./SystemInfoTab";
 import VisitorManagementTab from './VisitorManagementTab';
 import InquiriesTab from './InquiriesTab';
-import PoolLogsTab from './PoolLogsTab';
+import PoolLogsReadOnlyTab from './PoolLogsReadOnlyTab';
 import PaymentsTab from './PaymentsTab';
 import OverviewStatsWidget from './OverviewStatsWidget';
 import { EquipmentManagementTab } from './EquipmentManagementTab';
@@ -963,7 +963,7 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
         {/* Pool Logs Tab */}
         <TabsContent value="poollogs">
-          <PoolLogsTab user={user} />
+          <PoolLogsReadOnlyTab />
         </TabsContent>
 
         {/* System Info Tab */}
