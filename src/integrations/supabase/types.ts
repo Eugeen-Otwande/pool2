@@ -18,7 +18,9 @@ export type Database = {
         Row: {
           check_in_time: string
           check_out_time: string | null
+          checked_in_by: string | null
           created_at: string
+          group_id: string | null
           id: string
           notes: string | null
           schedule_id: string | null
@@ -28,7 +30,9 @@ export type Database = {
         Insert: {
           check_in_time?: string
           check_out_time?: string | null
+          checked_in_by?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           notes?: string | null
           schedule_id?: string | null
@@ -38,7 +42,9 @@ export type Database = {
         Update: {
           check_in_time?: string
           check_out_time?: string | null
+          checked_in_by?: string | null
           created_at?: string
+          group_id?: string | null
           id?: string
           notes?: string | null
           schedule_id?: string | null
@@ -46,6 +52,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "check_ins_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "check_ins_schedule_id_fkey"
             columns: ["schedule_id"]
@@ -169,6 +182,119 @@ export type Database = {
             columns: ["equipment_id"]
             isOneToOne: false
             referencedRelation: "equipment"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      group_members: {
+        Row: {
+          created_at: string
+          group_id: string
+          id: string
+          member_email: string | null
+          member_name: string
+          member_phone: string | null
+          member_role: string
+          status: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          group_id: string
+          id?: string
+          member_email?: string | null
+          member_name: string
+          member_phone?: string | null
+          member_role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          group_id?: string
+          id?: string
+          member_email?: string | null
+          member_name?: string
+          member_phone?: string | null
+          member_role?: string
+          status?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "group_members_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "group_members_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["user_id"]
+          },
+        ]
+      }
+      groups: {
+        Row: {
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string
+          created_by: string | null
+          expected_session_time: string | null
+          group_type: string
+          id: string
+          name: string
+          notes: string | null
+          organization: string | null
+          schedule_id: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_session_time?: string | null
+          group_type?: string
+          id?: string
+          name: string
+          notes?: string | null
+          organization?: string | null
+          schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          created_by?: string | null
+          expected_session_time?: string | null
+          group_type?: string
+          id?: string
+          name?: string
+          notes?: string | null
+          organization?: string | null
+          schedule_id?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "groups_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pool_schedules"
             referencedColumns: ["id"]
           },
         ]
@@ -968,6 +1094,18 @@ export type Database = {
     Functions: {
       approve_checkin: {
         Args: { approved_by_user_id: string; checkin_id: string }
+        Returns: Json
+      }
+      bulk_group_checkin: {
+        Args: {
+          p_checked_in_by?: string
+          p_group_id: string
+          p_schedule_id?: string
+        }
+        Returns: Json
+      }
+      bulk_group_checkout: {
+        Args: { p_checked_out_by?: string; p_group_id: string }
         Returns: Json
       }
       cleanup_old_checkins: { Args: never; Returns: number }
