@@ -48,6 +48,7 @@ import PaymentsTab from './PaymentsTab';
 import OverviewStatsWidget from './OverviewStatsWidget';
 import { EquipmentManagementTab } from './EquipmentManagementTab';
 import UserManagementTab from './UserManagementTab';
+import GroupCheckInsTab from './GroupCheckInsTab';
 import { User } from "@supabase/supabase-js";
 
 interface UserProfile {
@@ -663,6 +664,7 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
             <TabsTrigger value="payments" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Payments</TabsTrigger>
             <TabsTrigger value="equipment" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Equipment</TabsTrigger>
             <TabsTrigger value="checkins" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Check-ins</TabsTrigger>
+            <TabsTrigger value="groupcheckins" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Group Check-ins</TabsTrigger>
             <TabsTrigger value="poollogs" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Pool Logs</TabsTrigger>
             <TabsTrigger value="system" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">System</TabsTrigger>
           </TabsList>
@@ -959,6 +961,11 @@ const AdminDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Group Check-ins Tab */}
+        <TabsContent value="groupcheckins" className="space-y-6">
+          <GroupCheckInsTab user={user} />
         </TabsContent>
 
         {/* Pool Logs Tab */}
