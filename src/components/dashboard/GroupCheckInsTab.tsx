@@ -25,8 +25,6 @@ import {
   CheckCircle,
   XCircle,
   UserPlus,
-  History,
-  Filter
 } from "lucide-react";
 
 interface Group {
@@ -56,24 +54,6 @@ interface GroupMember {
   check_in_status?: string;
 }
 
-interface CheckInHistory {
-  id: string;
-  user_id: string;
-  check_in_time: string;
-  check_out_time: string | null;
-  status: string;
-  group_id: string | null;
-  checked_in_by: string | null;
-  profiles?: {
-    first_name: string | null;
-    last_name: string | null;
-    role: string;
-  };
-  groups?: {
-    name: string;
-  } | null;
-}
-
 interface GroupCheckInsTabProps {
   user: User;
 }
@@ -83,7 +63,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
   const [groups, setGroups] = useState<Group[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
   const [members, setMembers] = useState<GroupMember[]>([]);
-  const [checkInHistory, setCheckInHistory] = useState<CheckInHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState("groups");
   
@@ -112,13 +91,8 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
     member_role: "member",
   });
 
-  // History filters
-  const [historyGroupFilter, setHistoryGroupFilter] = useState<string>("all");
-  const [historyDateFilter, setHistoryDateFilter] = useState<string>("");
-
   useEffect(() => {
     fetchGroups();
-    fetchCheckInHistory();
   }, []);
 
   useEffect(() => {
@@ -187,42 +161,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
         description: "Failed to load group members",
         variant: "destructive",
       });
-    }
-  };
-
-  const fetchCheckInHistory = async () => {
-    try {
-      const { data, error } = await supabase
-        .from("check_ins")
-        .select(`
-          *,
-          groups(name)
-        `)
-        .not("group_id", "is", null)
-        .order("check_in_time", { ascending: false })
-        .limit(100);
-
-      if (error) throw error;
-
-      // Fetch profile info for each check-in
-      const historyWithProfiles = await Promise.all(
-        (data || []).map(async (checkIn) => {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("first_name, last_name, role")
-            .eq("user_id", checkIn.user_id)
-            .maybeSingle();
-
-          return {
-            ...checkIn,
-            profiles: profile,
-          };
-        })
-      );
-
-      setCheckInHistory(historyWithProfiles);
-    } catch (error: any) {
-      console.error("Error fetching check-in history:", error);
     }
   };
 
@@ -299,7 +237,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
     if (!selectedGroup) return;
 
     try {
-      // Check if email already exists in group
       if (memberForm.member_email) {
         const { data: existing } = await supabase
           .from("group_members")
@@ -318,7 +255,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
         }
       }
 
-      // Check if user exists in profiles
       let userId = null;
       if (memberForm.member_email) {
         const { data: profile } = await supabase
@@ -414,7 +350,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
       });
 
       fetchMembers(selectedGroup.id);
-      fetchCheckInHistory();
     } catch (error: any) {
       console.error("Error during bulk check-in:", error);
       toast({
@@ -444,7 +379,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
       });
 
       fetchMembers(selectedGroup.id);
-      fetchCheckInHistory();
     } catch (error: any) {
       console.error("Error during bulk check-out:", error);
       toast({
@@ -477,7 +411,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
 
       if (error) throw error;
 
-      // Update profile status
       await supabase
         .from("profiles")
         .update({ check_in_status: "Checked In", check_in_at: new Date().toISOString() })
@@ -491,7 +424,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
       if (selectedGroup) {
         fetchMembers(selectedGroup.id);
       }
-      fetchCheckInHistory();
     } catch (error: any) {
       console.error("Error checking in member:", error);
       toast({
@@ -515,7 +447,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
 
       if (error) throw error;
 
-      // Update profile status
       await supabase
         .from("profiles")
         .update({ check_in_status: "Checked Out", check_out_at: new Date().toISOString() })
@@ -529,7 +460,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
       if (selectedGroup) {
         fetchMembers(selectedGroup.id);
       }
-      fetchCheckInHistory();
     } catch (error: any) {
       console.error("Error checking out member:", error);
       toast({
@@ -613,19 +543,13 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
     return labels[role] || role;
   };
 
-  const filteredHistory = checkInHistory.filter((h) => {
-    if (historyGroupFilter !== "all" && h.group_id !== historyGroupFilter) return false;
-    if (historyDateFilter && !h.check_in_time.startsWith(historyDateFilter)) return false;
-    return true;
-  });
-
   const checkedInCount = members.filter((m) => m.check_in_status === "Checked In").length;
   const linkedMembersCount = members.filter((m) => m.user_id).length;
 
   return (
     <div className="space-y-6">
       <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="groups" className="flex items-center gap-2">
             <Users className="w-4 h-4" />
             Groups
@@ -633,10 +557,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
           <TabsTrigger value="checkin" className="flex items-center gap-2" disabled={!selectedGroup}>
             <UserCheck className="w-4 h-4" />
             Check-in
-          </TabsTrigger>
-          <TabsTrigger value="history" className="flex items-center gap-2">
-            <History className="w-4 h-4" />
-            History
           </TabsTrigger>
         </TabsList>
 
@@ -651,7 +571,7 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                     Manage Groups
                   </CardTitle>
                   <CardDescription>
-                    Create and manage swimmer groups for bulk check-ins
+                    Create and manage swimmer groups — check-in history appears in the main Check-ins tab
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -1098,120 +1018,6 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
               </CardContent>
             </Card>
           )}
-        </TabsContent>
-
-        {/* History Tab */}
-        <TabsContent value="history" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="flex items-center gap-2">
-                    <History className="w-5 h-5" />
-                    Group Check-in History
-                  </CardTitle>
-                  <CardDescription>View check-in records for all groups</CardDescription>
-                </div>
-                <Button variant="outline" size="sm" onClick={fetchCheckInHistory}>
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh
-                </Button>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {/* Filters */}
-              <div className="flex flex-wrap gap-4 mb-4 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2">
-                  <Filter className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">Filters:</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">Group</Label>
-                  <Select value={historyGroupFilter} onValueChange={setHistoryGroupFilter}>
-                    <SelectTrigger className="w-[180px] h-9">
-                      <SelectValue placeholder="All Groups" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Groups</SelectItem>
-                      {groups.map((g) => (
-                        <SelectItem key={g.id} value={g.id}>
-                          {g.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
-                  <Input
-                    type="date"
-                    value={historyDateFilter}
-                    onChange={(e) => setHistoryDateFilter(e.target.value)}
-                    className="w-[150px] h-9"
-                  />
-                </div>
-                {(historyGroupFilter !== "all" || historyDateFilter) && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="self-end"
-                    onClick={() => {
-                      setHistoryGroupFilter("all");
-                      setHistoryDateFilter("");
-                    }}
-                  >
-                    Clear Filters
-                  </Button>
-                )}
-              </div>
-
-              {filteredHistory.length === 0 ? (
-                <div className="text-center py-8 text-muted-foreground">
-                  <History className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No group check-in history found</p>
-                </div>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Group</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Check-out</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredHistory.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {new Date(record.check_in_time).toLocaleString()}
-                        </TableCell>
-                        <TableCell>
-                          {record.profiles
-                            ? `${record.profiles.first_name || ""} ${record.profiles.last_name || ""}`.trim() || "Unknown"
-                            : "Unknown"}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{record.groups?.name || "Unknown Group"}</Badge>
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant={record.status === "checked_in" ? "default" : "secondary"}>
-                            {record.status === "checked_in" ? "Checked In" : "Checked Out"}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          {record.check_out_time
-                            ? new Date(record.check_out_time).toLocaleString()
-                            : "-"}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
-            </CardContent>
-          </Card>
         </TabsContent>
       </Tabs>
     </div>

@@ -34,22 +34,27 @@ interface CheckIn {
   check_out_time?: string;
   status: string;
   notes?: string;
+  group_id?: string | null;
+  checked_in_by?: string | null;
   profiles: {
     first_name: string;
     last_name: string;
     role: string;
     email?: string;
   };
+  group_name?: string | null;
 }
 
 const EnhancedCheckInsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<UserProfile[]>([]);
   const [roleFilter, setRoleFilter] = useState('all');
+  const [groupFilter, setGroupFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [filteredCheckIns, setFilteredCheckIns] = useState<CheckIn[]>([]);
   const [allCheckIns, setAllCheckIns] = useState<CheckIn[]>([]);
+  const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
 
   const formatDuration = (checkInTime: string, checkOutTime?: string) => {
     const endTime = checkOutTime ? new Date(checkOutTime) : new Date();
@@ -60,33 +65,62 @@ const EnhancedCheckInsTab = () => {
     return `${diffHours}h ${diffMinutes}m`;
   };
 
-  const fetchAllCheckIns = async () => {
+  const fetchGroups = async () => {
     try {
       const { data, error } = await supabase
-        .from('v_recent_activities')
-        .select('*')
-        .order('check_in_time', { ascending: false });
+        .from('groups')
+        .select('id, name')
+        .eq('status', 'active')
+        .order('name');
+      if (error) throw error;
+      setGroups(data || []);
+    } catch (error) {
+      console.error('Error fetching groups:', error);
+    }
+  };
+
+  const fetchAllCheckIns = async () => {
+    try {
+      // Fetch check-ins with group info
+      const { data, error } = await supabase
+        .from('check_ins')
+        .select('*, groups(name)')
+        .order('check_in_time', { ascending: false })
+        .limit(200);
 
       if (error) throw error;
+
+      // Fetch profile info for each check-in
+      const checkInsWithProfiles = await Promise.all(
+        (data || []).map(async (checkIn) => {
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('first_name, last_name, role, email')
+            .eq('user_id', checkIn.user_id)
+            .maybeSingle();
+
+          return {
+            id: checkIn.id,
+            user_id: checkIn.user_id,
+            check_in_time: checkIn.check_in_time,
+            check_out_time: checkIn.check_out_time || undefined,
+            status: checkIn.status,
+            notes: checkIn.notes || undefined,
+            group_id: checkIn.group_id,
+            checked_in_by: checkIn.checked_in_by,
+            profiles: {
+              first_name: profile?.first_name || 'Unknown',
+              last_name: profile?.last_name || 'Unknown',
+              role: profile?.role || 'Unknown',
+              email: profile?.email || 'No email',
+            },
+            group_name: (checkIn.groups as any)?.name || null,
+          };
+        })
+      );
       
-      // Transform the data to match our CheckIn interface
-      const transformedData = (data || []).map(item => ({
-        id: item.id!,
-        user_id: item.user_id!,
-        check_in_time: item.check_in_time!,
-        check_out_time: item.check_out_time || undefined,
-        status: item.status!,
-        notes: item.notes || undefined,
-        profiles: {
-          first_name: item.first_name || 'Unknown',
-          last_name: item.last_name || 'Unknown',
-          role: item.role || 'Unknown',
-          email: (item as any).email || 'No email' // Safely access email field
-        }
-      }));
-      
-      setAllCheckIns(transformedData);
-      setFilteredCheckIns(transformedData);
+      setAllCheckIns(checkInsWithProfiles);
+      setFilteredCheckIns(checkInsWithProfiles);
     } catch (error) {
       console.error('Error fetching check-ins:', error);
       toast({
@@ -101,7 +135,6 @@ const EnhancedCheckInsTab = () => {
     if (!searchTerm.trim()) return;
     
     try {
-      // Search for users in profiles
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, id, email, first_name, last_name, role')
@@ -109,7 +142,6 @@ const EnhancedCheckInsTab = () => {
       
       if (profilesError) throw profilesError;
       
-      // Search for residents
       const { data: residents, error: residentsError } = await supabase
         .from('residents')
         .select('user_id, id, email, name, phone, status')
@@ -118,9 +150,8 @@ const EnhancedCheckInsTab = () => {
       
       if (residentsError) throw residentsError;
       
-      // Convert residents to profile format
       const residentsAsProfiles = (residents || [])
-        .filter(r => r.user_id) // Only residents with user_id can check in
+        .filter(r => r.user_id)
         .map(resident => ({
           user_id: resident.user_id!,
           id: resident.id,
@@ -130,13 +161,11 @@ const EnhancedCheckInsTab = () => {
           role: 'resident'
         }));
       
-      // Combine and deduplicate results
       const allProfiles = [...(profiles || []), ...residentsAsProfiles];
       const uniqueProfiles = allProfiles.filter((profile, index, self) =>
         index === self.findIndex((p) => p.user_id === profile.user_id)
       );
       
-      // Get check-in status for each user
       const enrichedResults = await Promise.all(
         uniqueProfiles.map(async (profile) => {
           try {
@@ -171,7 +200,6 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckIn = async (userId: string, userName: string) => {
     try {
-      // Check if user is already checked in
       const { data: statusData, error: statusError } = await supabase.rpc('get_user_checkin_status', {
         _user_id: userId
       });
@@ -187,7 +215,6 @@ const EnhancedCheckInsTab = () => {
         return;
       }
       
-      // Check for existing check-in today (prevent duplicate same-day check-ins)
       const today = new Date().toISOString().split('T')[0];
       const { data: todayCheckIns } = await supabase
         .from('check_ins')
@@ -205,7 +232,6 @@ const EnhancedCheckInsTab = () => {
         return;
       }
       
-      // Insert new check-in record
       const { error: insertError } = await supabase
         .from('check_ins')
         .insert({
@@ -221,9 +247,8 @@ const EnhancedCheckInsTab = () => {
         description: `${userName} has been checked in`,
       });
       
-      // Refresh data immediately
       await fetchAllCheckIns();
-      await handleSearch(); // Refresh search results to update status
+      await handleSearch();
     } catch (error) {
       console.error('Error checking in user:', error);
       let errorMessage = "Failed to check in user";
@@ -248,7 +273,6 @@ const EnhancedCheckInsTab = () => {
 
   const handleStaffCheckOut = async (userId: string, userName: string) => {
     try {
-      // Find the latest open check-in for this user
       const { data: openCheckIns, error: queryError } = await supabase
         .from('check_ins')
         .select('id')
@@ -269,7 +293,6 @@ const EnhancedCheckInsTab = () => {
         return;
       }
       
-      // Update the open check-in record
       const { error: updateError } = await supabase
         .from('check_ins')
         .update({
@@ -285,9 +308,8 @@ const EnhancedCheckInsTab = () => {
         description: `${userName} has been checked out`,
       });
       
-      // Refresh data immediately
       await fetchAllCheckIns();
-      await handleSearch(); // Refresh search results to update status
+      await handleSearch();
     } catch (error) {
       console.error('Error checking out user:', error);
       let errorMessage = "Failed to check out user";
@@ -336,63 +358,12 @@ const EnhancedCheckInsTab = () => {
     }
   };
 
-  const handleFilterCheckIns = async () => {
-    try {
-      let query = supabase
-        .from('v_recent_activities')
-        .select('*')
-        .order('check_in_time', { ascending: false });
-
-      // Apply date filters
-      if (dateFrom) {
-        query = query.gte('check_in_time', `${dateFrom}T00:00:00`);
-      }
-      if (dateTo) {
-        query = query.lte('check_in_time', `${dateTo}T23:59:59`);
-      }
-
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      
-      let filtered = (data || []).map(item => ({
-        id: item.id!,
-        user_id: item.user_id!,
-        check_in_time: item.check_in_time!,
-        check_out_time: item.check_out_time || undefined,
-        status: item.status!,
-        notes: item.notes || undefined,
-        profiles: {
-          first_name: item.first_name || 'Unknown',
-          last_name: item.last_name || 'Unknown',
-          role: item.role || 'Unknown',
-          email: (item as any).email || 'No email'
-        }
-      }));
-      
-      // Apply role filter
-      if (roleFilter !== 'all') {
-        filtered = filtered.filter(checkIn => 
-          checkIn.profiles?.role === roleFilter
-        );
-      }
-      
-      setFilteredCheckIns(filtered);
-    } catch (error) {
-      console.error('Error filtering check-ins:', error);
-      toast({
-        title: "Filter Error",
-        description: "Failed to filter check-ins",
-        variant: "destructive",
-      });
-    }
-  };
-
   const downloadCSVReport = () => {
     const csvData = filteredCheckIns.map(checkIn => ({
       Name: `${checkIn.profiles?.first_name} ${checkIn.profiles?.last_name}`,
       Email: checkIn.profiles?.email || 'No email',
       Role: checkIn.profiles?.role,
+      Group: checkIn.group_name || 'Individual',
       'Check-in Time': new Date(checkIn.check_in_time).toLocaleString(),
       'Check-out Time': checkIn.check_out_time ? new Date(checkIn.check_out_time).toLocaleString() : 'Still checked in',
       Duration: checkIn.check_out_time 
@@ -435,14 +406,39 @@ const EnhancedCheckInsTab = () => {
 
   useEffect(() => {
     fetchAllCheckIns();
+    fetchGroups();
   }, []);
 
-  // Auto-apply filters when role or date changes
+  // Auto-apply filters when filters change
   useEffect(() => {
     if (allCheckIns.length > 0) {
-      handleFilterCheckIns();
+      let filtered = [...allCheckIns];
+
+      // Role filter
+      if (roleFilter !== 'all') {
+        filtered = filtered.filter(c => c.profiles?.role === roleFilter);
+      }
+
+      // Group filter
+      if (groupFilter !== 'all') {
+        if (groupFilter === 'individual') {
+          filtered = filtered.filter(c => !c.group_id);
+        } else {
+          filtered = filtered.filter(c => c.group_id === groupFilter);
+        }
+      }
+
+      // Date filters
+      if (dateFrom) {
+        filtered = filtered.filter(c => c.check_in_time >= `${dateFrom}T00:00:00`);
+      }
+      if (dateTo) {
+        filtered = filtered.filter(c => c.check_in_time <= `${dateTo}T23:59:59`);
+      }
+
+      setFilteredCheckIns(filtered);
     }
-  }, [roleFilter, dateFrom, dateTo, allCheckIns]);
+  }, [roleFilter, groupFilter, dateFrom, dateTo, allCheckIns]);
 
   return (
     <div className="space-y-6">
@@ -537,7 +533,7 @@ const EnhancedCheckInsTab = () => {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
               <label className="text-sm font-medium mb-2 block">Role</label>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
@@ -550,7 +546,23 @@ const EnhancedCheckInsTab = () => {
                   <SelectItem value="member">Member</SelectItem>
                   <SelectItem value="resident">Resident</SelectItem>
                   <SelectItem value="visitor">Visitor</SelectItem>
+                  <SelectItem value="staff">Staff</SelectItem>
                   <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Group</label>
+              <Select value={groupFilter} onValueChange={setGroupFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All (Group + Individual)</SelectItem>
+                  <SelectItem value="individual">Individual Only</SelectItem>
+                  {groups.map(g => (
+                    <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -601,6 +613,7 @@ const EnhancedCheckInsTab = () => {
                 <TableHead>Name</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Role</TableHead>
+                <TableHead>Group</TableHead>
                 <TableHead>Check-in Time</TableHead>
                 <TableHead>Check-out Time</TableHead>
                 <TableHead>Duration</TableHead>
@@ -619,6 +632,13 @@ const EnhancedCheckInsTab = () => {
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{checkIn.profiles?.role}</Badge>
+                  </TableCell>
+                  <TableCell>
+                    {checkIn.group_name ? (
+                      <Badge variant="secondary">{checkIn.group_name}</Badge>
+                    ) : (
+                      <span className="text-muted-foreground text-sm">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {new Date(checkIn.check_in_time).toLocaleString()}
