@@ -25,7 +25,11 @@ import {
   CheckCircle,
   XCircle,
   UserPlus,
+  Upload,
+  FileText,
+  AlertCircle,
 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface Group {
   id: string;
@@ -69,8 +73,12 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
   // Dialog states
   const [showGroupDialog, setShowGroupDialog] = useState(false);
   const [showMemberDialog, setShowMemberDialog] = useState(false);
+  const [showCsvDialog, setShowCsvDialog] = useState(false);
   const [editingGroup, setEditingGroup] = useState<Group | null>(null);
   const [editingMember, setEditingMember] = useState<GroupMember | null>(null);
+  const [csvData, setCsvData] = useState<Array<{ member_name: string; member_email: string; member_phone: string; member_role: string }>>([]);
+  const [csvError, setCsvError] = useState<string | null>(null);
+  const [csvImporting, setCsvImporting] = useState(false);
   
   // Form states
   const [groupForm, setGroupForm] = useState({
@@ -490,6 +498,109 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
       member_phone: "",
       member_role: "member",
     });
+  };
+
+  const handleCsvFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCsvError(null);
+    setCsvData([]);
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const text = event.target?.result as string;
+        const lines = text.split(/\r?\n/).filter((line) => line.trim());
+        if (lines.length < 2) {
+          setCsvError("CSV must have a header row and at least one data row");
+          return;
+        }
+
+        const header = lines[0].toLowerCase().split(",").map((h) => h.trim());
+        const nameIdx = header.findIndex((h) => h.includes("name"));
+        const emailIdx = header.findIndex((h) => h.includes("email"));
+        const phoneIdx = header.findIndex((h) => h.includes("phone"));
+        const roleIdx = header.findIndex((h) => h.includes("role"));
+
+        if (nameIdx === -1) {
+          setCsvError("CSV must have a 'name' column");
+          return;
+        }
+
+        const validRoles = ["student", "member", "resident", "visitor", "coach", "instructor", "other"];
+        const parsed = lines.slice(1).map((line) => {
+          const cols = line.split(",").map((c) => c.trim());
+          const role = roleIdx !== -1 ? cols[roleIdx]?.toLowerCase() : "member";
+          return {
+            member_name: cols[nameIdx] || "",
+            member_email: emailIdx !== -1 ? cols[emailIdx] || "" : "",
+            member_phone: phoneIdx !== -1 ? cols[phoneIdx] || "" : "",
+            member_role: validRoles.includes(role) ? role : "member",
+          };
+        }).filter((r) => r.member_name);
+
+        if (parsed.length === 0) {
+          setCsvError("No valid rows found in CSV");
+          return;
+        }
+
+        setCsvData(parsed);
+      } catch {
+        setCsvError("Failed to parse CSV file");
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  const handleCsvImport = async () => {
+    if (!selectedGroup || csvData.length === 0) return;
+    setCsvImporting(true);
+
+    try {
+      // Look up user_ids by email
+      const rows = await Promise.all(
+        csvData.map(async (row) => {
+          let userId = null;
+          if (row.member_email) {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("user_id")
+              .eq("email", row.member_email)
+              .maybeSingle();
+            if (profile) userId = profile.user_id;
+          }
+          return {
+            group_id: selectedGroup.id,
+            user_id: userId,
+            member_name: row.member_name,
+            member_email: row.member_email || null,
+            member_phone: row.member_phone || null,
+            member_role: row.member_role,
+          };
+        })
+      );
+
+      const { error } = await supabase.from("group_members").insert(rows);
+      if (error) throw error;
+
+      toast({
+        title: "CSV Import Complete",
+        description: `${rows.length} members added to ${selectedGroup.name}`,
+      });
+
+      setShowCsvDialog(false);
+      setCsvData([]);
+      setCsvError(null);
+      fetchMembers(selectedGroup.id);
+    } catch (error: any) {
+      toast({
+        title: "Import Error",
+        description: error.message || "Failed to import members",
+        variant: "destructive",
+      });
+    } finally {
+      setCsvImporting(false);
+    }
   };
 
   const openEditGroup = (group: Group) => {
@@ -919,6 +1030,76 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                             </Button>
                             <Button onClick={handleAddMember} disabled={!memberForm.member_name}>
                               {editingMember ? "Update Member" : "Add Member"}
+                            </Button>
+                          </DialogFooter>
+                        </DialogContent>
+                      </Dialog>
+                      <Dialog open={showCsvDialog} onOpenChange={(open) => { setShowCsvDialog(open); if (!open) { setCsvData([]); setCsvError(null); } }}>
+                        <DialogTrigger asChild>
+                          <Button size="sm" variant="outline">
+                            <Upload className="w-4 h-4 mr-2" />
+                            CSV Import
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl">
+                          <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                              <FileText className="w-5 h-5" />
+                              Import Members from CSV
+                            </DialogTitle>
+                            <DialogDescription>
+                              Upload a CSV file with columns: <strong>name</strong> (required), email, phone, role.
+                              Valid roles: student, member, resident, visitor, coach, instructor, other.
+                            </DialogDescription>
+                          </DialogHeader>
+                          <div className="space-y-4">
+                            <Input
+                              type="file"
+                              accept=".csv"
+                              onChange={handleCsvFileChange}
+                            />
+                            {csvError && (
+                              <Alert variant="destructive">
+                                <AlertCircle className="h-4 w-4" />
+                                <AlertDescription>{csvError}</AlertDescription>
+                              </Alert>
+                            )}
+                            {csvData.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-sm font-medium">{csvData.length} members ready to import:</p>
+                                <div className="max-h-60 overflow-auto border rounded-md">
+                                  <Table>
+                                    <TableHeader>
+                                      <TableRow>
+                                        <TableHead>Name</TableHead>
+                                        <TableHead>Email</TableHead>
+                                        <TableHead>Phone</TableHead>
+                                        <TableHead>Role</TableHead>
+                                      </TableRow>
+                                    </TableHeader>
+                                    <TableBody>
+                                      {csvData.map((row, idx) => (
+                                        <TableRow key={idx}>
+                                          <TableCell>{row.member_name}</TableCell>
+                                          <TableCell>{row.member_email || "—"}</TableCell>
+                                          <TableCell>{row.member_phone || "—"}</TableCell>
+                                          <TableCell>
+                                            <Badge variant="outline">{getMemberRoleLabel(row.member_role)}</Badge>
+                                          </TableCell>
+                                        </TableRow>
+                                      ))}
+                                    </TableBody>
+                                  </Table>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                          <DialogFooter>
+                            <Button variant="outline" onClick={() => setShowCsvDialog(false)}>
+                              Cancel
+                            </Button>
+                            <Button onClick={handleCsvImport} disabled={csvData.length === 0 || csvImporting}>
+                              {csvImporting ? "Importing..." : `Import ${csvData.length} Members`}
                             </Button>
                           </DialogFooter>
                         </DialogContent>
