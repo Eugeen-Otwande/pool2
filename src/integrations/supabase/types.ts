@@ -1056,6 +1056,48 @@ export type Database = {
       }
     }
     Views: {
+      v_check_ins_with_details: {
+        Row: {
+          check_in_time: string | null
+          check_out_time: string | null
+          checked_in_by: string | null
+          created_at: string | null
+          first_name: string | null
+          group_id: string | null
+          group_name: string | null
+          id: string | null
+          last_name: string | null
+          notes: string | null
+          schedule_id: string | null
+          status: string | null
+          user_email: string | null
+          user_id: string | null
+          user_role: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "check_ins_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "check_ins_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pool_schedules"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_check_ins_schedule"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "pool_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       v_messages_summary: {
         Row: {
           content: string | null
