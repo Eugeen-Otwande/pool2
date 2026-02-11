@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
 import { 
   Search, 
@@ -14,8 +15,27 @@ import {
   Filter,
   Download,
   RefreshCw,
-  Users
+  Users,
+  ChevronLeft,
+  ChevronRight,
+  Loader2
 } from "lucide-react";
+
+interface CheckInRow {
+  id: string;
+  user_id: string;
+  check_in_time: string;
+  check_out_time: string | null;
+  status: string;
+  notes: string | null;
+  group_id: string | null;
+  checked_in_by: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  user_email: string | null;
+  user_role: string | null;
+  group_name: string | null;
+}
 
 interface UserProfile {
   id: string;
@@ -27,23 +47,8 @@ interface UserProfile {
   check_in_status: string | null;
 }
 
-interface CheckIn {
-  id: string;
-  user_id: string;
-  check_in_time: string;
-  check_out_time?: string;
-  status: string;
-  notes?: string;
-  group_id?: string | null;
-  checked_in_by?: string | null;
-  profiles: {
-    first_name: string;
-    last_name: string;
-    role: string;
-    email?: string;
-  };
-  group_name?: string | null;
-}
+const PAGE_SIZE = 30;
+const CACHE_TTL = 30_000; // 30 seconds
 
 const EnhancedCheckInsTab = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -52,11 +57,16 @@ const EnhancedCheckInsTab = () => {
   const [groupFilter, setGroupFilter] = useState('all');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [filteredCheckIns, setFilteredCheckIns] = useState<CheckIn[]>([]);
-  const [allCheckIns, setAllCheckIns] = useState<CheckIn[]>([]);
+  const [checkIns, setCheckIns] = useState<CheckInRow[]>([]);
   const [groups, setGroups] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [page, setPage] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const cacheRef = useRef<{ data: CheckInRow[]; count: number; key: string; ts: number } | null>(null);
 
-  const formatDuration = (checkInTime: string, checkOutTime?: string) => {
+  const formatDuration = (checkInTime: string, checkOutTime?: string | null) => {
     const endTime = checkOutTime ? new Date(checkOutTime) : new Date();
     const checkIn = new Date(checkInTime);
     const diffMs = endTime.getTime() - checkIn.getTime();
@@ -65,214 +75,144 @@ const EnhancedCheckInsTab = () => {
     return `${diffHours}h ${diffMinutes}m`;
   };
 
-  const fetchGroups = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('groups')
-        .select('id, name')
-        .eq('status', 'active')
-        .order('name');
-      if (error) throw error;
-      setGroups(data || []);
-    } catch (error) {
-      console.error('Error fetching groups:', error);
+  const cacheKey = useMemo(() => 
+    `${roleFilter}|${groupFilter}|${dateFrom}|${dateTo}|${page}`,
+    [roleFilter, groupFilter, dateFrom, dateTo, page]
+  );
+
+  const fetchGroups = useCallback(async () => {
+    const { data } = await supabase
+      .from('groups')
+      .select('id, name')
+      .eq('status', 'active')
+      .order('name');
+    setGroups(data || []);
+  }, []);
+
+  const fetchCheckIns = useCallback(async (skipCache = false) => {
+    // Check cache
+    if (!skipCache && cacheRef.current && cacheRef.current.key === cacheKey && Date.now() - cacheRef.current.ts < CACHE_TTL) {
+      setCheckIns(cacheRef.current.data);
+      setTotalCount(cacheRef.current.count);
+      setLoading(false);
+      return;
     }
-  };
 
-  const fetchAllCheckIns = async () => {
+    setLoading(true);
     try {
-      // Fetch check-ins with group info
-      const { data, error } = await supabase
-        .from('check_ins')
-        .select('*, groups(name)')
-        .order('check_in_time', { ascending: false })
-        .limit(200);
+      const from = page * PAGE_SIZE;
+      const to = from + PAGE_SIZE - 1;
 
+      // Build query using the view for single-query joins
+      let query = supabase
+        .from('v_check_ins_with_details')
+        .select('id, user_id, check_in_time, check_out_time, status, notes, group_id, checked_in_by, first_name, last_name, user_email, user_role, group_name', { count: 'exact' })
+        .order('check_in_time', { ascending: false })
+        .range(from, to);
+
+      // Server-side filters
+      if (roleFilter !== 'all') {
+        query = query.eq('user_role', roleFilter);
+      }
+      if (groupFilter === 'individual') {
+        query = query.is('group_id', null);
+      } else if (groupFilter !== 'all') {
+        query = query.eq('group_id', groupFilter);
+      }
+      if (dateFrom) {
+        query = query.gte('check_in_time', `${dateFrom}T00:00:00`);
+      }
+      if (dateTo) {
+        query = query.lte('check_in_time', `${dateTo}T23:59:59`);
+      }
+
+      const { data, count, error } = await query;
       if (error) throw error;
 
-      // Fetch profile info for each check-in
-      const checkInsWithProfiles = await Promise.all(
-        (data || []).map(async (checkIn) => {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('first_name, last_name, role, email')
-            .eq('user_id', checkIn.user_id)
-            .maybeSingle();
+      const rows = (data || []) as CheckInRow[];
+      setCheckIns(rows);
+      setTotalCount(count || 0);
 
-          return {
-            id: checkIn.id,
-            user_id: checkIn.user_id,
-            check_in_time: checkIn.check_in_time,
-            check_out_time: checkIn.check_out_time || undefined,
-            status: checkIn.status,
-            notes: checkIn.notes || undefined,
-            group_id: checkIn.group_id,
-            checked_in_by: checkIn.checked_in_by,
-            profiles: {
-              first_name: profile?.first_name || 'Unknown',
-              last_name: profile?.last_name || 'Unknown',
-              role: profile?.role || 'Unknown',
-              email: profile?.email || 'No email',
-            },
-            group_name: (checkIn.groups as any)?.name || null,
-          };
-        })
-      );
-      
-      setAllCheckIns(checkInsWithProfiles);
-      setFilteredCheckIns(checkInsWithProfiles);
+      // Cache result
+      cacheRef.current = { data: rows, count: count || 0, key: cacheKey, ts: Date.now() };
     } catch (error) {
       console.error('Error fetching check-ins:', error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch check-in history",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to fetch check-in history", variant: "destructive" });
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [cacheKey, page, roleFilter, groupFilter, dateFrom, dateTo]);
 
   const handleSearch = async () => {
     if (!searchTerm.trim()) return;
-    
+    setSearchLoading(true);
     try {
-      const { data: profiles, error: profilesError } = await supabase
+      const { data: profiles, error } = await supabase
         .from('profiles')
-        .select('user_id, id, email, first_name, last_name, role')
-        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%`);
-      
-      if (profilesError) throw profilesError;
-      
-      const { data: residents, error: residentsError } = await supabase
-        .from('residents')
-        .select('user_id, id, email, name, phone, status')
-        .or(`name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
-        .eq('status', 'active');
-      
-      if (residentsError) throw residentsError;
-      
-      const residentsAsProfiles = (residents || [])
-        .filter(r => r.user_id)
-        .map(resident => ({
-          user_id: resident.user_id!,
-          id: resident.id,
-          email: resident.email,
-          first_name: resident.name?.split(' ')[0] || 'Resident',
-          last_name: resident.name?.split(' ').slice(1).join(' ') || '',
-          role: 'resident'
-        }));
-      
-      const allProfiles = [...(profiles || []), ...residentsAsProfiles];
-      const uniqueProfiles = allProfiles.filter((profile, index, self) =>
-        index === self.findIndex((p) => p.user_id === profile.user_id)
-      );
-      
-      const enrichedResults = await Promise.all(
-        uniqueProfiles.map(async (profile) => {
-          try {
-            const { data: statusData } = await supabase.rpc('get_user_checkin_status', {
-              _user_id: profile.user_id
-            });
-            
-            return {
-              ...profile,
-              check_in_status: statusData?.[0]?.is_checked_in ? 'Checked In' : 'Not Checked In'
-            };
-          } catch (statusError) {
-            console.error('Error getting check-in status for user:', profile.user_id, statusError);
-            return {
-              ...profile,
-              check_in_status: 'Unknown'
-            };
-          }
-        })
-      );
-      
-      setSearchResults(enrichedResults);
+        .select('user_id, id, email, first_name, last_name, role, check_in_status')
+        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%`)
+        .limit(20);
+
+      if (error) throw error;
+
+      const results: UserProfile[] = (profiles || []).map(p => ({
+        ...p,
+        check_in_status: p.check_in_status || 'Not Checked In'
+      }));
+
+      setSearchResults(results);
     } catch (error) {
       console.error('Error searching users:', error);
-      toast({
-        title: "Search Error",
-        description: "Failed to search users",
-        variant: "destructive",
-      });
+      toast({ title: "Search Error", description: "Failed to search users", variant: "destructive" });
+    } finally {
+      setSearchLoading(false);
     }
   };
 
   const handleStaffCheckIn = async (userId: string, userName: string) => {
+    setActionLoading(userId);
     try {
-      const { data: statusData, error: statusError } = await supabase.rpc('get_user_checkin_status', {
-        _user_id: userId
-      });
-      
-      if (statusError) throw statusError;
-      
-      if (statusData?.[0]?.is_checked_in) {
-        toast({
-          title: "Check-in Error",
-          description: "User is already checked in.",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      const today = new Date().toISOString().split('T')[0];
-      const { data: todayCheckIns } = await supabase
+      // Optimistic update on search results
+      setSearchResults(prev => prev.map(u => 
+        u.user_id === userId ? { ...u, check_in_status: 'Checked In' } : u
+      ));
+
+      const { error } = await supabase
         .from('check_ins')
-        .select('id')
-        .eq('user_id', userId)
-        .gte('check_in_time', `${today}T00:00:00`)
-        .lte('check_in_time', `${today}T23:59:59`);
-      
-      if (todayCheckIns && todayCheckIns.length > 0) {
-        toast({
-          title: "Check-in Error",
-          description: "User already has a check-in record for today.",
-          variant: "destructive",
-        });
-        return;
+        .insert({ user_id: userId, check_in_time: new Date().toISOString(), status: 'checked_in' });
+
+      if (error) {
+        // Revert optimistic update
+        setSearchResults(prev => prev.map(u => 
+          u.user_id === userId ? { ...u, check_in_status: 'Not Checked In' } : u
+        ));
+        throw error;
       }
-      
-      const { error: insertError } = await supabase
-        .from('check_ins')
-        .insert({
-          user_id: userId,
-          check_in_time: new Date().toISOString(),
-          status: 'checked_in'
-        });
-      
-      if (insertError) throw insertError;
-      
-      toast({
-        title: "Success",
-        description: `${userName} has been checked in`,
-      });
-      
-      await fetchAllCheckIns();
-      await handleSearch();
-    } catch (error) {
+
+      toast({ title: "Success", description: `${userName} has been checked in` });
+      // Invalidate cache and refresh
+      cacheRef.current = null;
+      fetchCheckIns(true);
+    } catch (error: any) {
       console.error('Error checking in user:', error);
-      let errorMessage = "Failed to check in user";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('violates row-level security')) {
-          errorMessage = "Permission denied: User not found or access restricted";
-        } else if (error.message.includes('duplicate key')) {
-          errorMessage = "User is already checked in";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      toast({
-        title: "Check-in Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      let msg = "Failed to check in user";
+      if (error?.message?.includes('violates row-level security')) msg = "Permission denied";
+      else if (error?.message?.includes('duplicate key')) msg = "User is already checked in";
+      else if (error?.message) msg = error.message;
+      toast({ title: "Check-in Error", description: msg, variant: "destructive" });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleStaffCheckOut = async (userId: string, userName: string) => {
+    setActionLoading(userId);
     try {
+      // Optimistic update on search results
+      setSearchResults(prev => prev.map(u => 
+        u.user_id === userId ? { ...u, check_in_status: 'Checked Out' } : u
+      ));
+
       const { data: openCheckIns, error: queryError } = await supabase
         .from('check_ins')
         .select('id')
@@ -281,111 +221,84 @@ const EnhancedCheckInsTab = () => {
         .is('check_out_time', null)
         .order('check_in_time', { ascending: false })
         .limit(1);
-      
+
       if (queryError) throw queryError;
-      
+
       if (!openCheckIns || openCheckIns.length === 0) {
-        toast({
-          title: "Check-out Error",
-          description: "User is not currently checked in.",
-          variant: "destructive",
-        });
+        setSearchResults(prev => prev.map(u => 
+          u.user_id === userId ? { ...u, check_in_status: 'Not Checked In' } : u
+        ));
+        toast({ title: "Check-out Error", description: "User is not currently checked in.", variant: "destructive" });
         return;
       }
-      
-      const { error: updateError } = await supabase
+
+      const { error } = await supabase
         .from('check_ins')
-        .update({
-          check_out_time: new Date().toISOString(),
-          status: 'checked_out'
-        })
+        .update({ check_out_time: new Date().toISOString(), status: 'checked_out' })
         .eq('id', openCheckIns[0].id);
-      
-      if (updateError) throw updateError;
-      
-      toast({
-        title: "Success",
-        description: `${userName} has been checked out`,
-      });
-      
-      await fetchAllCheckIns();
-      await handleSearch();
-    } catch (error) {
+
+      if (error) throw error;
+
+      toast({ title: "Success", description: `${userName} has been checked out` });
+      cacheRef.current = null;
+      fetchCheckIns(true);
+    } catch (error: any) {
       console.error('Error checking out user:', error);
-      let errorMessage = "Failed to check out user";
-      
-      if (error instanceof Error) {
-        if (error.message.includes('violates row-level security')) {
-          errorMessage = "Permission denied: User not found or access restricted";
-        } else {
-          errorMessage = error.message;
-        }
-      }
-      
-      toast({
-        title: "Check-out Error",
-        description: errorMessage,
-        variant: "destructive",
-      });
+      toast({ title: "Check-out Error", description: error?.message || "Failed to check out user", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const handleManualCheckOut = async (checkInId: string, userName: string) => {
+    setActionLoading(checkInId);
+    // Optimistic: remove from active list
+    setCheckIns(prev => prev.map(c => 
+      c.id === checkInId ? { ...c, status: 'checked_out', check_out_time: new Date().toISOString() } : c
+    ));
+
     try {
       const { error } = await supabase
         .from('check_ins')
-        .update({ 
-          status: 'checked_out',
-          check_out_time: new Date().toISOString()
-        })
+        .update({ status: 'checked_out', check_out_time: new Date().toISOString() })
         .eq('id', checkInId);
-      
+
       if (error) throw error;
-      
-      toast({
-        title: "Success",
-        description: `${userName} has been checked out`,
-      });
-      
-      fetchAllCheckIns();
+      toast({ title: "Success", description: `${userName} has been checked out` });
+      cacheRef.current = null;
     } catch (error) {
       console.error('Error checking out user:', error);
-      toast({
-        title: "Check-out Error",
-        description: "Failed to check out user",
-        variant: "destructive",
-      });
+      toast({ title: "Check-out Error", description: "Failed to check out user", variant: "destructive" });
+      // Revert
+      cacheRef.current = null;
+      fetchCheckIns(true);
+    } finally {
+      setActionLoading(null);
     }
   };
 
   const downloadCSVReport = () => {
-    const csvData = filteredCheckIns.map(checkIn => ({
-      Name: `${checkIn.profiles?.first_name} ${checkIn.profiles?.last_name}`,
-      Email: checkIn.profiles?.email || 'No email',
-      Role: checkIn.profiles?.role,
-      Group: checkIn.group_name || 'Individual',
-      'Check-in Time': new Date(checkIn.check_in_time).toLocaleString(),
-      'Check-out Time': checkIn.check_out_time ? new Date(checkIn.check_out_time).toLocaleString() : 'Still checked in',
-      Duration: checkIn.check_out_time 
-        ? formatDuration(checkIn.check_in_time, checkIn.check_out_time)
-        : formatDuration(checkIn.check_in_time),
-      Status: checkIn.status,
-      Notes: checkIn.notes || ''
+    const csvData = checkIns.map(c => ({
+      Name: `${c.first_name || ''} ${c.last_name || ''}`.trim() || 'Unknown',
+      Email: c.user_email || 'No email',
+      Role: c.user_role || 'Unknown',
+      Group: c.group_name || 'Individual',
+      'Check-in Time': new Date(c.check_in_time).toLocaleString(),
+      'Check-out Time': c.check_out_time ? new Date(c.check_out_time).toLocaleString() : 'Still checked in',
+      Duration: formatDuration(c.check_in_time, c.check_out_time),
+      Status: c.status,
+      Notes: c.notes || ''
     }));
 
     if (csvData.length === 0) {
-      toast({
-        title: "No Data",
-        description: "No check-ins to export",
-        variant: "destructive",
-      });
+      toast({ title: "No Data", description: "No check-ins to export", variant: "destructive" });
       return;
     }
 
     const headers = Object.keys(csvData[0]);
     const csvContent = [
       headers.join(','),
-      ...csvData.map(row => headers.map(header => `"${row[header as keyof typeof row] || ''}"`).join(','))
+      ...csvData.map(row => headers.map(h => `"${row[h as keyof typeof row] || ''}"`).join(','))
     ].join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv' });
@@ -397,48 +310,45 @@ const EnhancedCheckInsTab = () => {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-
-    toast({
-      title: "Success",
-      description: "CSV report downloaded successfully",
-    });
+    toast({ title: "Success", description: "CSV report downloaded successfully" });
   };
 
+  // Reset page when filters change
   useEffect(() => {
-    fetchAllCheckIns();
+    setPage(0);
+  }, [roleFilter, groupFilter, dateFrom, dateTo]);
+
+  // Fetch data
+  useEffect(() => {
+    fetchCheckIns();
+  }, [fetchCheckIns]);
+
+  useEffect(() => {
     fetchGroups();
-  }, []);
+  }, [fetchGroups]);
 
-  // Auto-apply filters when filters change
+  // Real-time subscription for check-in changes
   useEffect(() => {
-    if (allCheckIns.length > 0) {
-      let filtered = [...allCheckIns];
+    const channel = supabase
+      .channel('check_ins_realtime')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'check_ins' }, () => {
+        cacheRef.current = null;
+        fetchCheckIns(true);
+      })
+      .subscribe();
 
-      // Role filter
-      if (roleFilter !== 'all') {
-        filtered = filtered.filter(c => c.profiles?.role === roleFilter);
-      }
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchCheckIns]);
 
-      // Group filter
-      if (groupFilter !== 'all') {
-        if (groupFilter === 'individual') {
-          filtered = filtered.filter(c => !c.group_id);
-        } else {
-          filtered = filtered.filter(c => c.group_id === groupFilter);
-        }
-      }
+  const totalPages = Math.ceil(totalCount / PAGE_SIZE);
 
-      // Date filters
-      if (dateFrom) {
-        filtered = filtered.filter(c => c.check_in_time >= `${dateFrom}T00:00:00`);
-      }
-      if (dateTo) {
-        filtered = filtered.filter(c => c.check_in_time <= `${dateTo}T23:59:59`);
-      }
-
-      setFilteredCheckIns(filtered);
-    }
-  }, [roleFilter, groupFilter, dateFrom, dateTo, allCheckIns]);
+  const SkeletonRow = () => (
+    <TableRow>
+      {Array.from({ length: 9 }).map((_, i) => (
+        <TableCell key={i}><Skeleton className="h-4 w-full" /></TableCell>
+      ))}
+    </TableRow>
+  );
 
   return (
     <div className="space-y-6">
@@ -453,14 +363,14 @@ const EnhancedCheckInsTab = () => {
         <CardContent>
           <div className="flex gap-2">
             <Input
-              placeholder="Search by name, email, or phone (Students, Members, Residents, Visitors)..."
+              placeholder="Search by name, email, or role..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
               className="flex-1"
             />
-            <Button onClick={handleSearch} disabled={!searchTerm.trim()}>
-              <Search className="w-4 h-4 mr-2" />
+            <Button onClick={handleSearch} disabled={!searchTerm.trim() || searchLoading}>
+              {searchLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Search className="w-4 h-4 mr-2" />}
               Search
             </Button>
           </div>
@@ -476,9 +386,7 @@ const EnhancedCheckInsTab = () => {
                 <Users className="w-5 h-5" />
                 Search Results ({searchResults.length})
               </span>
-              <Button onClick={() => setSearchResults([])} variant="outline" size="sm">
-                Clear Results
-              </Button>
+              <Button onClick={() => setSearchResults([])} variant="outline" size="sm">Clear Results</Button>
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -493,26 +401,19 @@ const EnhancedCheckInsTab = () => {
                     <Badge variant="outline">{user.role}</Badge>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Badge 
-                      variant={user.check_in_status === 'Checked In' ? 'default' : 'secondary'}
-                    >
+                    <Badge variant={user.check_in_status === 'Checked In' ? 'default' : 'secondary'}>
                       {user.check_in_status || 'Not Checked In'}
                     </Badge>
                     {user.check_in_status === 'Checked In' ? (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleStaffCheckOut(user.user_id, `${user.first_name} ${user.last_name}`)}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
+                      <Button size="sm" variant="outline" disabled={actionLoading === user.user_id}
+                        onClick={() => handleStaffCheckOut(user.user_id, `${user.first_name} ${user.last_name}`)}>
+                        {actionLoading === user.user_id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
                         Check Out
                       </Button>
                     ) : (
-                      <Button 
-                        size="sm"
-                        onClick={() => handleStaffCheckIn(user.user_id, `${user.first_name} ${user.last_name}`)}
-                      >
-                        <CheckCircle className="w-4 h-4 mr-2" />
+                      <Button size="sm" disabled={actionLoading === user.user_id}
+                        onClick={() => handleStaffCheckIn(user.user_id, `${user.first_name} ${user.last_name}`)}>
+                        {actionLoading === user.user_id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
                         Check In
                       </Button>
                     )}
@@ -524,7 +425,7 @@ const EnhancedCheckInsTab = () => {
         </Card>
       )}
 
-      {/* Filters for Check-ins History */}
+      {/* Filters */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -537,9 +438,7 @@ const EnhancedCheckInsTab = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Role</label>
               <Select value={roleFilter} onValueChange={setRoleFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Roles" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="All Roles" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Roles</SelectItem>
                   <SelectItem value="student">Student</SelectItem>
@@ -554,9 +453,7 @@ const EnhancedCheckInsTab = () => {
             <div>
               <label className="text-sm font-medium mb-2 block">Group</label>
               <Select value={groupFilter} onValueChange={setGroupFilter}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All" />
-                </SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="All" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All (Group + Individual)</SelectItem>
                   <SelectItem value="individual">Individual Only</SelectItem>
@@ -568,19 +465,11 @@ const EnhancedCheckInsTab = () => {
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">From Date</label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
             </div>
             <div>
               <label className="text-sm font-medium mb-2 block">To Date</label>
-              <Input
-                type="date"
-                value={dateTo}
-                onChange={(e) => setDateTo(e.target.value)}
-              />
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
           </div>
         </CardContent>
@@ -592,14 +481,14 @@ const EnhancedCheckInsTab = () => {
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               <CheckCircle className="w-5 h-5" />
-              Check-ins History ({filteredCheckIns.length})
+              Check-ins History ({totalCount})
             </span>
             <div className="flex gap-2">
               <Button onClick={downloadCSVReport} variant="outline" size="sm">
                 <Download className="w-4 h-4 mr-2" />
                 Download CSV
               </Button>
-              <Button onClick={fetchAllCheckIns} size="sm">
+              <Button onClick={() => { cacheRef.current = null; fetchCheckIns(true); }} size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
                 Refresh
               </Button>
@@ -622,65 +511,68 @@ const EnhancedCheckInsTab = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredCheckIns.map((checkIn) => (
-                <TableRow key={checkIn.id}>
-                  <TableCell className="font-medium">
-                    {checkIn.profiles?.first_name} {checkIn.profiles?.last_name}
-                  </TableCell>
-                  <TableCell>
-                    {checkIn.profiles?.email || 'No email'}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{checkIn.profiles?.role}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    {checkIn.group_name ? (
-                      <Badge variant="secondary">{checkIn.group_name}</Badge>
-                    ) : (
-                      <span className="text-muted-foreground text-sm">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(checkIn.check_in_time).toLocaleString()}
-                  </TableCell>
-                  <TableCell>
-                    {checkIn.check_out_time 
-                      ? new Date(checkIn.check_out_time).toLocaleString() 
-                      : 'Still checked in'
-                    }
-                  </TableCell>
-                  <TableCell>
-                    {checkIn.check_out_time 
-                      ? formatDuration(checkIn.check_in_time, checkIn.check_out_time)
-                      : formatDuration(checkIn.check_in_time)
-                    }
-                  </TableCell>
-                  <TableCell>
-                    <Badge 
-                      variant={checkIn.status === 'checked_in' ? 'default' : 'secondary'}
-                    >
-                      {checkIn.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    {checkIn.status === 'checked_in' && (
-                      <Button 
-                        size="sm" 
-                        variant="outline"
-                        onClick={() => handleManualCheckOut(
-                          checkIn.id,
-                          `${checkIn.profiles?.first_name} ${checkIn.profiles?.last_name}`
-                        )}
-                      >
-                        <XCircle className="w-4 h-4 mr-2" />
-                        Check Out
-                      </Button>
-                    )}
+              {loading ? (
+                Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)
+              ) : checkIns.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
+                    No check-ins found
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                checkIns.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">
+                      {c.first_name || ''} {c.last_name || ''}
+                    </TableCell>
+                    <TableCell>{c.user_email || 'No email'}</TableCell>
+                    <TableCell><Badge variant="outline">{c.user_role || 'Unknown'}</Badge></TableCell>
+                    <TableCell>
+                      {c.group_name ? (
+                        <Badge variant="secondary">{c.group_name}</Badge>
+                      ) : (
+                        <span className="text-muted-foreground text-sm">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell>{new Date(c.check_in_time).toLocaleString()}</TableCell>
+                    <TableCell>
+                      {c.check_out_time ? new Date(c.check_out_time).toLocaleString() : 'Still checked in'}
+                    </TableCell>
+                    <TableCell>{formatDuration(c.check_in_time, c.check_out_time)}</TableCell>
+                    <TableCell>
+                      <Badge variant={c.status === 'checked_in' ? 'default' : 'secondary'}>{c.status}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      {c.status === 'checked_in' && (
+                        <Button size="sm" variant="outline" disabled={actionLoading === c.id}
+                          onClick={() => handleManualCheckOut(c.id, `${c.first_name || ''} ${c.last_name || ''}`)}>
+                          {actionLoading === c.id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+                          Check Out
+                        </Button>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
+
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between mt-4">
+              <p className="text-sm text-muted-foreground">
+                Page {page + 1} of {totalPages} ({totalCount} total)
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                  <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+                </Button>
+                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
