@@ -45,6 +45,8 @@ interface UserProfile {
   last_name: string | null;
   role: string;
   check_in_status: string | null;
+  source: 'profile' | 'visitor';
+  visitor_id?: string;
 }
 
 const PAGE_SIZE = 30;
@@ -147,20 +149,41 @@ const EnhancedCheckInsTab = () => {
     if (!searchTerm.trim()) return;
     setSearchLoading(true);
     try {
-      const { data: profiles, error } = await supabase
-        .from('profiles')
-        .select('user_id, id, email, first_name, last_name, role, check_in_status')
-        .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%`)
-        .limit(20);
+      // Search profiles and visitors in parallel
+      const [profilesRes, visitorsRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('user_id, id, email, first_name, last_name, role, check_in_status')
+          .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,role.ilike.%${searchTerm}%`)
+          .limit(15),
+        supabase
+          .from('visitors')
+          .select('id, first_name, last_name, email, phone, check_in_status, date_of_visit, payment_status')
+          .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
+          .limit(10)
+      ]);
 
-      if (error) throw error;
+      if (profilesRes.error) throw profilesRes.error;
 
-      const results: UserProfile[] = (profiles || []).map(p => ({
+      const profileResults: UserProfile[] = (profilesRes.data || []).map(p => ({
         ...p,
-        check_in_status: p.check_in_status || 'Not Checked In'
+        check_in_status: p.check_in_status || 'Not Checked In',
+        source: 'profile' as const,
       }));
 
-      setSearchResults(results);
+      const visitorResults: UserProfile[] = (visitorsRes.data || []).map(v => ({
+        id: v.id,
+        user_id: v.id,
+        email: v.email,
+        first_name: v.first_name,
+        last_name: v.last_name,
+        role: 'visitor',
+        check_in_status: v.check_in_status || 'Not Checked In',
+        source: 'visitor' as const,
+        visitor_id: v.id,
+      }));
+
+      setSearchResults([...profileResults, ...visitorResults]);
     } catch (error) {
       console.error('Error searching users:', error);
       toast({ title: "Search Error", description: "Failed to search users", variant: "destructive" });
@@ -245,6 +268,44 @@ const EnhancedCheckInsTab = () => {
     } catch (error: any) {
       console.error('Error checking out user:', error);
       toast({ title: "Check-out Error", description: error?.message || "Failed to check out user", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleVisitorCheckIn = async (visitorId: string, visitorName: string) => {
+    setActionLoading(visitorId);
+    setSearchResults(prev => prev.map(u => 
+      u.visitor_id === visitorId ? { ...u, check_in_status: 'Checked In' } : u
+    ));
+    try {
+      const { error } = await supabase.rpc('visitor_checkin_checkout', { visitor_id: visitorId, action: 'check_in' });
+      if (error) throw error;
+      toast({ title: "Success", description: `${visitorName} has been checked in` });
+    } catch (error: any) {
+      setSearchResults(prev => prev.map(u => 
+        u.visitor_id === visitorId ? { ...u, check_in_status: 'Not Checked In' } : u
+      ));
+      toast({ title: "Error", description: error?.message || "Failed to check in visitor", variant: "destructive" });
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleVisitorCheckOut = async (visitorId: string, visitorName: string) => {
+    setActionLoading(visitorId);
+    setSearchResults(prev => prev.map(u => 
+      u.visitor_id === visitorId ? { ...u, check_in_status: 'Checked Out' } : u
+    ));
+    try {
+      const { error } = await supabase.rpc('visitor_checkin_checkout', { visitor_id: visitorId, action: 'check_out' });
+      if (error) throw error;
+      toast({ title: "Success", description: `${visitorName} has been checked out` });
+    } catch (error: any) {
+      setSearchResults(prev => prev.map(u => 
+        u.visitor_id === visitorId ? { ...u, check_in_status: 'Checked In' } : u
+      ));
+      toast({ title: "Error", description: error?.message || "Failed to check out visitor", variant: "destructive" });
     } finally {
       setActionLoading(null);
     }
@@ -363,7 +424,7 @@ const EnhancedCheckInsTab = () => {
         <CardContent>
           <div className="flex gap-2">
             <Input
-              placeholder="Search by name, email, or role..."
+              placeholder="Search users or visitors by name, email, phone..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
@@ -391,35 +452,59 @@ const EnhancedCheckInsTab = () => {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {searchResults.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
-                  <div className="flex items-center space-x-3">
-                    <div>
-                      <p className="font-medium">{user.first_name} {user.last_name}</p>
-                      <p className="text-sm text-muted-foreground">{user.email}</p>
+              {searchResults.map((user) => {
+                const name = `${user.first_name || ''} ${user.last_name || ''}`.trim();
+                const isVisitor = user.source === 'visitor';
+                const isCheckedIn = user.check_in_status === 'Checked In';
+                const loadingId = isVisitor ? user.visitor_id! : user.user_id;
+
+                return (
+                  <div key={`${user.source}-${user.id}`} className="flex items-center justify-between p-4 rounded-lg border bg-muted/50">
+                    <div className="flex items-center space-x-3">
+                      <div>
+                        <p className="font-medium">{name || 'Unknown'}</p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                      <Badge variant="outline">{user.role}</Badge>
+                      {isVisitor && <Badge variant="secondary" className="text-xs">Visitor</Badge>}
                     </div>
-                    <Badge variant="outline">{user.role}</Badge>
+                    <div className="flex items-center space-x-2">
+                      <Badge variant={isCheckedIn ? 'default' : 'secondary'}>
+                        {user.check_in_status || 'Not Checked In'}
+                      </Badge>
+                      {isVisitor ? (
+                        isCheckedIn ? (
+                          <Button size="sm" variant="outline" disabled={actionLoading === loadingId}
+                            onClick={() => handleVisitorCheckOut(user.visitor_id!, name)}>
+                            {actionLoading === loadingId ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+                            Check Out
+                          </Button>
+                        ) : user.check_in_status !== 'Checked Out' ? (
+                          <Button size="sm" disabled={actionLoading === loadingId}
+                            onClick={() => handleVisitorCheckIn(user.visitor_id!, name)}>
+                            {actionLoading === loadingId ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                            Check In
+                          </Button>
+                        ) : null
+                      ) : (
+                        isCheckedIn ? (
+                          <Button size="sm" variant="outline" disabled={actionLoading === loadingId}
+                            onClick={() => handleStaffCheckOut(user.user_id, name)}>
+                            {actionLoading === loadingId ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
+                            Check Out
+                          </Button>
+                        ) : (
+                          <Button size="sm" disabled={actionLoading === loadingId}
+                            onClick={() => handleStaffCheckIn(user.user_id, name)}>
+                            {actionLoading === loadingId ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
+                            Check In
+                          </Button>
+                        )
+                      )}
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant={user.check_in_status === 'Checked In' ? 'default' : 'secondary'}>
-                      {user.check_in_status || 'Not Checked In'}
-                    </Badge>
-                    {user.check_in_status === 'Checked In' ? (
-                      <Button size="sm" variant="outline" disabled={actionLoading === user.user_id}
-                        onClick={() => handleStaffCheckOut(user.user_id, `${user.first_name} ${user.last_name}`)}>
-                        {actionLoading === user.user_id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <XCircle className="w-4 h-4 mr-2" />}
-                        Check Out
-                      </Button>
-                    ) : (
-                      <Button size="sm" disabled={actionLoading === user.user_id}
-                        onClick={() => handleStaffCheckIn(user.user_id, `${user.first_name} ${user.last_name}`)}>
-                        {actionLoading === user.user_id ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CheckCircle className="w-4 h-4 mr-2" />}
-                        Check In
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardContent>
         </Card>
