@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Skeleton } from "@/components/ui/skeleton";
 import { toast } from "@/hooks/use-toast";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { 
   Search, 
   CheckCircle, 
@@ -18,7 +19,9 @@ import {
   Users,
   ChevronLeft,
   ChevronRight,
-  Loader2
+  Loader2,
+  UserCheck,
+  UserX
 } from "lucide-react";
 
 interface CheckInRow {
@@ -49,6 +52,25 @@ interface UserProfile {
   visitor_id?: string;
 }
 
+interface GroupMember {
+  id: string;
+  member_name: string;
+  member_email: string | null;
+  member_phone: string | null;
+  member_role: string;
+  status: string;
+  user_id: string | null;
+}
+
+interface GroupWithMembers {
+  id: string;
+  name: string;
+  group_type: string;
+  organization: string | null;
+  contact_person: string | null;
+  members: GroupMember[];
+}
+
 const PAGE_SIZE = 30;
 const CACHE_TTL = 30_000; // 30 seconds
 
@@ -64,6 +86,9 @@ const EnhancedCheckInsTab = () => {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
+  const [groupsWithMembers, setGroupsWithMembers] = useState<GroupWithMembers[]>([]);
+  const [groupMembersLoading, setGroupMembersLoading] = useState(false);
+  const [groupActionLoading, setGroupActionLoading] = useState<string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const cacheRef = useRef<{ data: CheckInRow[]; count: number; key: string; ts: number } | null>(null);
@@ -90,6 +115,99 @@ const EnhancedCheckInsTab = () => {
       .order('name');
     setGroups(data || []);
   }, []);
+
+  const fetchGroupsWithMembers = useCallback(async () => {
+    setGroupMembersLoading(true);
+    try {
+      const { data: groupsData, error: groupsError } = await supabase
+        .from('groups')
+        .select('id, name, group_type, organization, contact_person')
+        .eq('status', 'active')
+        .order('name');
+
+      if (groupsError) throw groupsError;
+      if (!groupsData || groupsData.length === 0) {
+        setGroupsWithMembers([]);
+        return;
+      }
+
+      const groupIds = groupsData.map(g => g.id);
+      const { data: membersData, error: membersError } = await supabase
+        .from('group_members')
+        .select('id, member_name, member_email, member_phone, member_role, status, user_id, group_id')
+        .in('group_id', groupIds)
+        .eq('status', 'active');
+
+      if (membersError) throw membersError;
+
+      const membersByGroup = (membersData || []).reduce((acc, m) => {
+        const gid = (m as any).group_id;
+        if (!acc[gid]) acc[gid] = [];
+        acc[gid].push(m as GroupMember);
+        return acc;
+      }, {} as Record<string, GroupMember[]>);
+
+      setGroupsWithMembers(groupsData.map(g => ({
+        ...g,
+        members: membersByGroup[g.id] || [],
+      })));
+    } catch (error) {
+      console.error('Error fetching groups with members:', error);
+    } finally {
+      setGroupMembersLoading(false);
+    }
+  }, []);
+
+  const handleGroupMemberCheckIn = async (member: GroupMember, groupId: string, groupName: string) => {
+    if (!member.user_id) {
+      toast({ title: "Cannot Check In", description: `${member.member_name} has no linked user account`, variant: "destructive" });
+      return;
+    }
+    setGroupActionLoading(member.id);
+    try {
+      const { error } = await supabase
+        .from('check_ins')
+        .insert({ user_id: member.user_id, check_in_time: new Date().toISOString(), status: 'checked_in', group_id: groupId });
+      if (error) throw error;
+      toast({ title: "Success", description: `${member.member_name} checked in (${groupName})` });
+      cacheRef.current = null;
+      fetchCheckIns(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to check in member", variant: "destructive" });
+    } finally {
+      setGroupActionLoading(null);
+    }
+  };
+
+  const handleBulkGroupCheckIn = async (group: GroupWithMembers) => {
+    setGroupActionLoading(`bulk-${group.id}`);
+    try {
+      const { error } = await supabase.rpc('bulk_group_checkin', { p_group_id: group.id });
+      if (error) throw error;
+      toast({ title: "Success", description: `All members of ${group.name} checked in` });
+      cacheRef.current = null;
+      fetchCheckIns(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to bulk check in", variant: "destructive" });
+    } finally {
+      setGroupActionLoading(null);
+    }
+  };
+
+  const handleBulkGroupCheckOut = async (group: GroupWithMembers) => {
+    setGroupActionLoading(`bulkout-${group.id}`);
+    try {
+      const { error } = await supabase.rpc('bulk_group_checkout', { p_group_id: group.id });
+      if (error) throw error;
+      toast({ title: "Success", description: `All members of ${group.name} checked out` });
+      cacheRef.current = null;
+      fetchCheckIns(true);
+    } catch (error: any) {
+      toast({ title: "Error", description: error?.message || "Failed to bulk check out", variant: "destructive" });
+    } finally {
+      setGroupActionLoading(null);
+    }
+  };
 
   const fetchCheckIns = useCallback(async (skipCache = false) => {
     // Check cache
@@ -386,7 +504,8 @@ const EnhancedCheckInsTab = () => {
 
   useEffect(() => {
     fetchGroups();
-  }, [fetchGroups]);
+    fetchGroupsWithMembers();
+  }, [fetchGroups, fetchGroupsWithMembers]);
 
   // Real-time subscription for check-in changes
   useEffect(() => {
@@ -509,6 +628,116 @@ const EnhancedCheckInsTab = () => {
           </CardContent>
         </Card>
       )}
+
+      {/* Groups with Members */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="w-5 h-5" />
+            Groups ({groupsWithMembers.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {groupMembersLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={i} className="h-12 w-full" />
+              ))}
+            </div>
+          ) : groupsWithMembers.length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-4">No active groups found</p>
+          ) : (
+            <Accordion type="multiple" className="w-full">
+              {groupsWithMembers.map((group) => (
+                <AccordionItem key={group.id} value={group.id}>
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 text-left">
+                      <span className="font-medium">{group.name}</span>
+                      <Badge variant="outline" className="text-xs">{group.group_type}</Badge>
+                      <Badge variant="secondary" className="text-xs">{group.members.length} members</Badge>
+                      {group.organization && (
+                        <span className="text-xs text-muted-foreground">{group.organization}</span>
+                      )}
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-2 pt-2">
+                      {/* Bulk actions */}
+                      <div className="flex gap-2 mb-3">
+                        <Button
+                          size="sm"
+                          disabled={groupActionLoading === `bulk-${group.id}` || group.members.length === 0}
+                          onClick={() => handleBulkGroupCheckIn(group)}
+                        >
+                          {groupActionLoading === `bulk-${group.id}` ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <UserCheck className="w-4 h-4 mr-2" />
+                          )}
+                          Check In All
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          disabled={groupActionLoading === `bulkout-${group.id}` || group.members.length === 0}
+                          onClick={() => handleBulkGroupCheckOut(group)}
+                        >
+                          {groupActionLoading === `bulkout-${group.id}` ? (
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          ) : (
+                            <UserX className="w-4 h-4 mr-2" />
+                          )}
+                          Check Out All
+                        </Button>
+                      </div>
+
+                      {/* Members list */}
+                      {group.members.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No members in this group</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {group.members.map((member) => (
+                            <div
+                              key={member.id}
+                              className="flex items-center justify-between p-3 rounded-lg border bg-muted/30"
+                            >
+                              <div className="flex items-center gap-3">
+                                <div>
+                                  <p className="font-medium text-sm">{member.member_name}</p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {member.member_email || 'No email'}
+                                    {member.member_phone ? ` · ${member.member_phone}` : ''}
+                                  </p>
+                                </div>
+                                <Badge variant="outline" className="text-xs">{member.member_role}</Badge>
+                                {!member.user_id && (
+                                  <Badge variant="destructive" className="text-xs">No account</Badge>
+                                )}
+                              </div>
+                              <Button
+                                size="sm"
+                                disabled={!member.user_id || groupActionLoading === member.id}
+                                onClick={() => handleGroupMemberCheckIn(member, group.id, group.name)}
+                              >
+                                {groupActionLoading === member.id ? (
+                                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                ) : (
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                )}
+                                Check In
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Filters */}
       <Card>
