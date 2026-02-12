@@ -559,16 +559,43 @@ const EnhancedCheckInsTab = () => {
 
           {/* Pagination */}
           {totalPages > 1 && (
-            <div className="flex items-center justify-between mt-4">
+            <div className="flex flex-col sm:flex-row items-center justify-between mt-4 gap-3">
               <p className="text-sm text-muted-foreground">
-                Page {page + 1} of {totalPages} ({totalCount} total)
+                Showing {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, totalCount)} of {totalCount}
               </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
-                  <ChevronLeft className="w-4 h-4 mr-1" /> Previous
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page === 0} onClick={() => setPage(p => p - 1)}>
+                  <ChevronLeft className="w-4 h-4" />
                 </Button>
-                <Button variant="outline" size="sm" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
-                  Next <ChevronRight className="w-4 h-4 ml-1" />
+                {(() => {
+                  const pages: (number | 'ellipsis')[] = [];
+                  if (totalPages <= 7) {
+                    for (let i = 0; i < totalPages; i++) pages.push(i);
+                  } else {
+                    pages.push(0);
+                    if (page > 2) pages.push('ellipsis');
+                    for (let i = Math.max(1, page - 1); i <= Math.min(totalPages - 2, page + 1); i++) pages.push(i);
+                    if (page < totalPages - 3) pages.push('ellipsis');
+                    pages.push(totalPages - 1);
+                  }
+                  return pages.map((p, idx) =>
+                    p === 'ellipsis' ? (
+                      <span key={`e${idx}`} className="px-1 text-muted-foreground">…</span>
+                    ) : (
+                      <Button
+                        key={p}
+                        variant={p === page ? "default" : "outline"}
+                        size="icon"
+                        className="h-8 w-8 text-xs"
+                        onClick={() => setPage(p)}
+                      >
+                        {p + 1}
+                      </Button>
+                    )
+                  );
+                })()}
+                <Button variant="outline" size="icon" className="h-8 w-8" disabled={page >= totalPages - 1} onClick={() => setPage(p => p + 1)}>
+                  <ChevronRight className="w-4 h-4" />
                 </Button>
               </div>
             </div>
