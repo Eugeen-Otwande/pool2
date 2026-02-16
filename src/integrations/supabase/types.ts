@@ -694,16 +694,19 @@ export type Database = {
       }
       profiles: {
         Row: {
+          account_origin: string
           check_in_at: string | null
           check_in_status: string | null
           check_out_at: string | null
           created_at: string
+          created_by: string | null
           email: string
           emergency_contact: string | null
           emergency_phone: string | null
           first_name: string | null
           id: string
           last_name: string | null
+          must_change_password: boolean
           phone: string | null
           role: string
           status: string
@@ -713,16 +716,19 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          account_origin?: string
           check_in_at?: string | null
           check_in_status?: string | null
           check_out_at?: string | null
           created_at?: string
+          created_by?: string | null
           email: string
           emergency_contact?: string | null
           emergency_phone?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
+          must_change_password?: boolean
           phone?: string | null
           role: string
           status?: string
@@ -732,16 +738,19 @@ export type Database = {
           user_id: string
         }
         Update: {
+          account_origin?: string
           check_in_at?: string | null
           check_in_status?: string | null
           check_out_at?: string | null
           created_at?: string
+          created_by?: string | null
           email?: string
           emergency_contact?: string | null
           emergency_phone?: string | null
           first_name?: string | null
           id?: string
           last_name?: string | null
+          must_change_password?: boolean
           phone?: string | null
           role?: string
           status?: string

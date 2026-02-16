@@ -200,6 +200,7 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
                     <TableHead className="text-stat-card-text font-semibold">Name</TableHead>
                     <TableHead className="text-stat-card-text font-semibold">Email</TableHead>
                     <TableHead className="text-stat-card-text font-semibold">Role Requested</TableHead>
+                    <TableHead className="text-stat-card-text font-semibold">Origin</TableHead>
                     <TableHead className="text-stat-card-text font-semibold">Requested Date</TableHead>
                     <TableHead className="text-stat-card-text font-semibold">Actions</TableHead>
                   </TableRow>
@@ -224,6 +225,11 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
                     <TableCell>
                       <Badge variant="outline" className="border-stat-card-border text-stat-card-text">
                         {user.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant="secondary" className="text-xs">
+                        Self Sign-up
                       </Badge>
                     </TableCell>
                     <TableCell className="text-stat-card-text">
