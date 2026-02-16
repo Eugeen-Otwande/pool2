@@ -6,6 +6,7 @@ import { User, Session } from "@supabase/supabase-js";
 import { Button } from "@/components/ui/button";
 import { useIsMobile } from "@/hooks/use-mobile";
 import DashboardNav from "@/components/dashboard/DashboardNav";
+import ForcePasswordChange from "@/components/dashboard/ForcePasswordChange";
 import AdminReadOnlyDashboard from "@/components/dashboard/AdminReadOnlyDashboard";
 import StudentDashboard from "@/components/dashboard/StudentDashboard";
 import StaffDashboard from "@/components/dashboard/StaffDashboard";
@@ -32,6 +33,8 @@ interface UserProfile {
   check_out_at: string | null;
   created_at: string;
   updated_at: string;
+  must_change_password?: boolean;
+  account_origin?: string;
 }
 
 const Dashboard = () => {
@@ -228,6 +231,18 @@ const Dashboard = () => {
           </Button>
         </div>
       </div>
+    );
+  }
+
+  // Check if user must change password (staff-created accounts)
+  if (profile.must_change_password) {
+    return (
+      <ForcePasswordChange 
+        onPasswordChanged={() => {
+          // Refresh profile after password change
+          fetchUserProfile(user.id);
+        }} 
+      />
     );
   }
 

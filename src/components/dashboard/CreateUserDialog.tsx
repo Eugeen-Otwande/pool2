@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
 
 interface CreateUserDialogProps {
   open: boolean;
@@ -20,6 +21,7 @@ export default function CreateUserDialog({
   onUserCreated, 
   editingUser 
 }: CreateUserDialogProps) {
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: editingUser?.email || "",
     first_name: editingUser?.first_name || "",
@@ -33,6 +35,7 @@ export default function CreateUserDialog({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     
     try {
       if (editingUser) {
@@ -40,7 +43,6 @@ export default function CreateUserDialog({
         const roleChanged = editingUser.role !== formData.role;
         
         if (roleChanged) {
-          // Use the secure role update function
           const { data: { user } } = await supabase.auth.getUser();
           if (!user) throw new Error('Not authenticated');
 
@@ -51,12 +53,10 @@ export default function CreateUserDialog({
           });
 
           if (error) throw error;
-
           const result = data as { success: boolean; message: string };
           if (!result.success) throw new Error(result.message);
         }
         
-        // Update other profile fields
         const { role, ...otherFields } = formData;
         const { error: updateError } = await supabase
           .from("profiles")
@@ -70,13 +70,32 @@ export default function CreateUserDialog({
           : "User updated successfully"
         );
       } else {
-        // Create new user via pre_existing_accounts
-        const { error } = await supabase
-          .from("pre_existing_accounts")
-          .insert(formData);
+        // Create new user via edge function (creates auth user + profile + role)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) throw new Error('Not authenticated');
 
-        if (error) throw error;
-        toast.success("User account created successfully");
+        const response = await supabase.functions.invoke('create-user', {
+          body: {
+            email: formData.email,
+            first_name: formData.first_name,
+            last_name: formData.last_name,
+            role: formData.role,
+            phone: formData.phone,
+            emergency_contact: formData.emergency_contact,
+            emergency_phone: formData.emergency_phone,
+          }
+        });
+
+        if (response.error) {
+          throw new Error(response.error.message || 'Failed to create user');
+        }
+
+        const result = response.data;
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create user');
+        }
+
+        toast.success("✅ Account created with default password (pool123). User will be prompted to change it on first login.");
       }
 
       onUserCreated();
@@ -85,6 +104,8 @@ export default function CreateUserDialog({
     } catch (error: any) {
       console.error("Error saving user:", error);
       toast.error(error.message || "Failed to save user");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -108,6 +129,12 @@ export default function CreateUserDialog({
           <DialogTitle>
             {editingUser ? "Edit User" : "Create New User"}
           </DialogTitle>
+          {!editingUser && (
+            <p className="text-sm text-muted-foreground mt-1">
+              Account will be created with default password <code className="bg-muted px-1 rounded">pool123</code>. 
+              User will be prompted to change it on first login.
+            </p>
+          )}
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -118,6 +145,7 @@ export default function CreateUserDialog({
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
+              disabled={!!editingUser}
             />
           </div>
           
@@ -158,29 +186,30 @@ export default function CreateUserDialog({
                 <SelectItem value="member">Member</SelectItem>
                 <SelectItem value="rcmrd_team">RCMRD Team</SelectItem>
                 <SelectItem value="rcmrd_official">RCMRD Official</SelectItem>
-                <SelectItem value="faculty">Faculty</SelectItem>
                 <SelectItem value="visitor">Visitor</SelectItem>
                 <SelectItem value="admin">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          <div>
-            <Label htmlFor="status">Status</Label>
-            <Select
-              value={formData.status}
-              onValueChange={(value) => setFormData({ ...formData, status: value })}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
-                <SelectItem value="inactive">Inactive</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {editingUser && (
+            <div>
+              <Label htmlFor="status">Status</Label>
+              <Select
+                value={formData.status}
+                onValueChange={(value) => setFormData({ ...formData, status: value })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Active</SelectItem>
+                  <SelectItem value="inactive">Inactive</SelectItem>
+                  <SelectItem value="pending">Pending</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="phone">Phone</Label>
@@ -210,7 +239,8 @@ export default function CreateUserDialog({
           </div>
 
           <div className="flex gap-2 pt-4">
-            <Button type="submit" className="flex-1">
+            <Button type="submit" className="flex-1" disabled={loading}>
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
               {editingUser ? "Update" : "Create"} User
             </Button>
             <Button 
