@@ -62,9 +62,10 @@ interface ActiveCheckIn {
 
 interface ApprovalsTabProps {
   userProfile: any;
+  onApprovalStatusChanged?: () => void;
 }
 
-const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
+const ApprovalsTab = ({ userProfile, onApprovalStatusChanged }: ApprovalsTabProps) => {
   const [pendingApprovals, setPendingApprovals] = useState<PendingApproval[]>([]);
   const [pendingCheckIns, setPendingCheckIns] = useState<PendingCheckIn[]>([]);
   const [activeCheckIns, setActiveCheckIns] = useState<ActiveCheckIn[]>([]);
@@ -275,6 +276,7 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
       });
 
       fetchPendingApprovals();
+      onApprovalStatusChanged?.();
     } catch (error: any) {
       toast({
         title: "Approval Failed",
@@ -314,6 +316,7 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
       });
 
       fetchPendingApprovals();
+      onApprovalStatusChanged?.();
     } catch (error: any) {
       toast({
         title: "Rejection Failed",

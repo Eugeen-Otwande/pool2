@@ -1181,7 +1181,13 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
         {/* Approvals Tab */}
         <TabsContent value="approvals" className="space-y-6">
-          <ApprovalsTab userProfile={profile} />
+          <ApprovalsTab
+            userProfile={profile}
+            onApprovalStatusChanged={() => {
+              fetchUsers();
+              fetchNotificationCounts();
+            }}
+          />
         </TabsContent>
 
         {/* Users Tab */}
