@@ -533,7 +533,7 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
                               className="bg-green-600 hover:bg-green-700 text-white"
                             >
                               <CheckCircle className="w-4 h-4 mr-1" />
-                              Approve
+                              Accept
                             </Button>
                             <Button
                               size="sm"
