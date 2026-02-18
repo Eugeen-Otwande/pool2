@@ -316,11 +316,16 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         .order("check_in_time", { ascending: false });
 
       if (error) throw error;
-      
+
       setActiveCheckIns(data || []);
       setCurrentCapacity(data?.length || 0);
-    } catch (error) {
-      console.error("Error fetching check-ins:", error);
+    } catch (error: any) {
+      console.error("Error fetching check-ins:", error?.message || error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to fetch check-ins",
+        variant: "destructive",
+      });
     }
   };
 
@@ -345,16 +350,20 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         .from("check_ins")
         .select(`
           *,
-          profiles!inner(first_name, last_name, role),
-          pool_schedules(title)
+          profiles!inner(first_name, last_name, role)
         `)
         .order("created_at", { ascending: false })
         .limit(20);
 
       if (error) throw error;
       setRecentActivities(data || []);
-    } catch (error) {
-      console.error("Error fetching recent activities:", error);
+    } catch (error: any) {
+      console.error("Error fetching recent activities:", error?.message || error);
+      toast({
+        title: "Error",
+        description: error?.message || "Failed to fetch recent activities",
+        variant: "destructive",
+      });
     }
   };
 
