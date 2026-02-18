@@ -119,38 +119,38 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
 
   const fetchPendingApprovals = async () => {
     try {
-      // Fetch from user_approvals table with pending status
-      const { data: approvalsData, error: approvalsError } = await supabase
-        .from("user_approvals")
+      // Fetch directly from profiles table where status = 'pending' (source of truth)
+      const { data: profilesData, error: profilesError } = await supabase
+        .from("profiles")
         .select("*")
         .eq("status", "pending")
-        .order("requested_at", { ascending: false });
+        .order("created_at", { ascending: false });
 
-      if (approvalsError) throw approvalsError;
+      if (profilesError) throw profilesError;
 
-      // Now fetch profiles for these users
+      // Get approval records for audit trail
       const approvals: PendingApproval[] = [];
-      if (approvalsData && approvalsData.length > 0) {
-        for (const approval of approvalsData) {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("id, first_name, last_name, email, role, status, created_at")
-            .eq("user_id", approval.user_id)
-            .single();
+      if (profilesData && profilesData.length > 0) {
+        for (const profile of profilesData) {
+          // Fetch the corresponding user_approvals record
+          const { data: approval } = await supabase
+            .from("user_approvals")
+            .select("id, status, requested_at")
+            .eq("user_id", profile.user_id)
+            .eq("status", "pending")
+            .maybeSingle();
 
-          if (profile) {
-            approvals.push({
-              id: profile.id,
-              first_name: profile.first_name || "",
-              last_name: profile.last_name || "",
-              email: profile.email,
-              role: profile.role,
-              status: approval.status,
-              created_at: approval.requested_at,
-              user_id: approval.user_id,
-              approval_id: approval.id
-            });
-          }
+          approvals.push({
+            id: profile.id,
+            first_name: profile.first_name || "",
+            last_name: profile.last_name || "",
+            email: profile.email,
+            role: profile.role,
+            status: "pending",
+            created_at: profile.created_at,
+            user_id: profile.user_id,
+            approval_id: approval?.id || ""
+          });
         }
       }
 
@@ -247,25 +247,27 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
 
   const handleApproveUser = async (approval: PendingApproval, userName: string) => {
     try {
-      // Update profile status to active
+      // Update profile status to active (per specification)
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ status: "active" })
+        .update({ status: "active", updated_at: new Date().toISOString() })
         .eq("user_id", approval.user_id);
 
       if (profileError) throw profileError;
 
       // Update user_approvals record
-      const { error: approvalError } = await supabase
-        .from("user_approvals")
-        .update({ 
-          status: "approved", 
-          approved_at: new Date().toISOString(),
-          approved_by: userProfile.user_id
-        })
-        .eq("id", approval.approval_id);
+      if (approval.approval_id) {
+        const { error: approvalError } = await supabase
+          .from("user_approvals")
+          .update({
+            status: "approved",
+            approved_at: new Date().toISOString(),
+            approved_by: userProfile.user_id
+          })
+          .eq("id", approval.approval_id);
 
-      if (approvalError) throw approvalError;
+        if (approvalError) throw approvalError;
+      }
 
       toast({
         title: "User Approved",
@@ -284,25 +286,27 @@ const ApprovalsTab = ({ userProfile }: ApprovalsTabProps) => {
 
   const handleRejectUser = async (approval: PendingApproval, userName: string) => {
     try {
-      // Update profile status to rejected
+      // Update profile status to inactive (per specification)
       const { error: profileError } = await supabase
         .from("profiles")
-        .update({ status: "rejected" })
+        .update({ status: "inactive", updated_at: new Date().toISOString() })
         .eq("user_id", approval.user_id);
 
       if (profileError) throw profileError;
 
       // Update user_approvals record
-      const { error: approvalError } = await supabase
-        .from("user_approvals")
-        .update({ 
-          status: "rejected", 
-          approved_at: new Date().toISOString(),
-          approved_by: userProfile.user_id
-        })
-        .eq("id", approval.approval_id);
+      if (approval.approval_id) {
+        const { error: approvalError } = await supabase
+          .from("user_approvals")
+          .update({
+            status: "rejected",
+            approved_at: new Date().toISOString(),
+            approved_by: userProfile.user_id
+          })
+          .eq("id", approval.approval_id);
 
-      if (approvalError) throw approvalError;
+        if (approvalError) throw approvalError;
+      }
 
       toast({
         title: "User Rejected",
