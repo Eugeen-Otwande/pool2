@@ -306,19 +306,35 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
   const fetchActiveCheckIns = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: checkInsData, error } = await supabase
         .from("check_ins")
-        .select(`
-          *,
-          profiles!inner(first_name, last_name, role)
-        `)
+        .select("*")
         .eq("status", "checked_in")
         .order("check_in_time", { ascending: false });
 
       if (error) throw error;
 
-      setActiveCheckIns(data || []);
-      setCurrentCapacity(data?.length || 0);
+      // Fetch profiles separately
+      const checkInsWithProfiles = [];
+      if (checkInsData && checkInsData.length > 0) {
+        for (const checkIn of checkInsData) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, role")
+            .eq("user_id", checkIn.user_id)
+            .single();
+
+          if (profile) {
+            checkInsWithProfiles.push({
+              ...checkIn,
+              profiles: profile
+            });
+          }
+        }
+      }
+
+      setActiveCheckIns(checkInsWithProfiles);
+      setCurrentCapacity(checkInsWithProfiles?.length || 0);
     } catch (error: any) {
       console.error("Error fetching check-ins:", error?.message || error);
       toast({
@@ -346,17 +362,34 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
   const fetchRecentActivities = async () => {
     try {
-      const { data, error } = await supabase
+      const { data: checkInsData, error } = await supabase
         .from("check_ins")
-        .select(`
-          *,
-          profiles!inner(first_name, last_name, role)
-        `)
+        .select("*")
         .order("created_at", { ascending: false })
         .limit(20);
 
       if (error) throw error;
-      setRecentActivities(data || []);
+
+      // Fetch profiles separately
+      const checkInsWithProfiles = [];
+      if (checkInsData && checkInsData.length > 0) {
+        for (const checkIn of checkInsData) {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("first_name, last_name, role")
+            .eq("user_id", checkIn.user_id)
+            .single();
+
+          if (profile) {
+            checkInsWithProfiles.push({
+              ...checkIn,
+              profiles: profile
+            });
+          }
+        }
+      }
+
+      setRecentActivities(checkInsWithProfiles);
     } catch (error: any) {
       console.error("Error fetching recent activities:", error?.message || error);
       toast({
