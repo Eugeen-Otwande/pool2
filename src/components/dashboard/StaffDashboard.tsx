@@ -44,7 +44,7 @@ import SystemInfoTab from "./SystemInfoTab";
 import InquiriesTab from "./InquiriesTab";
 import VisitorManagementTab from "./VisitorManagementTab";
 import CreateUserDialog from "./CreateUserDialog";
-import ApprovalsTab from "./ApprovalsTab";
+
 import PoolLogsTab from "./PoolLogsTab";
 import PaymentsTab from "./PaymentsTab";
 import VisitorsTab from "./VisitorsTab";
@@ -1181,9 +1181,8 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
 
         {/* Approvals Tab */}
         <TabsContent value="approvals" className="space-y-6">
-          <ApprovalsTab
-            userProfile={profile}
-            onApprovalStatusChanged={() => {
+          <UserApprovalTab
+            onRefreshStats={() => {
               fetchUsers();
               fetchNotificationCounts();
             }}
