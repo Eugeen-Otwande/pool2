@@ -53,11 +53,12 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
       }
       console.log("UserApprovalTab: Fetched pending users:", data?.length || 0);
       setPendingUsers(data || []);
-    } catch (error) {
-      console.error("Error fetching pending users:", error);
+    } catch (error: any) {
+      const msg = error?.message || error?.details || JSON.stringify(error);
+      console.error("Error fetching pending users:", msg, error);
       toast({
         title: "Error",
-        description: "Failed to load pending users",
+        description: `Failed to load pending users: ${msg}`,
         variant: "destructive",
       });
     } finally {
@@ -102,11 +103,12 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
       onRefreshStats();
       setSelectedUser(null);
       setApprovalNotes("");
-    } catch (error) {
-      console.error("Error approving user:", error);
+    } catch (error: any) {
+      const msg = error?.message || error?.details || JSON.stringify(error);
+      console.error("Error approving user:", msg, error);
       toast({
-        title: "Error",
-        description: "Failed to approve user",
+        title: "Approval Failed",
+        description: msg,
         variant: "destructive",
       });
     }
@@ -149,11 +151,12 @@ const UserApprovalTab = ({ onRefreshStats }: UserApprovalTabProps) => {
       onRefreshStats();
       setSelectedUser(null);
       setApprovalNotes("");
-    } catch (error) {
-      console.error("Error rejecting user:", error);
+    } catch (error: any) {
+      const msg = error?.message || error?.details || JSON.stringify(error);
+      console.error("Error rejecting user:", msg, error);
       toast({
-        title: "Error",
-        description: "Failed to reject user",
+        title: "Rejection Failed",
+        description: msg,
         variant: "destructive",
       });
     }
