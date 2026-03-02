@@ -109,6 +109,26 @@ Deno.serve(async (req) => {
       console.error('Error creating role:', roleError)
     }
 
+    // If role is resident, also insert into residents table
+    if (role === 'resident') {
+      const fullName = [first_name, last_name].filter(Boolean).join(' ') || email
+      const { error: residentError } = await supabaseAdmin
+        .from('residents')
+        .upsert({
+          user_id: newUser.user.id,
+          name: fullName,
+          full_name: fullName,
+          email,
+          phone: phone || null,
+          status: 'active',
+          created_by: caller.id,
+        }, { onConflict: 'user_id' })
+
+      if (residentError) {
+        console.error('Error creating resident entry:', residentError)
+      }
+    }
+
     return new Response(JSON.stringify({ 
       success: true, 
       message: `Account created for ${email} with default password. User will be prompted to change password on first login.`,

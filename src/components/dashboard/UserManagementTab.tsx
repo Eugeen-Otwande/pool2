@@ -43,6 +43,8 @@ interface UserProfile {
   phone: string | null;
   emergency_contact: string | null;
   emergency_phone: string | null;
+  account_origin: string;
+  created_by: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -169,22 +171,31 @@ export default function UserManagementTab({ onRefreshStats }: UserManagementTabP
         return;
       }
 
-      // Add to pre_existing_accounts table - user will be created when they sign up
-      const { error: preExistingError } = await supabase
-        .from('pre_existing_accounts')
-        .insert({
+      // Create user via edge function (creates auth user + profile + role + resident entry if applicable)
+      const response = await supabase.functions.invoke('create-user', {
+        body: {
           email: formData.email,
           first_name: formData.first_name,
           last_name: formData.last_name,
           role: formData.role,
-          status: formData.status,
-        });
+          phone: formData.phone || null,
+          emergency_contact: formData.emergency_contact || null,
+          emergency_phone: formData.emergency_phone || null,
+        }
+      });
 
-      if (preExistingError) throw preExistingError;
+      if (response.error) {
+        throw new Error(response.error.message || 'Failed to create user');
+      }
+
+      const result = response.data;
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create user');
+      }
 
       toast({
-        title: "Success",
-        description: "User account created. They can now sign up with this email.",
+        title: "✅ Account Created",
+        description: `Account created for ${formData.email} with default password (pool123). User will be prompted to change it on first login.`,
       });
 
       setIsCreateDialogOpen(false);
@@ -422,7 +433,7 @@ export default function UserManagementTab({ onRefreshStats }: UserManagementTabP
               <DialogHeader>
                 <DialogTitle>Create New User</DialogTitle>
                 <DialogDescription>
-                  Add a new user to the system. They will be able to sign up with this email.
+                  Creates a Supabase Auth account with default password <code className="bg-muted px-1 rounded text-xs">pool123</code>. The user will be prompted to change it on first login. Residents will also be added to the Residents registry.
                 </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleCreateUser} className="space-y-4">
@@ -576,6 +587,7 @@ export default function UserManagementTab({ onRefreshStats }: UserManagementTabP
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Origin</TableHead>
                   <TableHead>Created At</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
@@ -583,7 +595,7 @@ export default function UserManagementTab({ onRefreshStats }: UserManagementTabP
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -596,6 +608,11 @@ export default function UserManagementTab({ onRefreshStats }: UserManagementTabP
                       <TableCell>{user.email}</TableCell>
                       <TableCell>{getRoleBadge(user.role)}</TableCell>
                       <TableCell>{getStatusBadge(user.status)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs capitalize">
+                          {(user.account_origin || 'unknown').replace('_', ' ')}
+                        </Badge>
+                      </TableCell>
                       <TableCell>{new Date(user.created_at).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
