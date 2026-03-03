@@ -50,6 +50,10 @@ interface UserProfile {
   check_in_status: string | null;
   source: 'profile' | 'visitor';
   visitor_id?: string;
+  group_name?: string;
+  group_id?: string;
+  is_group_member?: boolean;
+  has_account?: boolean;
 }
 
 interface GroupMember {
@@ -267,8 +271,8 @@ const EnhancedCheckInsTab = () => {
     if (!searchTerm.trim()) return;
     setSearchLoading(true);
     try {
-      // Search profiles and visitors in parallel
-      const [profilesRes, visitorsRes] = await Promise.all([
+      // Search profiles, visitors, and group members in parallel
+      const [profilesRes, visitorsRes, groupMembersRes] = await Promise.all([
         supabase
           .from('profiles')
           .select('user_id, id, email, first_name, last_name, role, check_in_status')
@@ -278,7 +282,13 @@ const EnhancedCheckInsTab = () => {
           .from('visitors')
           .select('id, first_name, last_name, email, phone, check_in_status, date_of_visit, payment_status')
           .or(`first_name.ilike.%${searchTerm}%,last_name.ilike.%${searchTerm}%,email.ilike.%${searchTerm}%,phone.ilike.%${searchTerm}%`)
-          .limit(10)
+          .limit(10),
+        supabase
+          .from('group_members')
+          .select('id, member_name, member_email, member_phone, member_role, status, user_id, group_id, groups!group_members_group_id_fkey(name)')
+          .or(`member_name.ilike.%${searchTerm}%,member_email.ilike.%${searchTerm}%,member_phone.ilike.%${searchTerm}%`)
+          .eq('status', 'active')
+          .limit(15)
       ]);
 
       if (profilesRes.error) throw profilesRes.error;
@@ -301,7 +311,30 @@ const EnhancedCheckInsTab = () => {
         visitor_id: v.id,
       }));
 
-      setSearchResults([...profileResults, ...visitorResults]);
+      // Map group members — avoid duplicates with profiles already found
+      const profileUserIds = new Set(profileResults.map(p => p.user_id));
+      const groupMemberResults: UserProfile[] = (groupMembersRes.data || [])
+        .filter(gm => !gm.user_id || !profileUserIds.has(gm.user_id))
+        .map(gm => {
+          const nameParts = gm.member_name.split(' ');
+          const groupName = (gm as any).groups?.name || '';
+          return {
+            id: gm.id,
+            user_id: gm.user_id || gm.id,
+            email: gm.member_email || '',
+            first_name: nameParts[0] || gm.member_name,
+            last_name: nameParts.slice(1).join(' ') || null,
+            role: 'group_member',
+            check_in_status: 'Not Checked In',
+            source: 'profile' as const,
+            group_name: groupName,
+            group_id: gm.group_id,
+            is_group_member: true,
+            has_account: !!gm.user_id,
+          };
+        });
+
+      setSearchResults([...profileResults, ...groupMemberResults, ...visitorResults]);
     } catch (error) {
       console.error('Error searching users:', error);
       toast({ title: "Search Error", description: "Failed to search users", variant: "destructive" });
@@ -584,8 +617,14 @@ const EnhancedCheckInsTab = () => {
                         <p className="font-medium">{name || 'Unknown'}</p>
                         <p className="text-sm text-muted-foreground">{user.email}</p>
                       </div>
-                      <Badge variant="outline">{user.role}</Badge>
+                      <Badge variant="outline">{user.role === 'group_member' ? 'Group Member' : user.role}</Badge>
                       {isVisitor && <Badge variant="secondary" className="text-xs">Visitor</Badge>}
+                      {user.group_name && (
+                        <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">{user.group_name}</Badge>
+                      )}
+                      {user.is_group_member && !user.has_account && (
+                        <Badge variant="destructive" className="text-xs">No account</Badge>
+                      )}
                     </div>
                     <div className="flex items-center space-x-2">
                       <Badge variant={isCheckedIn ? 'default' : 'secondary'}>
@@ -605,6 +644,11 @@ const EnhancedCheckInsTab = () => {
                             Check In
                           </Button>
                         ) : null
+                      ) : user.is_group_member && !user.has_account ? (
+                        <Button size="sm" disabled title="No linked account">
+                          <XCircle className="w-4 h-4 mr-2" />
+                          No Account
+                        </Button>
                       ) : (
                         isCheckedIn ? (
                           <Button size="sm" variant="outline" disabled={actionLoading === loadingId}
