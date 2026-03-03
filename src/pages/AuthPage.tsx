@@ -22,6 +22,7 @@ const AuthPage = () => {
     phone: "",
     role: "student",
   });
+  const [statusBlocked, setStatusBlocked] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -48,7 +49,7 @@ const AuthPage = () => {
     setIsLoading(true);
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
       });
@@ -59,6 +60,19 @@ const AuthPage = () => {
           description: error.message,
           variant: "destructive",
         });
+      } else if (data.user) {
+        // Check profile status before allowing navigation
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("status")
+          .eq("user_id", data.user.id)
+          .maybeSingle();
+
+        if (profile?.status === "inactive") {
+          await supabase.auth.signOut();
+          setStatusBlocked("inactive");
+          return;
+        }
       }
     } catch (error) {
       toast({
@@ -104,7 +118,7 @@ const AuthPage = () => {
         email: email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/dashboard`,
+          emailRedirectTo: `https://pool2.lovable.app/auth/callback`,
           data: {
             first_name: formData.firstName.trim(),
             last_name: formData.lastName.trim(),
@@ -249,6 +263,17 @@ const AuthPage = () => {
                     </Select>
                   </div>
 
+                   <div className="space-y-2">
+                    <Label htmlFor="phone">Phone Number</Label>
+                    <Input
+                      id="phone"
+                      type="tel"
+                      value={formData.phone}
+                      onChange={(e) => updateFormData("phone", e.target.value)}
+                      placeholder="e.g. +254 700 000000"
+                    />
+                  </div>
+
                   <div className="space-y-2">
                     <Label htmlFor="signup-email">Email</Label>
                     <Input
@@ -295,6 +320,12 @@ const AuthPage = () => {
                 </form>
               </TabsContent>
             </Tabs>
+
+            {statusBlocked === "inactive" && (
+              <div className="mt-4 p-3 bg-destructive/10 border border-destructive/20 rounded-md text-center">
+                <p className="text-sm text-destructive font-medium">Account inactive. Contact administration.</p>
+              </div>
+            )}
 
             <div className="mt-6 text-center">
               <Link to="/" className="text-sm text-muted-foreground hover:text-primary transition-colors">
