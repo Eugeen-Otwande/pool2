@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      bookings: {
+        Row: {
+          amount: number
+          booking_date: string
+          created_at: string
+          email: string
+          first_name: string
+          gatepass_generated: boolean
+          id: string
+          last_name: string
+          num_guests: number
+          payment_status: string
+          phone: string
+          reference_code: string
+          special_requests: string | null
+          status: string
+          time_slot: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          amount?: number
+          booking_date: string
+          created_at?: string
+          email: string
+          first_name: string
+          gatepass_generated?: boolean
+          id?: string
+          last_name: string
+          num_guests?: number
+          payment_status?: string
+          phone: string
+          reference_code: string
+          special_requests?: string | null
+          status?: string
+          time_slot: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          amount?: number
+          booking_date?: string
+          created_at?: string
+          email?: string
+          first_name?: string
+          gatepass_generated?: boolean
+          id?: string
+          last_name?: string
+          num_guests?: number
+          payment_status?: string
+          phone?: string
+          reference_code?: string
+          special_requests?: string | null
+          status?: string
+          time_slot?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       check_ins: {
         Row: {
           check_in_time: string
