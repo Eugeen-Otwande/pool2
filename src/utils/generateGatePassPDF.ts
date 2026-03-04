@@ -13,6 +13,8 @@ export interface GatePassData {
   preferredTime: string;
   numberOfGuests: number;
   expectedEntryTime: string;
+  paymentStatus?: string;
+  amount?: number;
 }
 
 export const generateBookingReference = (bookingId: string): string => {
@@ -180,6 +182,32 @@ export const generateGatePassPDF = async (data: GatePassData): Promise<Blob> => 
   doc.setFontSize(12);
   doc.setFont('helvetica', 'bold');
   doc.text(data.expectedEntryTime, margin, yPos + 6);
+
+  // Payment Status
+  if (data.paymentStatus) {
+    doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('PAYMENT STATUS', margin + colWidth + 10, yPos);
+    doc.setTextColor(34, 197, 94);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(data.paymentStatus, margin + colWidth + 10, yPos + 6);
+  }
+
+  yPos += lineHeight + 4;
+
+  // Amount
+  if (data.amount) {
+    doc.setTextColor(mediumGray[0], mediumGray[1], mediumGray[2]);
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.text('AMOUNT PAID', margin, yPos);
+    doc.setTextColor(darkBlue[0], darkBlue[1], darkBlue[2]);
+    doc.setFontSize(12);
+    doc.setFont('helvetica', 'bold');
+    doc.text(`KES ${data.amount.toLocaleString()}`, margin, yPos + 6);
+  }
 
   yPos += lineHeight + 15;
 
