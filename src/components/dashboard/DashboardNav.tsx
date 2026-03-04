@@ -150,6 +150,14 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'bookings' },
+        (payload) => {
+          console.log('📋 Booking update:', payload.eventType);
+          fetchNotifications();
+        }
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'pool_logs' },
         (payload) => {
           console.log('🏊 Pool log update:', payload.eventType);
@@ -310,6 +318,30 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
           }
         }
 
+        // Recent bookings (pending payment)
+        const { data: recentBookings } = await supabase
+          .from("bookings")
+          .select("id, first_name, last_name, reference_code, num_guests, amount, status, payment_status, booking_date, time_slot, created_at")
+          .eq("status", "pending_payment")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (recentBookings) {
+          for (const booking of recentBookings) {
+            allNotifications.push({
+              id: booking.id,
+              type: 'visitor',
+              title: `📋 Booking: ${booking.first_name} ${booking.last_name}`,
+              description: `Ref: ${booking.reference_code} • ${booking.num_guests} guest(s) • KES ${booking.amount} pending`,
+              time: booking.created_at,
+              status: 'pending_payment',
+              priority: 'medium',
+              targetTab: 'visitors',
+              metadata: { paymentStatus: booking.payment_status, guests: booking.num_guests }
+            });
+          }
+        }
+
         // Overdue equipment - HIGH PRIORITY
         const { data: overdueLoans } = await supabase
           .from("equipment_loans")
@@ -464,6 +496,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
       'checked_out': { variant: 'secondary', label: 'Completed' },
       'overdue': { variant: 'destructive', label: 'Overdue' },
       'new': { variant: 'default', label: 'New' },
+      'pending_payment': { variant: 'destructive', label: 'Awaiting Payment' },
       'Not Checked In': { variant: 'outline', label: 'Expected' },
       'Checked In': { variant: 'default', label: 'Present' },
       'Checked Out': { variant: 'secondary', label: 'Left' },

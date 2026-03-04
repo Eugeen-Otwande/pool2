@@ -425,15 +425,20 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
       
       setPendingApprovalsCount(approvalsCount || 0);
 
-      // Fetch today's pending visitors count
+      // Fetch recent bookings (pending payment) + today's visitors not checked in
       const today = new Date().toISOString().split('T')[0];
-      const { count: visitorsCount } = await supabase
-        .from("visitors")
-        .select("*", { count: "exact", head: true })
-        .eq("date_of_visit", today)
-        .eq("check_in_status", "Not Checked In");
-      
-      setPendingVisitorsCount(visitorsCount || 0);
+      const [{ count: bookingsCount }, { count: visitorsCount }] = await Promise.all([
+        supabase
+          .from("bookings")
+          .select("*", { count: "exact", head: true })
+          .eq("status", "pending_payment"),
+        supabase
+          .from("visitors")
+          .select("*", { count: "exact", head: true })
+          .eq("date_of_visit", today)
+          .eq("check_in_status", "Not Checked In")
+      ]);
+      setPendingVisitorsCount((bookingsCount || 0) + (visitorsCount || 0));
 
       // Fetch new inquiries count
       const { count: inquiriesCount } = await supabase
