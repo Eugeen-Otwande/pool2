@@ -812,65 +812,63 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                   <p className="text-sm">Create a group to start managing bulk check-ins</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {groups.map((group) => (
-                    <Card
-                      key={group.id}
-                      className={`cursor-pointer transition-all hover:shadow-md ${
-                        selectedGroup?.id === group.id ? "ring-2 ring-primary" : ""
-                      }`}
-                      onClick={() => {
-                        setSelectedGroup(group);
-                        setActiveSubTab("checkin");
-                      }}
-                    >
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <h3 className="font-semibold">{group.name}</h3>
-                            <p className="text-sm text-muted-foreground">{group.organization}</p>
-                          </div>
-                          <Badge variant={group.status === "active" ? "default" : "secondary"}>
-                            {getGroupTypeLabel(group.group_type)}
-                          </Badge>
-                        </div>
-                        {group.contact_person && (
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Contact: {group.contact_person}
-                          </p>
-                        )}
-                        {group.expected_session_time && (
-                          <p className="text-xs text-muted-foreground flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            Session: {group.expected_session_time}
-                          </p>
-                        )}
-                        <div className="flex gap-2 mt-3">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openEditGroup(group);
-                            }}
-                          >
-                            <Edit className="w-3 h-3" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="text-destructive"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteGroup(group);
-                            }}
-                          >
-                            <Trash2 className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                <div className="border rounded-lg overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-muted/50 border-b">
+                      <tr>
+                        <th className="px-4 py-3 text-left font-semibold">Group Name</th>
+                        <th className="px-4 py-3 text-left font-semibold">Contact Person</th>
+                        <th className="px-4 py-3 text-left font-semibold">Status</th>
+                        <th className="px-4 py-3 text-right font-semibold">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {groups.map((group) => (
+                        <tr
+                          key={group.id}
+                          className="border-b hover:bg-muted/30 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setSelectedGroup(group);
+                            setActiveSubTab("checkin");
+                          }}
+                        >
+                          <td className="px-4 py-3">
+                            <div>
+                              <p className="font-medium">{group.name}</p>
+                              <p className="text-xs text-muted-foreground">{group.organization}</p>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground">
+                            {group.contact_person || "—"}
+                          </td>
+                          <td className="px-4 py-3">
+                            <Badge variant={group.status === "active" ? "default" : "secondary"}>
+                              {group.status}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-right">
+                            <div className="flex gap-2 justify-end" onClick={(e) => e.stopPropagation()}>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => openEditGroup(group)}
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                className="text-destructive hover:text-destructive"
+                                onClick={() => handleDeleteGroup(group)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </CardContent>
