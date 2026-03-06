@@ -1140,7 +1140,7 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {members.map((member) => (
+                        {filteredMembers.map((member) => (
                           <TableRow key={member.id}>
                             <TableCell className="font-medium">{member.member_name}</TableCell>
                             <TableCell>{member.member_email || "-"}</TableCell>
