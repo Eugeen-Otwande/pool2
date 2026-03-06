@@ -654,8 +654,18 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
     return labels[role] || role;
   };
 
-  const checkedInCount = members.filter((m) => m.check_in_status === "Checked In").length;
-  const linkedMembersCount = members.filter((m) => m.user_id).length;
+  const filteredMembers = members.filter((m) => {
+    if (!memberSearch.trim()) return true;
+    const term = memberSearch.toLowerCase();
+    return (
+      m.member_name.toLowerCase().includes(term) ||
+      (m.member_email && m.member_email.toLowerCase().includes(term)) ||
+      (m.member_phone && m.member_phone.toLowerCase().includes(term))
+    );
+  });
+
+  const checkedInCount = filteredMembers.filter((m) => m.check_in_status === "Checked In").length;
+  const linkedMembersCount = filteredMembers.filter((m) => m.user_id).length;
 
   return (
     <div className="space-y-6">
