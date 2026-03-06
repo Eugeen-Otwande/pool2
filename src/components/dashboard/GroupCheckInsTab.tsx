@@ -68,6 +68,7 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState("groups");
+  const [memberSearch, setMemberSearch] = useState("");
   
   // Dialog states
   const [showGroupDialog, setShowGroupDialog] = useState(false);
@@ -653,8 +654,18 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
     return labels[role] || role;
   };
 
-  const checkedInCount = members.filter((m) => m.check_in_status === "Checked In").length;
-  const linkedMembersCount = members.filter((m) => m.user_id).length;
+  const filteredMembers = members.filter((m) => {
+    if (!memberSearch.trim()) return true;
+    const term = memberSearch.toLowerCase();
+    return (
+      m.member_name.toLowerCase().includes(term) ||
+      (m.member_email && m.member_email.toLowerCase().includes(term)) ||
+      (m.member_phone && m.member_phone.toLowerCase().includes(term))
+    );
+  });
+
+  const checkedInCount = filteredMembers.filter((m) => m.check_in_status === "Checked In").length;
+  const linkedMembersCount = filteredMembers.filter((m) => m.user_id).length;
 
   return (
     <div className="space-y-6">
@@ -948,9 +959,15 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Users className="w-5 h-5" />
-                      Group Members
+                      Group Members ({members.length})
                     </CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <Input
+                        placeholder="Search members by name, email, phone..."
+                        value={memberSearch}
+                        onChange={(e) => setMemberSearch(e.target.value)}
+                        className="w-64"
+                      />
                       <Button variant="outline" size="sm" onClick={() => fetchMembers(selectedGroup.id)}>
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Refresh
@@ -1105,11 +1122,11 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {members.length === 0 ? (
+                  {filteredMembers.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No members in this group yet</p>
-                      <p className="text-sm">Add members to enable group check-ins</p>
+                      <p>{members.length === 0 ? "No members in this group yet" : "No members match your search"}</p>
+                      <p className="text-sm">{members.length === 0 ? "Add members to enable group check-ins" : "Try a different search term"}</p>
                     </div>
                   ) : (
                     <Table>
@@ -1123,7 +1140,7 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {members.map((member) => (
+                        {filteredMembers.map((member) => (
                           <TableRow key={member.id}>
                             <TableCell className="font-medium">{member.member_name}</TableCell>
                             <TableCell>{member.member_email || "-"}</TableCell>
