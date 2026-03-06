@@ -68,6 +68,7 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState("groups");
+  const [memberSearch, setMemberSearch] = useState("");
   
   // Dialog states
   const [showGroupDialog, setShowGroupDialog] = useState(false);
