@@ -1122,11 +1122,11 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {members.length === 0 ? (
+                  {filteredMembers.length === 0 ? (
                     <div className="text-center py-8 text-muted-foreground">
                       <UserPlus className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                      <p>No members in this group yet</p>
-                      <p className="text-sm">Add members to enable group check-ins</p>
+                      <p>{members.length === 0 ? "No members in this group yet" : "No members match your search"}</p>
+                      <p className="text-sm">{members.length === 0 ? "Add members to enable group check-ins" : "Try a different search term"}</p>
                     </div>
                   ) : (
                     <Table>
