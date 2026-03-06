@@ -959,9 +959,15 @@ const GroupCheckInsTab = ({ user }: GroupCheckInsTabProps) => {
                   <div className="flex items-center justify-between">
                     <CardTitle className="flex items-center gap-2">
                       <Users className="w-5 h-5" />
-                      Group Members
+                      Group Members ({members.length})
                     </CardTitle>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      <Input
+                        placeholder="Search members by name, email, phone..."
+                        value={memberSearch}
+                        onChange={(e) => setMemberSearch(e.target.value)}
+                        className="w-64"
+                      />
                       <Button variant="outline" size="sm" onClick={() => fetchMembers(selectedGroup.id)}>
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Refresh
