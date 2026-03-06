@@ -4,7 +4,7 @@ import { Progress } from "@/components/ui/progress";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Users, UserCheck, Clock, DollarSign, CreditCard, Droplet, TestTube,
-  Package, AlertTriangle, Mail, MessageSquare, UserPlus, UserX,
+  Package, AlertTriangle, Mail, MessageSquare, UserPlus,
   TrendingUp, TrendingDown, Activity, CalendarDays, Building2,
   Ticket, Home, ShieldCheck, BarChart3, Waves
 } from "lucide-react";
