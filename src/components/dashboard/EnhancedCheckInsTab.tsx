@@ -622,15 +622,14 @@ const EnhancedCheckInsTab = () => {
                       {user.group_name && (
                         <Badge className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">{user.group_name}</Badge>
                       )}
-                      {user.is_group_member && !user.has_account && (
-                        <Badge variant="destructive" className="text-xs">No account</Badge>
-                      )}
                     </div>
                     <div className="flex items-center space-x-2">
-                      <Badge variant={isCheckedIn ? 'default' : 'secondary'}>
-                        {user.check_in_status || 'Not Checked In'}
-                      </Badge>
-                      {isVisitor ? (
+                      {!user.is_group_member && (
+                        <Badge variant={isCheckedIn ? 'default' : 'secondary'}>
+                          {user.check_in_status || 'Not Checked In'}
+                        </Badge>
+                      )}
+                      {user.is_group_member ? null : isVisitor ? (
                         isCheckedIn ? (
                           <Button size="sm" variant="outline" disabled={actionLoading === loadingId}
                             onClick={() => handleVisitorCheckOut(user.visitor_id!, name)}>
@@ -644,11 +643,6 @@ const EnhancedCheckInsTab = () => {
                             Check In
                           </Button>
                         ) : null
-                      ) : user.is_group_member && !user.has_account ? (
-                        <Button size="sm" disabled title="No linked account">
-                          <XCircle className="w-4 h-4 mr-2" />
-                          No Account
-                        </Button>
                       ) : (
                         isCheckedIn ? (
                           <Button size="sm" variant="outline" disabled={actionLoading === loadingId}
