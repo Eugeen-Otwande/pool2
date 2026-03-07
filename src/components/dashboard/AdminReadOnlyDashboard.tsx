@@ -149,19 +149,12 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
         .eq("status", "pending");
       setPendingApprovalsCount(approvalsCount || 0);
 
-      const today = new Date().toISOString().split('T')[0];
-      const [{ count: bookingsCount }, { count: visitorsCount }] = await Promise.all([
-        supabase
-          .from("bookings")
-          .select("*", { count: "exact", head: true })
-          .eq("status", "pending_payment"),
-        supabase
-          .from("visitors")
-          .select("*", { count: "exact", head: true })
-          .eq("date_of_visit", today)
-          .eq("check_in_status", "Not Checked In")
-      ]);
-      setPendingVisitorsCount((bookingsCount || 0) + (visitorsCount || 0));
+      // Fetch pending visitor/booking requests
+      const { count: bookingsCount } = await supabase
+        .from("bookings")
+        .select("*", { count: "exact", head: true })
+        .eq("status", "pending_payment");
+      setPendingVisitorsCount(bookingsCount || 0);
 
       const { count: inquiriesCount } = await supabase
         .from("inquiries")
