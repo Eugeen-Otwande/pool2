@@ -69,17 +69,6 @@ const VisitorBooking = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!user) {
-      toast.error('Please log in to book a swim session');
-      navigate('/auth');
-      return;
-    }
-
-    if (userProfile?.status !== 'active') {
-      toast.error('Your account must be active to make bookings.');
-      return;
-    }
-
     if (!date) { toast.error('Please select a date'); return; }
     if (!formData.time) { toast.error('Please select a time'); return; }
     if (!formData.first_name || !formData.last_name) { toast.error('Please enter your full name'); return; }
