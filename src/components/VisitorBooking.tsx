@@ -95,7 +95,7 @@ const VisitorBooking = () => {
       const { data: booking, error } = await supabase
         .from('bookings')
         .insert([{
-          user_id: user.id,
+          user_id: user?.id || null,
           reference_code: referenceCode,
           first_name: formData.first_name,
           last_name: formData.last_name,
