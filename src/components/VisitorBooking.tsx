@@ -163,31 +163,6 @@ const VisitorBooking = () => {
     );
   }
 
-  if (!user) {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="fixed inset-0 bg-cover bg-center bg-no-repeat opacity-20"
-          style={{ backgroundImage: `url('/lovable-uploads/c3a59b6e-bd2c-4fea-a0a9-48bbf2bc4263.png')` }} />
-        <div className="relative z-10 pt-8 px-6">
-          <Link to="/"><Button variant="outline" className="bg-card/80 hover:bg-card border-border"><ArrowLeft className="w-4 h-4 mr-2" />Back to Homepage</Button></Link>
-        </div>
-        <div className="relative z-10 container mx-auto max-w-md px-6 py-16">
-          <Card className="bg-card/90 backdrop-blur-sm shadow-xl border-border text-center">
-            <CardHeader>
-              <CardTitle className="text-2xl">Login Required</CardTitle>
-              <CardDescription>You need to be logged in to book a swim session</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <Button className="w-full" onClick={() => navigate('/auth')}>
-                <LogIn className="w-4 h-4 mr-2" />Sign In to Continue
-              </Button>
-              <p className="text-sm text-muted-foreground">Don't have an account? You can sign up on the login page.</p>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-background">
