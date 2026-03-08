@@ -157,6 +157,15 @@ const ProfileTab = ({ user, profile, onProfileUpdate }: ProfileTabProps) => {
       return;
     }
 
+    if (passwordData.newPassword === "pool123") {
+      toast({
+        title: "Invalid Password",
+        description: "Please choose a different password than the default",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setPasswordLoading(true);
     try {
       const { error } = await supabase.auth.updateUser({
@@ -164,6 +173,12 @@ const ProfileTab = ({ user, profile, onProfileUpdate }: ProfileTabProps) => {
       });
 
       if (error) throw error;
+
+      // Clear the must_change_password flag after successful password change
+      await supabase
+        .from("profiles")
+        .update({ must_change_password: false, updated_at: new Date().toISOString() })
+        .eq("user_id", user.id);
 
       toast({
         title: "Password Updated",
