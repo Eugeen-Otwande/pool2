@@ -246,7 +246,41 @@ const AuthPage = () => {
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Signing In..." : "Sign In"}
                   </Button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
                 </form>
+
+                {showForgotPassword && (
+                  <div className="mt-4 p-4 border border-border rounded-lg space-y-3 bg-muted/50">
+                    <h3 className="text-sm font-medium text-foreground">Reset Password</h3>
+                    <p className="text-xs text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+                    <form onSubmit={handleForgotPassword} className="space-y-3">
+                      <Input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        placeholder="Your email address"
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" size="sm" disabled={isLoading} className="flex-1">
+                          {isLoading ? "Sending..." : "Send Reset Link"}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setShowForgotPassword(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
