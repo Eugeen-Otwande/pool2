@@ -158,18 +158,19 @@ const AuthPage = () => {
     const email = forgotEmail.trim().toLowerCase();
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `https://pool2.lovable.app/reset-password`,
+      const { data, error } = await supabase.functions.invoke('reset-password', {
+        body: { email },
       });
 
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
         toast({
-          title: "Reset Link Sent",
-          description: "Check your email for a password reset link.",
+          title: "Password Reset",
+          description: "If an account exists with this email, the password has been reset to the default. Check your email for details.",
         });
         setShowForgotPassword(false);
+        setForgotEmail("");
       }
     } catch {
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
@@ -261,7 +262,7 @@ const AuthPage = () => {
                 {showForgotPassword && (
                   <div className="mt-4 p-4 border border-border rounded-lg space-y-3 bg-muted/50">
                     <h3 className="text-sm font-medium text-foreground">Reset Password</h3>
-                    <p className="text-xs text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+                    <p className="text-xs text-muted-foreground">Enter your email and we'll reset your password to the default. You'll receive an email with the details.</p>
                     <form onSubmit={handleForgotPassword} className="space-y-3">
                       <Input
                         type="email"
@@ -272,7 +273,7 @@ const AuthPage = () => {
                       />
                       <div className="flex gap-2">
                         <Button type="submit" size="sm" disabled={isLoading} className="flex-1">
-                          {isLoading ? "Sending..." : "Send Reset Link"}
+                          {isLoading ? "Resetting..." : "Reset Password"}
                         </Button>
                         <Button type="button" size="sm" variant="outline" onClick={() => setShowForgotPassword(false)}>
                           Cancel
