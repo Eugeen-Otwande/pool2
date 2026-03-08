@@ -158,18 +158,19 @@ const AuthPage = () => {
     const email = forgotEmail.trim().toLowerCase();
 
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `https://pool2.lovable.app/reset-password`,
+      const { data, error } = await supabase.functions.invoke('reset-password', {
+        body: { email },
       });
 
       if (error) {
         toast({ title: "Error", description: error.message, variant: "destructive" });
       } else {
         toast({
-          title: "Reset Link Sent",
-          description: "Check your email for a password reset link.",
+          title: "Password Reset",
+          description: "If an account exists with this email, the password has been reset to the default. Check your email for details.",
         });
         setShowForgotPassword(false);
+        setForgotEmail("");
       }
     } catch {
       toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
