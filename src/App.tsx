@@ -12,6 +12,7 @@ import BookingSuccess from "./pages/BookingSuccess";
 import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
+
 const queryClient = new QueryClient();
 
 const App = () => (
