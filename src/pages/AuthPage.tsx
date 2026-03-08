@@ -3,17 +3,19 @@ import { useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Eye, EyeOff, Waves } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import rcmrdLogo from "@/assets/rcmrd-logo.png";
 
 const AuthPage = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -150,6 +152,32 @@ const AuthPage = () => {
     }
   };
 
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    const email = forgotEmail.trim().toLowerCase();
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `https://pool2.lovable.app/reset-password`,
+      });
+
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+      } else {
+        toast({
+          title: "Reset Link Sent",
+          description: "Check your email for a password reset link.",
+        });
+        setShowForgotPassword(false);
+      }
+    } catch {
+      toast({ title: "Error", description: "An unexpected error occurred.", variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const updateFormData = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
   };
@@ -218,7 +246,41 @@ const AuthPage = () => {
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? "Signing In..." : "Sign In"}
                   </Button>
+
+                  <div className="text-center">
+                    <button
+                      type="button"
+                      className="text-sm text-primary hover:underline"
+                      onClick={() => setShowForgotPassword(true)}
+                    >
+                      Forgot your password?
+                    </button>
+                  </div>
                 </form>
+
+                {showForgotPassword && (
+                  <div className="mt-4 p-4 border border-border rounded-lg space-y-3 bg-muted/50">
+                    <h3 className="text-sm font-medium text-foreground">Reset Password</h3>
+                    <p className="text-xs text-muted-foreground">Enter your email and we'll send you a reset link.</p>
+                    <form onSubmit={handleForgotPassword} className="space-y-3">
+                      <Input
+                        type="email"
+                        value={forgotEmail}
+                        onChange={(e) => setForgotEmail(e.target.value)}
+                        required
+                        placeholder="Your email address"
+                      />
+                      <div className="flex gap-2">
+                        <Button type="submit" size="sm" disabled={isLoading} className="flex-1">
+                          {isLoading ? "Sending..." : "Send Reset Link"}
+                        </Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => setShowForgotPassword(false)}>
+                          Cancel
+                        </Button>
+                      </div>
+                    </form>
+                  </div>
+                )}
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">

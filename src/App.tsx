@@ -9,6 +9,7 @@ import AuthCallback from "./pages/AuthCallback";
 import Dashboard from "./pages/Dashboard";
 import VisitorBookingPage from "./pages/VisitorBooking";
 import BookingSuccess from "./pages/BookingSuccess";
+import ResetPassword from "./pages/ResetPassword";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/book-swim" element={<VisitorBookingPage />} />
           <Route path="/booking-success" element={<BookingSuccess />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
