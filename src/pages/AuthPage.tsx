@@ -280,7 +280,7 @@ const AuthPage = () => {
                       </div>
                     </form>
                   </div>
-                )
+                )}
               </TabsContent>
 
               <TabsContent value="signup" className="space-y-4">
