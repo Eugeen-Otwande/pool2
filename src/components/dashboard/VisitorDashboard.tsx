@@ -19,6 +19,7 @@ import CheckInWidget from "./CheckInWidget";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import PoolTimetable from "./PoolTimetable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProfileTab from "./ProfileTab";
 
 interface UserProfile {
   id: string;
