@@ -323,10 +323,11 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       </div>
 
       {/* Tab Navigation */}
-      <TabsList className="grid w-full max-w-md grid-cols-3">
+      <TabsList className="grid w-full max-w-md grid-cols-4">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="timetable">Timetable</TabsTrigger>
         <TabsTrigger value="info">Information</TabsTrigger>
+        <TabsTrigger value="profile">Profile</TabsTrigger>
       </TabsList>
 
       {/* Overview Tab */}
