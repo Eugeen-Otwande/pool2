@@ -1301,6 +1301,11 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         <TabsContent value="system">
           <SystemInfoTab user={user} profile={profile} />
         </TabsContent>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <ProfileTab user={user} profile={profile} />
+        </TabsContent>
       </Tabs>
 
       <CreateUserDialog

@@ -660,6 +660,11 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
           </CardContent>
         </Card>
       </TabsContent>
+
+      {/* Profile Tab */}
+      <TabsContent value="profile" className="space-y-6">
+        <ProfileTab user={user} profile={profile} />
+      </TabsContent>
       </Tabs>
     </div>
   );

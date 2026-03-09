@@ -1431,6 +1431,11 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
             </CardContent>
           </Card>
         </TabsContent>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <ProfileTab user={user} profile={profile} />
+        </TabsContent>
       </Tabs>
 
       {/* Delete Confirmation Dialog */}
