@@ -26,8 +26,10 @@ import {
   MessageSquare,
   Mail,
   FileText,
-  Download
+  Download,
+  User
 } from "lucide-react";
+import ProfileTab from "./ProfileTab";
 import { User } from "@supabase/supabase-js";
 import { format } from "date-fns";
 
