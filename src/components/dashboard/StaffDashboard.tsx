@@ -880,6 +880,7 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
             <TabsTrigger value="groupcheckins" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Groups</TabsTrigger>
             <TabsTrigger value="poollogs" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Pool Logs</TabsTrigger>
             <TabsTrigger value="system" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">System</TabsTrigger>
+            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Profile</TabsTrigger>
           </TabsList>
         </div>
 
