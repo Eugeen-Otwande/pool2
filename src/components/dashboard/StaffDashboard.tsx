@@ -54,6 +54,7 @@ import { User } from "@supabase/supabase-js";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import UserManagementTab from "./UserManagementTab";
 import GroupCheckInsTab from "./GroupCheckInsTab";
+import ProfileTab from "./ProfileTab";
 
 interface UserProfile {
   id: string;
