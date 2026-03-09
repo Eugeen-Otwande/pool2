@@ -54,6 +54,7 @@ import { User } from "@supabase/supabase-js";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import UserManagementTab from "./UserManagementTab";
 import GroupCheckInsTab from "./GroupCheckInsTab";
+import ProfileTab from "./ProfileTab";
 
 interface UserProfile {
   id: string;
@@ -879,6 +880,7 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
             <TabsTrigger value="groupcheckins" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Groups</TabsTrigger>
             <TabsTrigger value="poollogs" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Pool Logs</TabsTrigger>
             <TabsTrigger value="system" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">System</TabsTrigger>
+            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">Profile</TabsTrigger>
           </TabsList>
         </div>
 
@@ -1298,6 +1300,11 @@ const StaffDashboard = ({ user, profile, activeTab: externalActiveTab, onTabChan
         {/* System Info Tab */}
         <TabsContent value="system">
           <SystemInfoTab user={user} profile={profile} />
+        </TabsContent>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <ProfileTab user={user} profile={profile} />
         </TabsContent>
       </Tabs>
 

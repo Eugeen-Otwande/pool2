@@ -19,6 +19,7 @@ import CheckInWidget from "./CheckInWidget";
 import RecentActivitiesWidget from "./RecentActivitiesWidget";
 import PoolTimetable from "./PoolTimetable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import ProfileTab from "./ProfileTab";
 
 interface UserProfile {
   id: string;
@@ -28,6 +29,13 @@ interface UserProfile {
   last_name: string | null;
   role: string;
   status: string;
+  phone: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  subscription_type: string | null;
+  subscription_expires_at: string | null;
+  created_at: string;
+  updated_at: string;
 }
 
 interface VisitorDashboardProps {
@@ -322,10 +330,11 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
       </div>
 
       {/* Tab Navigation */}
-      <TabsList className="grid w-full max-w-md grid-cols-3">
+      <TabsList className="grid w-full max-w-md grid-cols-4">
         <TabsTrigger value="overview">Overview</TabsTrigger>
         <TabsTrigger value="timetable">Timetable</TabsTrigger>
         <TabsTrigger value="info">Information</TabsTrigger>
+        <TabsTrigger value="profile">Profile</TabsTrigger>
       </TabsList>
 
       {/* Overview Tab */}
@@ -657,6 +666,11 @@ const VisitorDashboard = ({ user, profile }: VisitorDashboardProps) => {
             </div>
           </CardContent>
         </Card>
+      </TabsContent>
+
+      {/* Profile Tab */}
+      <TabsContent value="profile" className="space-y-6">
+        <ProfileTab user={user} profile={profile} />
       </TabsContent>
       </Tabs>
     </div>

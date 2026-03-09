@@ -26,8 +26,10 @@ import {
   MessageSquare,
   Mail,
   FileText,
-  Download
+  Download,
+  User as UserIcon
 } from "lucide-react";
+import ProfileTab from "./ProfileTab";
 import { User } from "@supabase/supabase-js";
 import { format } from "date-fns";
 
@@ -40,7 +42,12 @@ interface UserProfile {
   role: string;
   status: string;
   phone: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  subscription_type: string | null;
+  subscription_expires_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface AdminReadOnlyDashboardProps {
@@ -694,6 +701,10 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
             <TabsTrigger value="reports" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
               <FileText className="w-4 h-4 mr-1.5" />
               Reports
+            </TabsTrigger>
+            <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
+              <UserIcon className="w-4 h-4 mr-1.5" />
+              Profile
             </TabsTrigger>
           </TabsList>
         </div>
@@ -1424,6 +1435,11 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
               </Table>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Profile Tab */}
+        <TabsContent value="profile" className="space-y-6">
+          <ProfileTab user={user} profile={profile} />
         </TabsContent>
       </Tabs>
 
