@@ -27,7 +27,7 @@ import {
   Mail,
   FileText,
   Download,
-  User
+  User as UserIcon
 } from "lucide-react";
 import ProfileTab from "./ProfileTab";
 import { User } from "@supabase/supabase-js";
@@ -42,7 +42,12 @@ interface UserProfile {
   role: string;
   status: string;
   phone: string | null;
+  emergency_contact: string | null;
+  emergency_phone: string | null;
+  subscription_type: string | null;
+  subscription_expires_at: string | null;
   created_at: string;
+  updated_at: string;
 }
 
 interface AdminReadOnlyDashboardProps {
