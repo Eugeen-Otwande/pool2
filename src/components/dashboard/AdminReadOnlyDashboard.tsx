@@ -703,7 +703,7 @@ const AdminReadOnlyDashboard = ({ user, profile, activeTab: externalActiveTab, o
               Reports
             </TabsTrigger>
             <TabsTrigger value="profile" className="data-[state=active]:bg-background data-[state=active]:shadow-sm">
-              <User className="w-4 h-4 mr-1.5" />
+              <UserIcon className="w-4 h-4 mr-1.5" />
               Profile
             </TabsTrigger>
           </TabsList>
