@@ -61,9 +61,19 @@ interface DashboardNavProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
+type NotificationType =
+  | 'message'
+  | 'approval'
+  | 'checkin'
+  | 'visitor'
+  | 'booking'
+  | 'equipment'
+  | 'inquiry'
+  | 'pool';
+
 interface NotificationItem {
   id: string;
-  type: 'message' | 'approval' | 'checkin' | 'visitor' | 'equipment' | 'inquiry';
+  type: NotificationType;
   title: string;
   description: string;
   time: string;
@@ -72,6 +82,18 @@ interface NotificationItem {
   targetTab?: string;
   metadata?: Record<string, any>;
 }
+
+const FILTERS: { key: NotificationType | 'all'; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'message', label: 'Messages' },
+  { key: 'approval', label: 'Approvals' },
+  { key: 'checkin', label: 'Check-ins' },
+  { key: 'visitor', label: 'Visitors' },
+  { key: 'booking', label: 'Bookings' },
+  { key: 'equipment', label: 'Equipment' },
+  { key: 'inquiry', label: 'Inquiries' },
+  { key: 'pool', label: 'Pool Logs' },
+];
 
 const roleColors: Record<string, string> = {
   system_admin: "bg-gradient-to-r from-red-500 to-pink-500",
