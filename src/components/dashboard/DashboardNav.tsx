@@ -113,6 +113,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
   const [loading, setLoading] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
 
   const isAdminOrStaff = profile.role === 'admin' || profile.role === 'staff';
 
