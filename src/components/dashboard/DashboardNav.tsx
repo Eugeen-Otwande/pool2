@@ -428,6 +428,31 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
             });
           }
         }
+
+        // Recent pool logs - LOW PRIORITY
+        const { data: recentPoolLogs } = await supabase
+          .from("pool_logs")
+          .select("id, date, session, total_swimmers, occurrence_reported, occurrence_details, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (recentPoolLogs) {
+          for (const log of recentPoolLogs) {
+            const isOccurrence = !!log.occurrence_reported;
+            allNotifications.push({
+              id: log.id,
+              type: 'pool',
+              title: isOccurrence ? `⚠️ Pool Occurrence (${log.session})` : `🏊 Pool Log: ${log.session}`,
+              description: isOccurrence
+                ? (log.occurrence_details || 'Incident reported').substring(0, 120)
+                : `${log.date} • ${log.total_swimmers ?? 0} swimmer(s) recorded`,
+              time: log.created_at,
+              status: isOccurrence ? 'pending' : 'new',
+              priority: isOccurrence ? 'high' : 'low',
+              targetTab: 'pool-logs'
+            });
+          }
+        }
       }
 
       // Sort by priority then by time
@@ -438,7 +463,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
         return new Date(b.time).getTime() - new Date(a.time).getTime();
       });
       
-      setNotifications(allNotifications.slice(0, 20));
+      setNotifications(allNotifications.slice(0, 100));
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
