@@ -530,8 +530,10 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
       case 'approval': return 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/50';
       case 'checkin': return 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50';
       case 'visitor': return 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/50';
+      case 'booking': return 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50';
       case 'equipment': return 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50';
       case 'inquiry': return 'bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900/50';
+      case 'pool': return 'bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/50';
       default: return 'bg-muted/50 border-border hover:bg-muted';
     }
   };
