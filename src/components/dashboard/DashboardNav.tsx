@@ -352,7 +352,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
           for (const booking of recentBookings) {
             allNotifications.push({
               id: booking.id,
-              type: 'visitor',
+              type: 'booking',
               title: `📋 Booking: ${booking.first_name} ${booking.last_name}`,
               description: `Ref: ${booking.reference_code} • ${booking.num_guests} guest(s) • KES ${booking.amount} pending`,
               time: booking.created_at,
