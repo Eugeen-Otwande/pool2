@@ -565,6 +565,15 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
   const highPriorityCount = notifications.filter(n => n.priority === 'high').length;
   const totalNotifications = notifications.length;
 
+  const filteredNotifications = activeFilter === 'all'
+    ? notifications
+    : notifications.filter(n => n.type === activeFilter);
+
+  const counts = notifications.reduce<Record<string, number>>((acc, n) => {
+    acc[n.type] = (acc[n.type] || 0) + 1;
+    return acc;
+  }, {});
+
   const NotificationsPopover = () => (
     <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
       <PopoverTrigger asChild>
@@ -584,17 +593,17 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[420px] p-0" align="end">
+      <PopoverContent className="w-[440px] p-0" align="end">
         {/* Header */}
         <div className="p-4 border-b bg-muted/30">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-lg">Notifications</h3>
+              <h3 className="font-semibold text-lg">Notification Tray</h3>
               <p className="text-sm text-muted-foreground">
                 {highPriorityCount > 0 ? (
                   <span className="text-red-500 font-medium">{highPriorityCount} urgent</span>
                 ) : totalNotifications > 0 ? (
-                  `${totalNotifications} update${totalNotifications > 1 ? 's' : ''}`
+                  `${totalNotifications} update${totalNotifications > 1 ? 's' : ''} across all areas`
                 ) : (
                   'All caught up!'
                 )}
@@ -611,7 +620,35 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
             </Button>
           </div>
         </div>
-        
+
+        {/* Filter chips */}
+        <div className="px-3 py-2 border-b bg-background overflow-x-auto">
+          <div className="flex gap-1.5 min-w-max">
+            {FILTERS.map(f => {
+              const c = f.key === 'all' ? totalNotifications : (counts[f.key] || 0);
+              const isActive = activeFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFilter(f.key)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  {f.label}
+                  {c > 0 && (
+                    <span className={`text-[10px] px-1.5 rounded-full ${
+                      isActive ? 'bg-primary-foreground/20' : 'bg-background'
+                    }`}>{c}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Notifications List */}
         <ScrollArea className="h-[450px]">
           {loading ? (
@@ -619,9 +656,9 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
               <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Loading notifications...</p>
             </div>
-          ) : notifications.length > 0 ? (
+          ) : filteredNotifications.length > 0 ? (
             <div className="p-2 space-y-2">
-              {notifications.map((notification) => (
+              {filteredNotifications.map((notification) => (
                 <div 
                   key={`${notification.type}-${notification.id}`}
                   onClick={() => handleNotificationClick(notification)}
