@@ -183,7 +183,6 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
   const fetchMessageReplies = async (messageId: string) => {
     try {
-      // Fetch replies first
       const { data: repliesData, error } = await supabase
         .from("message_replies")
         .select("*")
@@ -192,22 +191,20 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
       if (error) throw error;
 
-      // Fetch sender profiles for each reply
-      const repliesWithProfiles = [];
-      for (const reply of repliesData || []) {
-        const { data: senderProfile } = await supabase
+      const senderIds = Array.from(new Set((repliesData || []).map(r => r.sender_id).filter(Boolean)));
+      let profilesMap = new Map<string, any>();
+      if (senderIds.length > 0) {
+        const { data: profilesData } = await supabase
           .from("profiles")
-          .select("first_name, last_name, role")
-          .eq("user_id", reply.sender_id)
-          .single();
-
-        repliesWithProfiles.push({
-          ...reply,
-          sender_profile: senderProfile,
-        });
+          .select("user_id, first_name, last_name, role")
+          .in("user_id", senderIds);
+        profilesMap = new Map((profilesData || []).map(p => [p.user_id, p]));
       }
 
-      return repliesWithProfiles;
+      return (repliesData || []).map(reply => ({
+        ...reply,
+        sender_profile: profilesMap.get(reply.sender_id) || null,
+      }));
     } catch (error) {
       console.error("Error fetching replies:", error);
       return [];
