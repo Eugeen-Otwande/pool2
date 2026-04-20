@@ -61,9 +61,19 @@ interface DashboardNavProps {
   onNavigateToTab?: (tab: string) => void;
 }
 
+type NotificationType =
+  | 'message'
+  | 'approval'
+  | 'checkin'
+  | 'visitor'
+  | 'booking'
+  | 'equipment'
+  | 'inquiry'
+  | 'pool';
+
 interface NotificationItem {
   id: string;
-  type: 'message' | 'approval' | 'checkin' | 'visitor' | 'equipment' | 'inquiry';
+  type: NotificationType;
   title: string;
   description: string;
   time: string;
@@ -72,6 +82,18 @@ interface NotificationItem {
   targetTab?: string;
   metadata?: Record<string, any>;
 }
+
+const FILTERS: { key: NotificationType | 'all'; label: string }[] = [
+  { key: 'all', label: 'All' },
+  { key: 'message', label: 'Messages' },
+  { key: 'approval', label: 'Approvals' },
+  { key: 'checkin', label: 'Check-ins' },
+  { key: 'visitor', label: 'Visitors' },
+  { key: 'booking', label: 'Bookings' },
+  { key: 'equipment', label: 'Equipment' },
+  { key: 'inquiry', label: 'Inquiries' },
+  { key: 'pool', label: 'Pool Logs' },
+];
 
 const roleColors: Record<string, string> = {
   system_admin: "bg-gradient-to-r from-red-500 to-pink-500",
@@ -91,6 +113,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
   const [loading, setLoading] = useState(true);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
 
   const isAdminOrStaff = profile.role === 'admin' || profile.role === 'staff';
 
@@ -330,7 +353,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
           for (const booking of recentBookings) {
             allNotifications.push({
               id: booking.id,
-              type: 'visitor',
+              type: 'booking',
               title: `📋 Booking: ${booking.first_name} ${booking.last_name}`,
               description: `Ref: ${booking.reference_code} • ${booking.num_guests} guest(s) • KES ${booking.amount} pending`,
               time: booking.created_at,
@@ -406,6 +429,31 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
             });
           }
         }
+
+        // Recent pool logs - LOW PRIORITY
+        const { data: recentPoolLogs } = await supabase
+          .from("pool_logs")
+          .select("id, date, session, total_swimmers, occurrence_reported, occurrence_details, created_at")
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        if (recentPoolLogs) {
+          for (const log of recentPoolLogs) {
+            const isOccurrence = !!log.occurrence_reported;
+            allNotifications.push({
+              id: log.id,
+              type: 'pool',
+              title: isOccurrence ? `⚠️ Pool Occurrence (${log.session})` : `🏊 Pool Log: ${log.session}`,
+              description: isOccurrence
+                ? (log.occurrence_details || 'Incident reported').substring(0, 120)
+                : `${log.date} • ${log.total_swimmers ?? 0} swimmer(s) recorded`,
+              time: log.created_at,
+              status: isOccurrence ? 'pending' : 'new',
+              priority: isOccurrence ? 'high' : 'low',
+              targetTab: 'pool-logs'
+            });
+          }
+        }
       }
 
       // Sort by priority then by time
@@ -416,7 +464,7 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
         return new Date(b.time).getTime() - new Date(a.time).getTime();
       });
       
-      setNotifications(allNotifications.slice(0, 20));
+      setNotifications(allNotifications.slice(0, 100));
     } catch (error) {
       console.error("Error fetching notifications:", error);
     } finally {
@@ -465,8 +513,10 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
         if (status === 'checked_out') return <XCircle className="w-5 h-5 text-gray-500" />;
         return <Activity className="w-5 h-5 text-blue-500" />;
       case 'visitor': return <Users className="w-5 h-5 text-purple-500" />;
+      case 'booking': return <CreditCard className="w-5 h-5 text-indigo-500" />;
       case 'equipment': return <Dumbbell className="w-5 h-5 text-red-500" />;
       case 'inquiry': return <HelpCircle className="w-5 h-5 text-cyan-500" />;
+      case 'pool': return <AlertTriangle className="w-5 h-5 text-amber-500" />;
       default: return <Bell className="w-5 h-5 text-gray-500" />;
     }
   };
@@ -480,8 +530,10 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
       case 'approval': return 'bg-orange-50 dark:bg-orange-950/50 border-orange-200 dark:border-orange-800 hover:bg-orange-100 dark:hover:bg-orange-900/50';
       case 'checkin': return 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/50';
       case 'visitor': return 'bg-purple-50 dark:bg-purple-950/50 border-purple-200 dark:border-purple-800 hover:bg-purple-100 dark:hover:bg-purple-900/50';
+      case 'booking': return 'bg-indigo-50 dark:bg-indigo-950/50 border-indigo-200 dark:border-indigo-800 hover:bg-indigo-100 dark:hover:bg-indigo-900/50';
       case 'equipment': return 'bg-amber-50 dark:bg-amber-950/50 border-amber-200 dark:border-amber-800 hover:bg-amber-100 dark:hover:bg-amber-900/50';
       case 'inquiry': return 'bg-cyan-50 dark:bg-cyan-950/50 border-cyan-200 dark:border-cyan-800 hover:bg-cyan-100 dark:hover:bg-cyan-900/50';
+      case 'pool': return 'bg-sky-50 dark:bg-sky-950/50 border-sky-200 dark:border-sky-800 hover:bg-sky-100 dark:hover:bg-sky-900/50';
       default: return 'bg-muted/50 border-border hover:bg-muted';
     }
   };
@@ -513,6 +565,15 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
   const highPriorityCount = notifications.filter(n => n.priority === 'high').length;
   const totalNotifications = notifications.length;
 
+  const filteredNotifications = activeFilter === 'all'
+    ? notifications
+    : notifications.filter(n => n.type === activeFilter);
+
+  const counts = notifications.reduce<Record<string, number>>((acc, n) => {
+    acc[n.type] = (acc[n.type] || 0) + 1;
+    return acc;
+  }, {});
+
   const NotificationsPopover = () => (
     <Popover open={notificationsOpen} onOpenChange={setNotificationsOpen}>
       <PopoverTrigger asChild>
@@ -532,17 +593,17 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
           )}
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[420px] p-0" align="end">
+      <PopoverContent className="w-[440px] p-0" align="end">
         {/* Header */}
         <div className="p-4 border-b bg-muted/30">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="font-semibold text-lg">Notifications</h3>
+              <h3 className="font-semibold text-lg">Notification Tray</h3>
               <p className="text-sm text-muted-foreground">
                 {highPriorityCount > 0 ? (
                   <span className="text-red-500 font-medium">{highPriorityCount} urgent</span>
                 ) : totalNotifications > 0 ? (
-                  `${totalNotifications} update${totalNotifications > 1 ? 's' : ''}`
+                  `${totalNotifications} update${totalNotifications > 1 ? 's' : ''} across all areas`
                 ) : (
                   'All caught up!'
                 )}
@@ -559,7 +620,35 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
             </Button>
           </div>
         </div>
-        
+
+        {/* Filter chips */}
+        <div className="px-3 py-2 border-b bg-background overflow-x-auto">
+          <div className="flex gap-1.5 min-w-max">
+            {FILTERS.map(f => {
+              const c = f.key === 'all' ? totalNotifications : (counts[f.key] || 0);
+              const isActive = activeFilter === f.key;
+              return (
+                <button
+                  key={f.key}
+                  onClick={() => setActiveFilter(f.key)}
+                  className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors flex items-center gap-1.5 ${
+                    isActive
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted text-muted-foreground hover:bg-muted/70'
+                  }`}
+                >
+                  {f.label}
+                  {c > 0 && (
+                    <span className={`text-[10px] px-1.5 rounded-full ${
+                      isActive ? 'bg-primary-foreground/20' : 'bg-background'
+                    }`}>{c}</span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Notifications List */}
         <ScrollArea className="h-[450px]">
           {loading ? (
@@ -567,9 +656,9 @@ const DashboardNav = ({ user, profile, onSignOut, onNavigateToTab }: DashboardNa
               <RefreshCw className="h-6 w-6 animate-spin mx-auto mb-2 text-muted-foreground" />
               <p className="text-sm text-muted-foreground">Loading notifications...</p>
             </div>
-          ) : notifications.length > 0 ? (
+          ) : filteredNotifications.length > 0 ? (
             <div className="p-2 space-y-2">
-              {notifications.map((notification) => (
+              {filteredNotifications.map((notification) => (
                 <div 
                   key={`${notification.type}-${notification.id}`}
                   onClick={() => handleNotificationClick(notification)}
