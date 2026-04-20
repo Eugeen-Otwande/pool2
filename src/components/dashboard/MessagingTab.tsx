@@ -84,6 +84,25 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
   useEffect(() => {
     fetchMessages();
     fetchUsers();
+
+    // Realtime: refresh on any message change relevant to this user
+    const channel = supabase
+      .channel("messaging-tab-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "messages" },
+        () => fetchMessages()
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "message_replies" },
+        () => fetchMessages()
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const fetchMessages = async () => {
@@ -96,7 +115,7 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
         .from("profiles")
         .select("role")
         .eq("user_id", currentUser.user.id)
-        .single();
+        .maybeSingle();
 
       if (!profile) throw new Error("Profile not found");
 
@@ -109,33 +128,25 @@ const MessagingTab = ({ onRefreshStats }: MessagingTabProps) => {
 
       if (error) throw error;
 
-      // Fetch profiles for each message
-      const messagesWithProfiles = [];
-      for (const message of messagesData || []) {
-        // Get sender profile
-        const { data: senderProfile } = await supabase
+      // Batch-fetch sender + recipient profiles in two queries (avoids N+1)
+      const senderIds = Array.from(new Set((messagesData || []).map(m => m.sender_id).filter(Boolean)));
+      const recipientIds = Array.from(new Set((messagesData || []).map(m => m.recipient_id).filter(Boolean)));
+      const allUserIds = Array.from(new Set([...senderIds, ...recipientIds]));
+
+      let profilesMap = new Map<string, any>();
+      if (allUserIds.length > 0) {
+        const { data: profilesData } = await supabase
           .from("profiles")
-          .select("first_name, last_name, role")
-          .eq("user_id", message.sender_id)
-          .single();
-
-        // Get recipient profile if it's an individual message
-        let recipientProfile = null;
-        if (message.recipient_id) {
-          const { data: recipProfile } = await supabase
-            .from("profiles")
-            .select("first_name, last_name, email")
-            .eq("user_id", message.recipient_id)
-            .single();
-          recipientProfile = recipProfile;
-        }
-
-        messagesWithProfiles.push({
-          ...message,
-          sender_profile: senderProfile,
-          recipient_profile: recipientProfile,
-        });
+          .select("user_id, first_name, last_name, email, role")
+          .in("user_id", allUserIds);
+        profilesMap = new Map((profilesData || []).map(p => [p.user_id, p]));
       }
+
+      const messagesWithProfiles = (messagesData || []).map(message => ({
+        ...message,
+        sender_profile: profilesMap.get(message.sender_id) || null,
+        recipient_profile: message.recipient_id ? profilesMap.get(message.recipient_id) || null : null,
+      }));
 
       setMessages(messagesWithProfiles);
     } catch (error) {
